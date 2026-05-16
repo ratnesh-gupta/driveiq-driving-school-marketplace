@@ -3,13 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: DriveIQ - Driving School Marketplace API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: schools
+    description: Driving school operations
+  - name: localities
+    description: Locality operations
+  - name: reviews
+    description: Review operations
+  - name: inquiries
+    description: Inquiry/lead operations
+  - name: packages
+    description: Package/pricing operations
+  - name: stats
+    description: Analytics and stats
 paths:
   /healthz:
     get:
@@ -24,6 +36,491 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /schools:
+    get:
+      operationId: listSchools
+      tags: [schools]
+      summary: List driving schools
+      parameters:
+        - name: locality
+          in: query
+          schema:
+            type: string
+        - name: vehicleType
+          in: query
+          schema:
+            type: string
+        - name: minRating
+          in: query
+          schema:
+            type: number
+        - name: hasPickup
+          in: query
+          schema:
+            type: boolean
+        - name: womenInstructor
+          in: query
+          schema:
+            type: boolean
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: transmission
+          in: query
+          schema:
+            type: string
+        - name: weekendClasses
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of schools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/School"
+    post:
+      operationId: createSchool
+      tags: [schools]
+      summary: Create a driving school
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchoolInput"
+      responses:
+        "201":
+          description: School created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+
+  /schools/featured:
+    get:
+      operationId: listFeaturedSchools
+      tags: [schools]
+      summary: List featured/top-rated schools
+      responses:
+        "200":
+          description: Featured schools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/School"
+
+  /schools/{id}:
+    get:
+      operationId: getSchool
+      tags: [schools]
+      summary: Get a school by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: School details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateSchool
+      tags: [schools]
+      summary: Update a school
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchoolUpdate"
+      responses:
+        "200":
+          description: Updated school
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+    delete:
+      operationId: deleteSchool
+      tags: [schools]
+      summary: Delete a school
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /schools/slug/{slug}:
+    get:
+      operationId: getSchoolBySlug
+      tags: [schools]
+      summary: Get a school by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: School details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+        "404":
+          description: Not found
+
+  /localities:
+    get:
+      operationId: listLocalities
+      tags: [localities]
+      summary: List localities
+      responses:
+        "200":
+          description: List of localities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Locality"
+    post:
+      operationId: createLocality
+      tags: [localities]
+      summary: Create a locality
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalityInput"
+      responses:
+        "201":
+          description: Locality created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locality"
+
+  /localities/{id}:
+    get:
+      operationId: getLocality
+      tags: [localities]
+      summary: Get a locality by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Locality
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locality"
+
+  /localities/slug/{slug}:
+    get:
+      operationId: getLocalityBySlug
+      tags: [localities]
+      summary: Get locality by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Locality
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locality"
+
+  /reviews:
+    get:
+      operationId: listReviews
+      tags: [reviews]
+      summary: List reviews
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Submit a review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  /reviews/{id}:
+    patch:
+      operationId: updateReview
+      tags: [reviews]
+      summary: Moderate/update a review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewUpdate"
+      responses:
+        "200":
+          description: Updated review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+    delete:
+      operationId: deleteReview
+      tags: [reviews]
+      summary: Delete a review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /inquiries:
+    get:
+      operationId: listInquiries
+      tags: [inquiries]
+      summary: List inquiries/leads
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of inquiries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Inquiry"
+    post:
+      operationId: createInquiry
+      tags: [inquiries]
+      summary: Submit an inquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryInput"
+      responses:
+        "201":
+          description: Inquiry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+
+  /inquiries/{id}:
+    patch:
+      operationId: updateInquiry
+      tags: [inquiries]
+      summary: Update inquiry status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryUpdate"
+      responses:
+        "200":
+          description: Updated inquiry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+
+  /packages:
+    get:
+      operationId: listPackages
+      tags: [packages]
+      summary: List packages
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Package"
+    post:
+      operationId: createPackage
+      tags: [packages]
+      summary: Create a package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PackageInput"
+      responses:
+        "201":
+          description: Package created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Package"
+
+  /packages/{id}:
+    patch:
+      operationId: updatePackage
+      tags: [packages]
+      summary: Update a package
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PackageUpdate"
+      responses:
+        "200":
+          description: Updated package
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Package"
+    delete:
+      operationId: deletePackage
+      tags: [packages]
+      summary: Delete a package
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /stats/overview:
+    get:
+      operationId: getStatsOverview
+      tags: [stats]
+      summary: Get platform overview stats
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
+  /stats/school/{schoolId}:
+    get:
+      operationId: getSchoolStats
+      tags: [stats]
+      summary: Get stats for a specific school
+      parameters:
+        - name: schoolId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: School stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchoolStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +531,451 @@ components:
       required:
         - status
 
+    School:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - localityId
+        - address
+        - phone
+        - rating
+        - reviewCount
+        - verified
+        - hasPickup
+        - womenInstructor
+        - weekendClasses
+        - vehicleTypes
+        - transmission
+        - priceFrom
+        - priceTo
+        - createdAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        localityId:
+          type: integer
+        localityName:
+          type: ["string", "null"]
+        address:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        verified:
+          type: boolean
+        hasPickup:
+          type: boolean
+        womenInstructor:
+          type: boolean
+        weekendClasses:
+          type: boolean
+        vehicleTypes:
+          type: array
+          items:
+            type: string
+        transmission:
+          type: array
+          items:
+            type: string
+        priceFrom:
+          type: number
+        priceTo:
+          type: number
+        timings:
+          type: ["string", "null"]
+        serviceAreas:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+
+    SchoolInput:
+      type: object
+      required:
+        - name
+        - slug
+        - localityId
+        - address
+        - phone
+        - priceFrom
+        - priceTo
+        - vehicleTypes
+        - transmission
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        localityId:
+          type: integer
+        address:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        email:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        hasPickup:
+          type: boolean
+        womenInstructor:
+          type: boolean
+        weekendClasses:
+          type: boolean
+        vehicleTypes:
+          type: array
+          items:
+            type: string
+        transmission:
+          type: array
+          items:
+            type: string
+        priceFrom:
+          type: number
+        priceTo:
+          type: number
+        timings:
+          type: string
+        serviceAreas:
+          type: array
+          items:
+            type: string
+
+    SchoolUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        email:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        hasPickup:
+          type: boolean
+        womenInstructor:
+          type: boolean
+        weekendClasses:
+          type: boolean
+        vehicleTypes:
+          type: array
+          items:
+            type: string
+        transmission:
+          type: array
+          items:
+            type: string
+        priceFrom:
+          type: number
+        priceTo:
+          type: number
+        timings:
+          type: string
+        serviceAreas:
+          type: array
+          items:
+            type: string
+        verified:
+          type: boolean
+
+    Locality:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - schoolCount
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        schoolCount:
+          type: integer
+
+    LocalityInput:
+      type: object
+      required:
+        - name
+        - slug
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+
+    Review:
+      type: object
+      required:
+        - id
+        - schoolId
+        - authorName
+        - rating
+        - content
+        - approved
+        - createdAt
+      properties:
+        id:
+          type: integer
+        schoolId:
+          type: integer
+        schoolName:
+          type: ["string", "null"]
+        authorName:
+          type: string
+        rating:
+          type: integer
+        content:
+          type: string
+        approved:
+          type: boolean
+        createdAt:
+          type: string
+
+    ReviewInput:
+      type: object
+      required:
+        - schoolId
+        - authorName
+        - rating
+        - content
+      properties:
+        schoolId:
+          type: integer
+        authorName:
+          type: string
+        rating:
+          type: integer
+        content:
+          type: string
+
+    ReviewUpdate:
+      type: object
+      properties:
+        approved:
+          type: boolean
+        content:
+          type: string
+
+    Inquiry:
+      type: object
+      required:
+        - id
+        - schoolId
+        - name
+        - phone
+        - vehicleType
+        - status
+        - createdAt
+      properties:
+        id:
+          type: integer
+        schoolId:
+          type: integer
+        schoolName:
+          type: ["string", "null"]
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: ["string", "null"]
+        vehicleType:
+          type: string
+        message:
+          type: ["string", "null"]
+        status:
+          type: string
+        createdAt:
+          type: string
+
+    InquiryInput:
+      type: object
+      required:
+        - schoolId
+        - name
+        - phone
+        - vehicleType
+      properties:
+        schoolId:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        vehicleType:
+          type: string
+        message:
+          type: string
+
+    InquiryUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+
+    Package:
+      type: object
+      required:
+        - id
+        - schoolId
+        - name
+        - price
+        - sessions
+        - vehicleType
+        - transmission
+        - active
+      properties:
+        id:
+          type: integer
+        schoolId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        sessions:
+          type: integer
+        vehicleType:
+          type: string
+        transmission:
+          type: string
+        hasPickup:
+          type: boolean
+        active:
+          type: boolean
+
+    PackageInput:
+      type: object
+      required:
+        - schoolId
+        - name
+        - price
+        - sessions
+        - vehicleType
+        - transmission
+      properties:
+        schoolId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        sessions:
+          type: integer
+        vehicleType:
+          type: string
+        transmission:
+          type: string
+        hasPickup:
+          type: boolean
+
+    PackageUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        sessions:
+          type: integer
+        vehicleType:
+          type: string
+        transmission:
+          type: string
+        hasPickup:
+          type: boolean
+        active:
+          type: boolean
+
+    PlatformStats:
+      type: object
+      required:
+        - totalSchools
+        - totalLocalities
+        - totalReviews
+        - totalInquiries
+        - verifiedSchools
+      properties:
+        totalSchools:
+          type: integer
+        totalLocalities:
+          type: integer
+        totalReviews:
+          type: integer
+        totalInquiries:
+          type: integer
+        verifiedSchools:
+          type: integer
+        avgRating:
+          type: number
+
+    SchoolStats:
+      type: object
+      required:
+        - schoolId
+        - totalInquiries
+        - pendingInquiries
+        - totalReviews
+        - avgRating
+        - thisMonthInquiries
+      properties:
+        schoolId:
+          type: integer
+        totalInquiries:
+          type: integer
+        pendingInquiries:
+          type: integer
+        totalReviews:
+          type: integer
+        avgRating:
+          type: number
+        thisMonthInquiries:
+          type: integer
