@@ -23,6 +23,7 @@ function parseQuery(search: string) {
 }
 
 export default function SearchPage() {
+
   const qs = typeof window !== "undefined" ? window.location.search : "";
   const initial = parseQuery(qs);
 
@@ -123,7 +124,7 @@ export default function SearchPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </div >
 
       <div>
         <Label className="text-sm font-semibold mb-3 block">Vehicle Type</Label>
@@ -195,12 +196,14 @@ export default function SearchPage() {
         ))}
       </div>
 
-      {activeFilterCount > 0 && (
-        <Button variant="outline" className="w-full" onClick={clearFilters} data-testid="button-clear-filters">
-          <X className="h-4 w-4 mr-2" /> Clear Filters
-        </Button>
-      )}
-    </div>
+  {
+    activeFilterCount > 0 && (
+      <Button variant="outline" className="w-full" onClick={clearFilters} data-testid="button-clear-filters">
+        <X className="h-4 w-4 mr-2" /> Clear Filters
+      </Button>
+    )
+  }
+    </div >
   );
 
   return (
@@ -251,102 +254,103 @@ export default function SearchPage() {
               <MapPin className="h-4 w-4 mr-2" />
               Near me
             </Button>
+  {
+    activeFilterCount > 0 && (
+      <Badge variant="secondary" className="gap-1">
+        {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+        <button onClick={clearFilters}><X className="h-3 w-3" /></button>
+      </Badge>
+    )
+  }
 
-            {activeFilterCount > 0 && (
-              <Badge variant="secondary" className="gap-1">
-                {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
-                <button onClick={clearFilters}><X className="h-3 w-3" /></button>
-              </Badge>
-            )}
-
-            {/* Mobile filter trigger */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="md:hidden gap-2" data-testid="button-mobile-filters">
-                  <SlidersHorizontal className="h-4 w-4" /> Filters
-                  {activeFilterCount > 0 && <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs">{activeFilterCount}</Badge>}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="overflow-y-auto">
-                <SheetHeader><SheetTitle>Filters</SheetTitle></SheetHeader>
-                <div className="mt-6">
-                  <FilterPanel />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
+  {/* Mobile filter trigger */ }
+  <Sheet>
+    <SheetTrigger asChild>
+      <Button variant="outline" className="md:hidden gap-2" data-testid="button-mobile-filters">
+        <SlidersHorizontal className="h-4 w-4" /> Filters
+        {activeFilterCount > 0 && <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs">{activeFilterCount}</Badge>}
+      </Button>
+    </SheetTrigger>
+    <SheetContent side="left" className="overflow-y-auto">
+      <SheetHeader><SheetTitle>Filters</SheetTitle></SheetHeader>
+      <div className="mt-6">
+        <FilterPanel />
       </div>
+    </SheetContent>
+  </Sheet>
+          </div >
+        </div >
+      </div >
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex gap-8">
-          {/* Sidebar filters — desktop */}
-          <aside className="hidden md:block w-64 flex-shrink-0">
-            <div className="sticky top-24 rounded-xl border bg-card p-5">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-semibold flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4" /> Filters
-                </h2>
-                {activeFilterCount > 0 && (
-                  <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-destructive">Clear all</button>
-                )}
-              </div>
-              <FilterPanel />
-            </div>
-          </aside>
-
-          {/* Results */}
-          <div className="flex-1 min-w-0">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex gap-8">
+        {/* Sidebar filters — desktop */}
+        <aside className="hidden md:block w-64 flex-shrink-0">
+          <div className="sticky top-24 rounded-xl border bg-card p-5">
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-xl font-bold">
-                  {locality ? `Schools in ${locality.charAt(0).toUpperCase() + locality.slice(1)}` : "All Driving Schools"}
-                </h1>
-                {!isLoading && (
-                  <p className="text-sm text-muted-foreground mt-0.5">{schools?.length || 0} schools found</p>
-                )}
-              </div>
+              <h2 className="font-semibold flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4" /> Filters
+              </h2>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-destructive">Clear all</button>
+              )}
             </div>
-
-            {isLoading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-72 rounded-xl" />
-                ))}
-              </div>
-            ) : !schools?.length ? (
-              <div className="text-center py-20 text-muted-foreground">
-                <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p className="text-lg font-medium">No schools found</p>
-                <p className="text-sm mt-1">Try adjusting your filters</p>
-                <Button variant="outline" className="mt-4" onClick={clearFilters}>Clear filters</Button>
-              </div>
-            ) : (
-              <motion.div
-                className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5"
-                initial="initial"
-                animate="animate"
-                variants={{ animate: { transition: { staggerChildren: 0.05 } } }}
-              >
-                <AnimatePresence>
-                  {schools.map((school) => (
-                    <motion.div
-                      key={school.id}
-                      initial={{ opacity: 0, scale: 0.97 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.97 }}
-                      transition={{ duration: 0.3 }}
-                      data-testid={`card-school-${school.id}`}
-                    >
-                      <SchoolCard school={school} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-            )}
+            <FilterPanel />
           </div>
+        </aside>
+
+        {/* Results */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-xl font-bold">
+                {locality ? `Schools in ${locality.charAt(0).toUpperCase() + locality.slice(1)}` : "All Driving Schools"}
+              </h1>
+              {!isLoading && (
+                <p className="text-sm text-muted-foreground mt-0.5">{schools?.length || 0} schools found</p>
+              )}
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-72 rounded-xl" />
+              ))}
+            </div>
+          ) : !schools?.length ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p className="text-lg font-medium">No schools found</p>
+              <p className="text-sm mt-1">Try adjusting your filters</p>
+              <Button variant="outline" className="mt-4" onClick={clearFilters}>Clear filters</Button>
+            </div>
+          ) : (
+            <motion.div
+              className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5"
+              initial="initial"
+              animate="animate"
+              variants={{ animate: { transition: { staggerChildren: 0.05 } } }}
+            >
+              <AnimatePresence>
+                {schools.map((school) => (
+                  <motion.div
+                    key={school.id}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.3 }}
+                    data-testid={`card-school-${school.id}`}
+                  >
+                    <SchoolCard school={school} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
         </div>
       </div>
-    </PublicLayout>
+    </div>
+    </PublicLayout >
   );
 }
