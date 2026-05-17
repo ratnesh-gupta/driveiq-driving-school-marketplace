@@ -33,7 +33,7 @@ export default function PackagesPage() {
   const handleOpen = (pkg?: typeof packages extends (infer T)[] | undefined ? T : never) => {
     if (pkg) {
       setEditId(pkg.id);
-      setForm({ name: pkg.name, description: pkg.description || "", price: String(pkg.price), sessions: String(pkg.sessions), vehicleType: pkg.vehicleType, transmission: pkg.transmission, hasPickup: pkg.hasPickup });
+      setForm({ name: pkg.name, description: pkg.description || "", price: String(pkg.price), sessions: String(pkg.sessions), vehicleType: pkg.vehicleType, transmission: pkg.transmission, hasPickup: pkg.hasPickup ?? false });
     } else {
       setEditId(null);
       resetForm();

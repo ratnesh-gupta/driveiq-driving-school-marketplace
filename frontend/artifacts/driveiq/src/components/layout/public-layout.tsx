@@ -34,7 +34,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                   <Link href={userRole === "admin" ? "/admin" : userRole === "school" ? "/dashboard" : "/search"}>
                     <Button variant="outline">Dashboard</Button>
                   </Link>
-                  <Button variant="ghost" onClick={() => logout()}>Logout</Button>
+                  <Button variant="ghost" onClick={() => { void logout(); }}>Logout</Button>
                 </>
               ) : (
                 <>
@@ -59,7 +59,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                   {isLoggedIn ? (
                     <>
                       <Link href={userRole === "admin" ? "/admin" : userRole === "school" ? "/dashboard" : "/search"} className="text-sm font-medium">Dashboard</Link>
-                      <button onClick={() => logout()} className="text-sm font-medium text-left text-destructive">Logout</button>
+                      <button onClick={() => { void logout(); }} className="text-sm font-medium text-left text-destructive">Logout</button>
                     </>
                   ) : (
                     <>

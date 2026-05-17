@@ -20,6 +20,7 @@ import {
   useCreateInquiry,
   useCreateReview,
   getListReviewsQueryKey,
+  getListPackagesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -52,7 +53,7 @@ export default function SchoolDetailPage() {
   );
   const { data: packages } = useListPackages(
     { schoolId: school?.id },
-    { query: { enabled: !!school?.id } }
+    { query: { enabled: !!school?.id, queryKey: getListPackagesQueryKey({ schoolId: school?.id }) } }
   );
 
   const createInquiry = useCreateInquiry();
@@ -182,7 +183,7 @@ export default function SchoolDetailPage() {
                   { icon: Car, label: "Vehicle Types", value: school.vehicleTypes.join(", ") || "—" },
                   { icon: CheckCircle2, label: "Transmission", value: school.transmission.join(", ") || "—" },
                   { icon: Clock, label: "Timings", value: school.timings || "Mon–Sat, 7am–7pm" },
-                  { icon: MapPin, label: "Service Areas", value: school.serviceAreas.join(", ") || school.localityName || "—" },
+                  { icon: MapPin, label: "Service Areas", value: school.serviceAreas?.join(", ") || school.localityName || "—" },
                 ].map((item) => (
                   <div key={item.label} className="flex gap-3 p-3 rounded-lg bg-muted/30">
                     <item.icon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />

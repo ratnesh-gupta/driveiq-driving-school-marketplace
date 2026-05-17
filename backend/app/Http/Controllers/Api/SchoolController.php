@@ -23,6 +23,9 @@ class SchoolController extends Controller
             'weekendClasses' => ['nullable', 'boolean'],
             'maxPrice' => ['nullable', 'numeric'],
             'transmission' => ['nullable', 'string'],
+            'nearLat' => ['nullable', 'numeric', 'between:-90,90'],
+            'nearLng' => ['nullable', 'numeric', 'between:-180,180'],
+            'radiusKm' => ['nullable', 'numeric', 'min:1', 'max:50'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
             'offset' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -32,24 +35,11 @@ class SchoolController extends Controller
         }
 
         $v = $validator->validated();
-        $query = School::query()
-            ->leftJoin('localities', 'schools.locality_id', '=', 'localities.id')
-            ->select([
-                'schools.id', 'schools.name', 'schools.slug',
-                DB::raw('schools.locality_id as "localityId"'),
-                DB::raw('localities.name as "localityName"'),
-                'schools.address', 'schools.phone', 'schools.whatsapp', 'schools.email',
-                'schools.description', DB::raw('schools.image_url as "imageUrl"'),
-                'schools.rating', DB::raw('schools.review_count as "reviewCount"'),
-                'schools.verified', DB::raw('schools.has_pickup as "hasPickup"'),
-                DB::raw('schools.women_instructor as "womenInstructor"'),
-                DB::raw('schools.weekend_classes as "weekendClasses"'),
-                DB::raw('schools.vehicle_types as "vehicleTypes"'),
-                'schools.transmission', DB::raw('schools.price_from as "priceFrom"'),
-                DB::raw('schools.price_to as "priceTo"'), 'schools.timings',
-                DB::raw('schools.service_areas as "serviceAreas"'),
-                DB::raw('schools.created_at as "createdAt"'),
-            ]);
+        $nearLat = isset($v['nearLat']) ? (float) $v['nearLat'] : null;
+        $nearLng = isset($v['nearLng']) ? (float) $v['nearLng'] : null;
+        $radiusKm = isset($v['radiusKm']) ? (float) $v['radiusKm'] : 5.0;
+
+        $query = $this->schoolBaseQuery();
 
         if (!empty($v['locality'])) {
             $loc = Locality::query()->where('slug', $v['locality'])->first();
@@ -57,6 +47,7 @@ class SchoolController extends Controller
                 $query->where('schools.locality_id', $loc->id);
             }
         }
+
         if (isset($v['minRating'])) $query->where('schools.rating', '>=', $v['minRating']);
         if (isset($v['hasPickup'])) $query->where('schools.has_pickup', (bool) $v['hasPickup']);
         if (isset($v['womenInstructor'])) $query->where('schools.women_instructor', (bool) $v['womenInstructor']);
@@ -65,33 +56,55 @@ class SchoolController extends Controller
         if (!empty($v['vehicleType'])) $query->whereJsonContains('schools.vehicle_types', $v['vehicleType']);
         if (!empty($v['transmission'])) $query->whereJsonContains('schools.transmission', $v['transmission']);
 
-        $rows = $query->limit((int) ($v['limit'] ?? 20))->offset((int) ($v['offset'] ?? 0))->get();
-        return response()->json($rows->map(fn ($r) => $this->normalizeSchool($r))->values());
+        $rows = $query->get();
+
+        if ($nearLat !== null && $nearLng !== null) {
+            $rows = $rows
+                ->filter(fn ($row) => $row->latitude !== null && $row->longitude !== null)
+                ->map(function ($row) use ($nearLat, $nearLng): object {
+                    $distance = $this->haversineKm($nearLat, $nearLng, (float) $row->latitude, (float) $row->longitude);
+                    $row->distanceKm = round($distance, 2);
+                    return $row;
+                })
+                ->filter(fn ($row) => $row->distanceKm <= $radiusKm)
+                ->sort(function ($a, $b): int {
+                    if ($a->distanceKm !== $b->distanceKm) {
+                        return $a->distanceKm <=> $b->distanceKm;
+                    }
+                    if ((bool) $a->verified !== (bool) $b->verified) {
+                        return (bool) $b->verified <=> (bool) $a->verified;
+                    }
+                    if ((float) $a->rating !== (float) $b->rating) {
+                        return (float) $b->rating <=> (float) $a->rating;
+                    }
+                    return (int) $b->reviewCount <=> (int) $a->reviewCount;
+                })
+                ->values();
+        } else {
+            $rows = $rows
+                ->sort(function ($a, $b): int {
+                    if ((float) $a->rating !== (float) $b->rating) {
+                        return (float) $b->rating <=> (float) $a->rating;
+                    }
+                    return (int) $b->reviewCount <=> (int) $a->reviewCount;
+                })
+                ->values();
+        }
+
+        $offset = (int) ($v['offset'] ?? 0);
+        $limit = (int) ($v['limit'] ?? 20);
+        $paged = $rows->slice($offset, $limit)->values();
+
+        return response()->json($paged->map(fn ($r) => $this->normalizeSchool($r))->values());
     }
 
     public function featured(): JsonResponse
     {
-        $rows = School::query()
-            ->leftJoin('localities', 'schools.locality_id', '=', 'localities.id')
+        $rows = $this->schoolBaseQuery()
             ->where('schools.verified', true)
             ->orderByDesc('schools.rating')
             ->limit(6)
-            ->select([
-                'schools.id', 'schools.name', 'schools.slug',
-                DB::raw('schools.locality_id as "localityId"'),
-                DB::raw('localities.name as "localityName"'),
-                'schools.address', 'schools.phone', 'schools.whatsapp', 'schools.email',
-                'schools.description', DB::raw('schools.image_url as "imageUrl"'),
-                'schools.rating', DB::raw('schools.review_count as "reviewCount"'),
-                'schools.verified', DB::raw('schools.has_pickup as "hasPickup"'),
-                DB::raw('schools.women_instructor as "womenInstructor"'),
-                DB::raw('schools.weekend_classes as "weekendClasses"'),
-                DB::raw('schools.vehicle_types as "vehicleTypes"'),
-                'schools.transmission', DB::raw('schools.price_from as "priceFrom"'),
-                DB::raw('schools.price_to as "priceTo"'), 'schools.timings',
-                DB::raw('schools.service_areas as "serviceAreas"'),
-                DB::raw('schools.created_at as "createdAt"'),
-            ])->get();
+            ->get();
 
         return response()->json($rows->map(fn ($r) => $this->normalizeSchool($r))->values());
     }
@@ -142,7 +155,8 @@ class SchoolController extends Controller
     private function schoolBaseQuery()
     {
         return School::query()->leftJoin('localities', 'schools.locality_id', '=', 'localities.id')->select([
-            'schools.id', 'schools.name', 'schools.slug', DB::raw('schools.locality_id as "localityId"'),
+            'schools.id', 'schools.name', 'schools.slug',
+            DB::raw('schools.locality_id as "localityId"'),
             DB::raw('localities.name as "localityName"'),
             'schools.address', 'schools.phone', 'schools.whatsapp', 'schools.email',
             'schools.description', DB::raw('schools.image_url as "imageUrl"'),
@@ -152,19 +166,25 @@ class SchoolController extends Controller
             DB::raw('schools.weekend_classes as "weekendClasses"'),
             DB::raw('schools.vehicle_types as "vehicleTypes"'),
             'schools.transmission', DB::raw('schools.price_from as "priceFrom"'),
-            DB::raw('schools.price_to as "priceTo"'), 'schools.timings',
-            DB::raw('schools.service_areas as "serviceAreas"'),
+            DB::raw('schools.price_to as "priceTo"'),
+            'schools.timings', DB::raw('schools.service_areas as "serviceAreas"'),
+            DB::raw('schools.latitude as "latitude"'),
+            DB::raw('schools.longitude as "longitude"'),
+            DB::raw('schools.service_radius_km as "serviceRadiusKm"'),
             DB::raw('schools.created_at as "createdAt"'),
         ]);
     }
 
     private function schoolRules(bool $create): array
     {
-        $base = [
+        return [
             'name' => [$create ? 'required' : 'sometimes', 'string', 'max:255'],
             'slug' => [$create ? 'required' : 'sometimes', 'string', 'max:255'],
             'localityId' => [$create ? 'required' : 'sometimes', 'integer'],
             'address' => [$create ? 'required' : 'sometimes', 'string'],
+            'latitude' => ['sometimes', 'numeric', 'between:-90,90'],
+            'longitude' => ['sometimes', 'numeric', 'between:-180,180'],
+            'serviceRadiusKm' => ['sometimes', 'numeric', 'min:1', 'max:100'],
             'phone' => [$create ? 'required' : 'sometimes', 'string', 'max:255'],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -186,8 +206,6 @@ class SchoolController extends Controller
             'serviceAreas' => ['sometimes', 'array'],
             'serviceAreas.*' => ['string'],
         ];
-
-        return $base;
     }
 
     private function toSchoolPayload(array $v): array
@@ -197,6 +215,9 @@ class SchoolController extends Controller
             'slug' => 'slug',
             'localityId' => 'locality_id',
             'address' => 'address',
+            'latitude' => 'latitude',
+            'longitude' => 'longitude',
+            'serviceRadiusKm' => 'service_radius_km',
             'phone' => 'phone',
             'whatsapp' => 'whatsapp',
             'email' => 'email',
@@ -241,6 +262,9 @@ class SchoolController extends Controller
             'slug' => $s->slug,
             'localityId' => $s->locality_id,
             'address' => $s->address,
+            'latitude' => $s->latitude,
+            'longitude' => $s->longitude,
+            'serviceRadiusKm' => $s->service_radius_km,
             'phone' => $s->phone,
             'whatsapp' => $s->whatsapp,
             'email' => $s->email,
@@ -260,5 +284,24 @@ class SchoolController extends Controller
             'serviceAreas' => $s->service_areas ?? [],
             'createdAt' => $s->created_at?->toISOString(),
         ];
+    }
+
+    private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadius = 6371.0;
+        $latFrom = deg2rad($lat1);
+        $lngFrom = deg2rad($lng1);
+        $latTo = deg2rad($lat2);
+        $lngTo = deg2rad($lng2);
+
+        $latDelta = $latTo - $latFrom;
+        $lngDelta = $lngTo - $lngFrom;
+
+        $angle = 2 * asin(sqrt(
+            pow(sin($latDelta / 2), 2) +
+            cos($latFrom) * cos($latTo) * pow(sin($lngDelta / 2), 2)
+        ));
+
+        return $angle * $earthRadius;
     }
 }

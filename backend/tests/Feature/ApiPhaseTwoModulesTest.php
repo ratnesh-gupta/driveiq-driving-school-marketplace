@@ -6,7 +6,9 @@ use App\Models\Inquiry;
 use App\Models\Locality;
 use App\Models\Review;
 use App\Models\School;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ApiPhaseTwoModulesTest extends TestCase
@@ -15,10 +17,13 @@ class ApiPhaseTwoModulesTest extends TestCase
 
     public function test_health_and_localities_endpoints_work(): void
     {
+        $admin = User::factory()->create(['role' => 'admin']);
+
         $this->getJson('/api/healthz')
             ->assertOk()
             ->assertJsonPath('status', 'ok');
 
+        Sanctum::actingAs($admin);
         $created = $this->postJson('/api/localities', [
             'name' => 'Baner',
             'slug' => 'baner',
@@ -34,11 +39,15 @@ class ApiPhaseTwoModulesTest extends TestCase
 
     public function test_schools_packages_reviews_and_inquiries_contracts_work(): void
     {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $schoolUser = User::factory()->create(['role' => 'school']);
+
         $locality = Locality::create([
             'name' => 'Wakad',
             'slug' => 'wakad',
         ]);
 
+        Sanctum::actingAs($admin);
         $schoolResp = $this->postJson('/api/schools', [
             'name' => 'Skyline Driving Academy',
             'slug' => 'skyline-driving-academy',
@@ -61,6 +70,7 @@ class ApiPhaseTwoModulesTest extends TestCase
         $this->getJson('/api/schools/slug/skyline-driving-academy')
             ->assertOk();
 
+        Sanctum::actingAs($schoolUser);
         $package = $this->postJson('/api/packages', [
             'schoolId' => $schoolId,
             'name' => 'Beginner Car',
@@ -142,5 +152,36 @@ class ApiPhaseTwoModulesTest extends TestCase
             ->assertJsonPath('totalInquiries', 1)
             ->assertJsonPath('pendingInquiries', 1)
             ->assertJsonPath('totalReviews', 1);
+    }
+
+    public function test_geo_radius_filter_returns_nearby_schools(): void
+    {
+        $locality = Locality::create(['name' => 'Geo', 'slug' => 'geo']);
+
+        School::create([
+            'name' => 'Near School',
+            'slug' => 'near-school',
+            'locality_id' => $locality->id,
+            'address' => 'Near',
+            'phone' => '9000001000',
+            'latitude' => 18.5590,
+            'longitude' => 73.7868,
+            'service_radius_km' => 10,
+        ]);
+
+        School::create([
+            'name' => 'Far School',
+            'slug' => 'far-school',
+            'locality_id' => $locality->id,
+            'address' => 'Far',
+            'phone' => '9000001001',
+            'latitude' => 19.0760,
+            'longitude' => 72.8777,
+            'service_radius_km' => 10,
+        ]);
+
+        $this->getJson('/api/schools?nearLat=18.5590&nearLng=73.7868&radiusKm=10')
+            ->assertOk()
+            ->assertJsonCount(1);
     }
 }

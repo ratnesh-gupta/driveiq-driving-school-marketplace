@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SchoolCard } from "@/components/school-card";
@@ -24,7 +23,6 @@ function parseQuery(search: string) {
 }
 
 export default function SearchPage() {
-  const [location] = useLocation();
   const qs = typeof window !== "undefined" ? window.location.search : "";
   const initial = parseQuery(qs);
 
@@ -36,6 +34,9 @@ export default function SearchPage() {
   const [weekendClasses, setWeekendClasses] = useState(false);
   const [minRating, setMinRating] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
+  const [nearMe, setNearMe] = useState(false);
+  const [radiusKm, setRadiusKm] = useState<number>(5);
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
 
   const { data: localities } = useListLocalities();
 
@@ -50,19 +51,65 @@ export default function SearchPage() {
   if (weekendClasses) params.weekendClasses = true;
   if (minRating > 0) params.minRating = minRating;
   if (maxPrice < 10000) params.maxPrice = maxPrice;
+  if (nearMe && geo) {
+    params.nearLat = geo.lat;
+    params.nearLng = geo.lng;
+    params.radiusKm = radiusKm;
+  }
 
-  const { data: schools, isLoading } = useListSchools(params);
+  const { data: schools, isLoading } = useListSchools(params as never);
 
-  const activeFilterCount = [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, minRating > 0, maxPrice < 10000].filter(Boolean).length;
+  const activeFilterCount = [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, minRating > 0, maxPrice < 10000, nearMe].filter(Boolean).length;
 
   const clearFilters = () => {
     setLocality(""); setVehicleType(""); setTransmission("");
     setHasPickup(false); setWomenInstructor(false); setWeekendClasses(false);
     setMinRating(0); setMaxPrice(10000);
+    setNearMe(false); setGeo(null); setRadiusKm(5);
+  };
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setNearMe(true);
+      },
+      () => {
+        setNearMe(false);
+        setGeo(null);
+      }
+    );
   };
 
   const FilterPanel = () => (
     <div className="space-y-6">
+      <div>
+        <Label className="text-sm font-semibold mb-3 block">Nearby Search</Label>
+        <div className="space-y-3">
+          <Button
+            type="button"
+            variant={nearMe ? "default" : "outline"}
+            className="w-full"
+            onClick={handleUseMyLocation}
+            data-testid="button-use-my-location"
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            {nearMe ? "Using your location" : "Use my location"}
+          </Button>
+          <Select value={String(radiusKm)} onValueChange={v => setRadiusKm(Number(v))}>
+            <SelectTrigger data-testid="select-filter-radius">
+              <SelectValue placeholder="Radius" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2 km</SelectItem>
+              <SelectItem value="5">5 km</SelectItem>
+              <SelectItem value="10">10 km</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div>
         <Label className="text-sm font-semibold mb-3 block">Locality</Label>
         <Select value={locality || ALL} onValueChange={v => setLocality(v === ALL ? "" : v)}>
@@ -183,6 +230,27 @@ export default function SearchPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={String(radiusKm)} onValueChange={v => setRadiusKm(Number(v))}>
+              <SelectTrigger className="w-28" data-testid="select-top-radius">
+                <SelectValue placeholder="Radius" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2 km</SelectItem>
+                <SelectItem value="5">5 km</SelectItem>
+                <SelectItem value="10">10 km</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="button"
+              variant={nearMe ? "default" : "outline"}
+              onClick={handleUseMyLocation}
+              data-testid="button-top-near-me"
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Near me
+            </Button>
 
             {activeFilterCount > 0 && (
               <Badge variant="secondary" className="gap-1">
