@@ -3,51 +3,37 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\LoginRequest;
+use App\Http\Requests\Api\RegisterRequest;
+use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
-            'role' => ['sometimes', 'in:user,school,admin'],
-        ]);
-
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => $validated['role'] ?? 'user',
+            'name' => $request->validated('name'),
+            'email' => $request->validated('email'),
+            'password' => $request->validated('password'),
+            'role' => $request->validated('role', 'user'),
         ]);
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $schoolId = null;
 
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ], 201);
-    }
-
-    public function login(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
-        $user = User::query()->where('email', $validated['email'])->first();
-
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+        if ($user->role === 'school') {
+            $school = School::create([
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'slug' => Str::slug($user->name) . '-' . Str::lower(Str::random(5)),
+                'email' => $user->email,
             ]);
+            $schoolId = $school->id;
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
@@ -55,13 +41,38 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'token' => $token,
+            'schoolId' => $schoolId,
+        ], 201);
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        $user = User::where('email', $request->validated('email'))->first();
+
+        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        $token = $user->createToken('api-token')->plainTextToken;
+        $school = $user->schools()->first();
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+            'schoolId' => $school?->id,
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $school = $user->schools()->first();
+
         return response()->json([
-            'user' => $request->user(),
+            'user' => $user,
+            'schoolId' => $school?->id,
         ]);
     }
 

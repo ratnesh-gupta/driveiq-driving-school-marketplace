@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Inquiry extends Model
 {
@@ -13,4 +14,9 @@ class Inquiry extends Model
         'school_id', 'name', 'phone', 'email', 'vehicle_type', 'area',
         'preferred_timing', 'channel', 'message', 'status',
     ];
+
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
 }

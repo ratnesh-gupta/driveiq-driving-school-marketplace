@@ -3,127 +3,56 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreInquiryRequest;
+use App\Http\Requests\Api\UpdateInquiryRequest;
+use App\Http\Resources\InquiryResource;
 use App\Models\Inquiry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 class InquiryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->query(), [
+        $request->validate([
             'schoolId' => ['nullable', 'integer'],
-            'status' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'in:pending,contacted,converted,closed'],
         ]);
-        if ($validator->fails()) return response()->json(['error' => $validator->errors()->toJson()], 400);
 
-        $query = Inquiry::query()
-            ->leftJoin('schools', 'inquiries.school_id', '=', 'schools.id')
-            ->select([
-                'inquiries.id',
-                DB::raw('inquiries.school_id as "schoolId"'),
-                DB::raw('schools.name as "schoolName"'),
-                'inquiries.name',
-                'inquiries.phone',
-                'inquiries.email',
-                DB::raw('inquiries.vehicle_type as "vehicleType"'),
-                'inquiries.message',
-                'inquiries.status',
-                DB::raw('inquiries.created_at as "createdAt"'),
-            ])
-            ->orderByDesc('inquiries.created_at');
+        $query = Inquiry::with('school')
+            ->orderByDesc('created_at');
 
-        $v = $validator->validated();
-        if (isset($v['schoolId'])) $query->where('inquiries.school_id', $v['schoolId']);
-        if (isset($v['status'])) $query->where('inquiries.status', $v['status']);
+        if ($request->filled('schoolId')) {
+            $query->where('school_id', $request->input('schoolId'));
+        }
 
-        return response()->json($query->get()->map(fn ($r) => $this->normalizeRow($r))->values());
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        return response()->json(InquiryResource::collection($query->get()));
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreInquiryRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'schoolId' => ['required', 'integer'],
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'vehicleType' => ['required', 'string', 'max:255'],
-            'area' => ['nullable', 'string', 'max:255'],
-            'preferredTiming' => ['nullable', 'string', 'max:255'],
-            'channel' => ['nullable', 'string', 'max:255'],
-            'message' => ['nullable', 'string'],
-            'status' => ['nullable', 'string', 'max:255'],
-        ]);
-        if ($validator->fails()) return response()->json(['error' => $validator->errors()->toJson()], 400);
+        $inquiry = Inquiry::create($request->toSnakeCase());
+        $inquiry->load('school');
 
-        $v = $validator->validated();
-        $inquiry = Inquiry::create([
-            'school_id' => $v['schoolId'],
-            'name' => $v['name'],
-            'phone' => $v['phone'],
-            'email' => $v['email'] ?? null,
-            'vehicle_type' => $v['vehicleType'],
-            'area' => $v['area'] ?? null,
-            'preferred_timing' => $v['preferredTiming'] ?? null,
-            'channel' => $v['channel'] ?? 'form',
-            'message' => $v['message'] ?? null,
-            'status' => $v['status'] ?? 'pending',
-        ]);
-
-        return response()->json($this->normalizeModel($inquiry), 201);
+        return response()->json(new InquiryResource($inquiry), 201);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateInquiryRequest $request, int $id): JsonResponse
     {
-        $inquiry = Inquiry::query()->find($id);
-        if (!$inquiry) return response()->json(['error' => 'Inquiry not found'], 404);
+        $inquiry = Inquiry::find($id);
 
-        $validator = Validator::make($request->all(), [
-            'name' => ['sometimes', 'string', 'max:255'],
-            'phone' => ['sometimes', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'vehicleType' => ['sometimes', 'string', 'max:255'],
-            'area' => ['nullable', 'string', 'max:255'],
-            'preferredTiming' => ['nullable', 'string', 'max:255'],
-            'channel' => ['nullable', 'string', 'max:255'],
-            'message' => ['nullable', 'string'],
-            'status' => ['sometimes', 'string', 'max:255'],
-        ]);
-        if ($validator->fails()) return response()->json(['error' => 'Invalid input'], 400);
+        if (! $inquiry) {
+            return response()->json(['message' => 'Inquiry not found'], 404);
+        }
 
-        $map = [
-            'name' => 'name', 'phone' => 'phone', 'email' => 'email', 'vehicleType' => 'vehicle_type',
-            'area' => 'area', 'preferredTiming' => 'preferred_timing', 'channel' => 'channel',
-            'message' => 'message', 'status' => 'status',
-        ];
-
-        foreach ($validator->validated() as $k => $v) $inquiry->{$map[$k]} = $v;
+        $inquiry->fill($request->toSnakeCase());
         $inquiry->save();
+        $inquiry->load('school');
 
-        return response()->json($this->normalizeModel($inquiry));
-    }
-
-    private function normalizeRow(object $r): array
-    {
-        $data = (array) $r;
-        $data['createdAt'] = optional($r->createdAt)->toISOString() ?? (string) $r->createdAt;
-        return $data;
-    }
-
-    private function normalizeModel(Inquiry $i): array
-    {
-        return [
-            'id' => $i->id,
-            'schoolId' => $i->school_id,
-            'name' => $i->name,
-            'phone' => $i->phone,
-            'email' => $i->email,
-            'vehicleType' => $i->vehicle_type,
-            'message' => $i->message,
-            'status' => $i->status,
-            'createdAt' => $i->created_at?->toISOString(),
-        ];
+        return response()->json(new InquiryResource($inquiry));
     }
 }

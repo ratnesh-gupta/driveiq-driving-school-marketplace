@@ -3,105 +3,67 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreReviewRequest;
+use App\Http\Requests\Api\UpdateReviewRequest;
+use App\Http\Resources\ReviewResource;
 use App\Models\Review;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 class ReviewController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->query(), ['schoolId' => ['nullable', 'integer']]);
-        if ($validator->fails()) return response()->json(['error' => $validator->errors()->toJson()], 400);
+        $request->validate([
+            'schoolId' => ['nullable', 'integer'],
+        ]);
 
-        $query = Review::query()
-            ->leftJoin('schools', 'reviews.school_id', '=', 'schools.id')
-            ->select([
-                'reviews.id',
-                DB::raw('reviews.school_id as "schoolId"'),
-                DB::raw('schools.name as "schoolName"'),
-                DB::raw('reviews.author_name as "authorName"'),
-                'reviews.rating',
-                'reviews.content',
-                'reviews.approved',
-                DB::raw('reviews.created_at as "createdAt"'),
-            ])
-            ->orderByDesc('reviews.created_at');
+        $query = Review::with('school')
+            ->orderByDesc('created_at');
 
-        if (isset($validator->validated()['schoolId'])) {
-            $query->where('reviews.school_id', $validator->validated()['schoolId']);
+        if ($request->filled('schoolId')) {
+            $query->where('school_id', $request->input('schoolId'));
         }
 
-        return response()->json($query->get()->map(fn ($r) => $this->normalizeRow($r))->values());
+        return response()->json(ReviewResource::collection($query->get()));
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreReviewRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'schoolId' => ['required', 'integer'],
-            'authorName' => ['required', 'string', 'max:255'],
-            'rating' => ['required', 'integer', 'min:1', 'max:5'],
-            'content' => ['required', 'string'],
-            'approved' => ['sometimes', 'boolean'],
-        ]);
-        if ($validator->fails()) return response()->json(['error' => $validator->errors()->toJson()], 400);
+        $data = $request->toSnakeCase();
+        $data['approved'] ??= false;
 
-        $review = Review::create([
-            'school_id' => $validator->validated()['schoolId'],
-            'author_name' => $validator->validated()['authorName'],
-            'rating' => $validator->validated()['rating'],
-            'content' => $validator->validated()['content'],
-            'approved' => $validator->validated()['approved'] ?? false,
-        ]);
+        $review = Review::create($data);
+        $review->load('school');
 
-        return response()->json($this->normalizeModel($review), 201);
+        return response()->json(new ReviewResource($review), 201);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateReviewRequest $request, int $id): JsonResponse
     {
-        $review = Review::query()->find($id);
-        if (!$review) return response()->json(['error' => 'Review not found'], 404);
+        $review = Review::find($id);
 
-        $validator = Validator::make($request->all(), [
-            'authorName' => ['sometimes', 'string', 'max:255'],
-            'rating' => ['sometimes', 'integer', 'min:1', 'max:5'],
-            'content' => ['sometimes', 'string'],
-            'approved' => ['sometimes', 'boolean'],
-        ]);
-        if ($validator->fails()) return response()->json(['error' => 'Invalid input'], 400);
+        if (! $review) {
+            return response()->json(['message' => 'Review not found'], 404);
+        }
 
-        $map = ['authorName' => 'author_name', 'rating' => 'rating', 'content' => 'content', 'approved' => 'approved'];
-        foreach ($validator->validated() as $k => $v) $review->{$map[$k]} = $v;
+        $review->fill($request->toSnakeCase());
         $review->save();
+        $review->load('school');
 
-        return response()->json($this->normalizeModel($review));
+        return response()->json(new ReviewResource($review));
     }
 
     public function delete(int $id): JsonResponse
     {
-        Review::query()->where('id', $id)->delete();
+        $review = Review::find($id);
+
+        if (! $review) {
+            return response()->json(['message' => 'Review not found'], 404);
+        }
+
+        $review->delete();
+
         return response()->json(null, 204);
-    }
-
-    private function normalizeRow(object $r): array
-    {
-        $data = (array) $r;
-        $data['createdAt'] = optional($r->createdAt)->toISOString() ?? (string) $r->createdAt;
-        return $data;
-    }
-
-    private function normalizeModel(Review $r): array
-    {
-        return [
-            'id' => $r->id,
-            'schoolId' => $r->school_id,
-            'authorName' => $r->author_name,
-            'rating' => (int) $r->rating,
-            'content' => $r->content,
-            'approved' => (bool) $r->approved,
-            'createdAt' => $r->created_at?->toISOString(),
-        ];
     }
 }

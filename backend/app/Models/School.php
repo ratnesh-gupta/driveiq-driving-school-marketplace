@@ -4,13 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class School extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name', 'slug', 'locality_id', 'address', 'latitude', 'longitude', 'service_radius_km',
+        'user_id', 'name', 'slug', 'locality_id', 'address', 'latitude', 'longitude', 'service_radius_km',
         'phone', 'whatsapp', 'email', 'description', 'image_url', 'rating', 'review_count',
         'verified', 'has_pickup', 'women_instructor', 'weekend_classes', 'vehicle_types',
         'transmission', 'price_from', 'price_to', 'timings', 'service_areas',
@@ -34,5 +36,50 @@ class School extends Model
             'longitude' => 'float',
             'service_radius_km' => 'float',
         ];
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function locality(): BelongsTo
+    {
+        return $this->belongsTo(Locality::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function inquiries(): HasMany
+    {
+        return $this->hasMany(Inquiry::class);
+    }
+
+    public function packages(): HasMany
+    {
+        return $this->hasMany(DrivePackage::class);
+    }
+
+    public function scopeVerified($query)
+    {
+        return $query->where('verified', true);
+    }
+
+    public function scopeNearby($query, float $lat, float $lng, float $radiusKm = 5.0)
+    {
+        $haversine = sprintf(
+            '(6371 * acos(cos(radians(%s)) * cos(radians(latitude)) * cos(radians(longitude) - radians(%s)) + sin(radians(%s)) * sin(radians(latitude))))',
+            $lat, $lng, $lat
+        );
+
+        return $query
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->selectRaw("{$haversine} as distance_km")
+            ->having('distance_km', '<=', $radiusKm)
+            ->orderBy('distance_km');
     }
 }

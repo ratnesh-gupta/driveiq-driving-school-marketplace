@@ -3,51 +3,46 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreLocalityRequest;
+use App\Http\Resources\LocalityResource;
 use App\Models\Locality;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class LocalityController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(Locality::query()->orderBy('name')->get());
+        $localities = Locality::query()->orderBy('name')->get();
+
+        return response()->json(LocalityResource::collection($localities));
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreLocalityRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:localities,slug'],
-            'description' => ['nullable', 'string'],
-        ]);
+        $locality = Locality::create($request->validated());
 
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()->toJson()], 400);
-        }
-
-        $locality = Locality::create($validator->validated());
-        return response()->json($locality, 201);
+        return response()->json(new LocalityResource($locality), 201);
     }
 
     public function show(int $id): JsonResponse
     {
-        $locality = Locality::query()->find($id);
-        if (!$locality) {
-            return response()->json(['error' => 'Locality not found'], 404);
+        $locality = Locality::find($id);
+
+        if (! $locality) {
+            return response()->json(['message' => 'Locality not found'], 404);
         }
 
-        return response()->json($locality);
+        return response()->json(new LocalityResource($locality));
     }
 
     public function showBySlug(string $slug): JsonResponse
     {
-        $locality = Locality::query()->where('slug', $slug)->first();
-        if (!$locality) {
-            return response()->json(['error' => 'Locality not found'], 404);
+        $locality = Locality::where('slug', $slug)->first();
+
+        if (! $locality) {
+            return response()->json(['message' => 'Locality not found'], 404);
         }
 
-        return response()->json($locality);
+        return response()->json(new LocalityResource($locality));
     }
 }

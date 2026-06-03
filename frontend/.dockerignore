@@ -1,0 +1,54 @@
+# ==============================================================================
+# DriveIQ Driving School Marketplace - Root Dockerignore
+# ==============================================================================
+
+# Git & Version Control
+.git/
+.gitignore
+.gitattributes
+
+# Documentation & Guidelines
+docs/
+README.md
+replit.md
+
+# IDEs, Editors & System Files
+.idea/
+.vscode/
+.cursor/
+.zed/
+.nova/
+.DS_Store
+Thumbs.db
+
+# Docker configuration files (not needed inside container images)
+docker-compose.yaml
+docker-compose.override.yaml
+.dockerignore
+
+# Secrets and Local Configurations
+.env
+.env.*
+!.env.example
+!.env.docker.example
+*.key
+auth.json
+
+# Dependencies & Build artifacts (let the container install these to avoid host mismatches)
+**/node_modules/
+**/vendor/
+**/.pnpm-store/
+**/dist/
+**/out-tsc/
+**/.expo/
+**/.expo-shared/
+**/backend/public/build/
+**/backend/public/hot/
+**/backend/public/storage
+
+# Logs and Caches
+**/*.log
+**/.phpunit.result.cache
+**/.phpunit.cache/
+**/.cache/
+**/.local/
