@@ -16,7 +16,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <Link href="/" className="font-bold text-xl text-primary tracking-tight">DriveIQ</Link>
             <nav className="hidden md:flex gap-4">
               <Link href="/search" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Search</Link>
-              <Link href="/blog" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Blog</Link>
+              <Link href="/driving-rules" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Driving Rules</Link>
               <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">About</Link>
               <Link href="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Contact</Link>
             </nav>
@@ -55,7 +55,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
     <SheetContent side="right">
       <nav className="flex flex-col gap-4 mt-8">
         <Link href="/search" className="text-sm font-medium">Search</Link>
-        <Link href="/blog" className="text-sm font-medium">Blog</Link>
+        <Link href="/driving-rules" className="text-sm font-medium">Driving Rules</Link>
         <Link href="/about" className="text-sm font-medium">About</Link>
         <Link href="/contact" className="text-sm font-medium">Contact</Link>
         <hr className="my-2" />
@@ -91,6 +91,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <h4 className="font-semibold mb-4">Discover</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link href="/search" className="hover:text-primary">Search Schools</Link></li>
+              <li><Link href="/driving-rules" className="hover:text-primary">Driving Rules & License</Link></li>
               <li><Link href="/search?locality=baner" className="hover:text-primary">Schools in Baner</Link></li>
               <li><Link href="/search?locality=hinjewadi" className="hover:text-primary">Schools in Hinjewadi</Link></li>
             </ul>

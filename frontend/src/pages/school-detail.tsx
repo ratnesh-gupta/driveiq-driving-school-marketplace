@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Star, MapPin, Phone, Mail, ShieldCheck, Car, CheckCircle2,
-  Clock, MessageCircle, Users, ArrowLeft, Send
+  Clock, MessageCircle, Users, ArrowLeft, Send, BookOpen, ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -36,6 +36,32 @@ function StarRating({ rating }: { rating: number }) {
         <Star key={i} className={`h-4 w-4 ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
       ))}
     </div>
+  );
+}
+
+function DrivingRulesCTA({ localityName }: { localityName?: string }) {
+  const [, navigate] = useLocation();
+  const area = localityName || "Pune";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}
+      className="rounded-xl border bg-card p-5 flex items-center gap-4"
+    >
+      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <BookOpen className="h-5 w-5 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-sm">Driving Rules & License Guide</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          RTO offices near {area}, age requirements, documents & fees
+        </p>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => navigate("/driving-rules")} className="shrink-0 gap-1.5">
+        View <ArrowRight className="h-3.5 w-3.5" />
+      </Button>
+    </motion.div>
   );
 }
 
@@ -294,6 +320,9 @@ export default function SchoolDetailPage() {
                 ))}
               </Accordion>
             </motion.div>
+
+            {/* Driving Rules Near This School */}
+            <DrivingRulesCTA localityName={school.localityName ?? undefined} />
           </div>
 
           {/* Sticky inquiry card */}

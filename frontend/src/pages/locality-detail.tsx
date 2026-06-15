@@ -4,14 +4,19 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { SchoolCard } from "@/components/school-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useGetLocalityBySlug, useListSchools } from "@/api-client";
-import { MapPin, ArrowLeft } from "lucide-react";
-import { Link } from "wouter";
+import { MapPin, ArrowLeft, BookOpen, ArrowRight } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { CompareBar } from "@/features/comparison/components/compare-bar";
 
 export default function LocalityDetailPage() {
   const params = useParams<{ slug: string }>();
+  const [, navigate] = useLocation();
   const { data: locality, isLoading: localityLoading } = useGetLocalityBySlug(params.slug);
   const { data: schools, isLoading: schoolsLoading } = useListSchools({ locality: params.slug });
+
+  const localityName = locality?.name || params.slug.charAt(0).toUpperCase() + params.slug.slice(1);
 
   return (
     <PublicLayout>
@@ -30,7 +35,7 @@ export default function LocalityDetailPage() {
                 </div>
                 <Badge variant="secondary">{locality?.schoolCount || schools?.length || 0} Schools</Badge>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold">Driving Schools in {locality?.name || params.slug}</h1>
+              <h1 className="text-3xl md:text-4xl font-bold">Driving Schools in {localityName}</h1>
               {locality?.description && (
                 <p className="text-muted-foreground mt-2 max-w-xl">{locality.description}</p>
               )}
@@ -58,12 +63,35 @@ export default function LocalityDetailPage() {
           >
             {schools.map((school) => (
               <motion.div key={school.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} data-testid={`card-school-${school.id}`}>
-                <SchoolCard school={school} />
+                <SchoolCard school={school} showCompare />
               </motion.div>
             ))}
           </motion.div>
         )}
+
+        {/* Compact CTA to driving rules page */}
+        <motion.div
+          className="mt-10 rounded-xl border bg-card p-6 flex flex-col sm:flex-row items-center gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <BookOpen className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            <h3 className="font-semibold">Driving Rules & License Guide for {localityName}</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              RTO offices, age requirements, documents needed, fees & step-by-step process
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => navigate("/driving-rules")} className="shrink-0 gap-2">
+            View Guide <ArrowRight className="h-4 w-4" />
+          </Button>
+        </motion.div>
       </div>
+      <CompareBar />
     </PublicLayout>
   );
 }

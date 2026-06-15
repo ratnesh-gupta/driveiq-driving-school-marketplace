@@ -83,6 +83,7 @@ class ApiPhaseTwoModulesTest extends TestCase
         $packageId = $package->json('id') ?? \App\Models\DrivePackage::query()->value('id');
         $this->patchJson('/api/packages/'.$packageId, ['active' => false])->assertOk()->assertJsonPath('active', false);
 
+        Sanctum::actingAs($schoolUser);
         $review = $this->postJson('/api/reviews', [
             'schoolId' => $schoolId,
             'authorName' => 'A User',
@@ -108,6 +109,29 @@ class ApiPhaseTwoModulesTest extends TestCase
 
         $this->deleteJson('/api/reviews/'.$reviewId)->assertNoContent();
         $this->deleteJson('/api/packages/'.$packageId)->assertNoContent();
+    }
+
+    public function test_review_submission_requires_authentication(): void
+    {
+        $locality = Locality::create([
+            'name' => 'Wakad',
+            'slug' => 'wakad',
+        ]);
+
+        $school = School::create([
+            'name' => 'Unauth School',
+            'slug' => 'unauth-school',
+            'locality_id' => $locality->id,
+            'address' => 'Wakad Road',
+            'phone' => '9999999998',
+        ]);
+
+        $this->postJson('/api/reviews', [
+            'schoolId' => $school->id,
+            'authorName' => 'A User',
+            'rating' => 5,
+            'content' => 'Great experience',
+        ])->assertUnauthorized();
     }
 
     public function test_stats_endpoints_work(): void

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useListFeaturedSchools, useListLocalities, useGetStatsOverview } from "@/api-client";
-import { Search, MapPin, Car, ShieldCheck, Users, Star, ArrowRight, CheckCircle2, Zap, MessageCircle } from "lucide-react";
+import { Search, MapPin, Car, ShieldCheck, Users, Star, ArrowRight, CheckCircle2, Zap, MessageCircle, BookOpen } from "lucide-react";
 
 const LOCALITIES = ["Baner", "Hinjewadi", "Wakad", "Hadapsar", "Kothrud", "Pimpri"];
 const VEHICLE_TYPES = ["Car", "Bike", "Scooter", "Heavy Vehicle"];
@@ -329,6 +329,32 @@ export default function HomePage() {
                 <p className="text-muted-foreground text-sm leading-relaxed">{step.desc}</p>
               </motion.div>
             ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Driving Rules CTA */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <motion.div
+            className="max-w-4xl mx-auto rounded-2xl border bg-card p-8 md:p-12 flex flex-col md:flex-row items-center gap-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+              <BookOpen className="h-8 w-8 text-primary" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-2xl font-bold mb-2">Driving Rules & License Guidance</h2>
+              <p className="text-muted-foreground">
+                Everything you need — minimum age requirements, RTO offices, documents, fees, and a step-by-step license process for Pune.
+              </p>
+            </div>
+            <Button size="lg" onClick={() => setLocation("/driving-rules")} className="shrink-0 gap-2">
+              View Full Guide <ArrowRight className="h-4 w-4" />
+            </Button>
           </motion.div>
         </div>
       </section>

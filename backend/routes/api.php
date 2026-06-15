@@ -28,8 +28,8 @@ Route::get('/healthz', fn () => response()->json([
 */
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 });
 
 /*
@@ -52,9 +52,11 @@ Route::prefix('localities')->group(function (): void {
 });
 
 Route::get('/reviews', [ReviewController::class, 'index']);
-Route::post('/reviews', [ReviewController::class, 'store']);
+Route::post('/reviews', [ReviewController::class, 'store'])
+    ->middleware(['auth:sanctum', 'throttle:10,1']);
 
-Route::post('/inquiries', [InquiryController::class, 'store']);
+Route::post('/inquiries', [InquiryController::class, 'store'])
+    ->middleware('throttle:20,1');
 
 Route::get('/packages', [PackageController::class, 'index']);
 

@@ -29,6 +29,17 @@ class UpdateSchoolRequest extends BaseFormRequest
         'priceTo' => 'price_to',
         'timings' => 'timings',
         'serviceAreas' => 'service_areas',
+        'languages' => 'languages',
+        'batchTimings' => 'batch_timings',
+        'pickupRadiusKm' => 'pickup_radius_km',
+        'simulatorTraining' => 'simulator_training',
+        'acVehicle' => 'ac_vehicle',
+        'rtoAssistance' => 'rto_assistance',
+        'establishedYear' => 'established_year',
+        'totalVehicles' => 'total_vehicles',
+        'totalInstructors' => 'total_instructors',
+        'acceptedPayments' => 'accepted_payments',
+        'cancellationPolicy' => 'cancellation_policy',
     ];
 
     public function rules(): array
@@ -61,6 +72,19 @@ class UpdateSchoolRequest extends BaseFormRequest
             'timings' => ['nullable', 'string', 'max:255'],
             'serviceAreas' => ['sometimes', 'array'],
             'serviceAreas.*' => ['string'],
+            'languages' => ['sometimes', 'array'],
+            'languages.*' => ['string'],
+            'batchTimings' => ['sometimes', 'array'],
+            'pickupRadiusKm' => ['nullable', 'numeric', 'min:0', 'max:50'],
+            'simulatorTraining' => ['sometimes', 'boolean'],
+            'acVehicle' => ['sometimes', 'boolean'],
+            'rtoAssistance' => ['sometimes', 'boolean'],
+            'establishedYear' => ['nullable', 'string', 'max:4'],
+            'totalVehicles' => ['nullable', 'integer', 'min:0'],
+            'totalInstructors' => ['nullable', 'integer', 'min:0'],
+            'acceptedPayments' => ['sometimes', 'array'],
+            'acceptedPayments.*' => ['string'],
+            'cancellationPolicy' => ['nullable', 'string'],
         ];
     }
 

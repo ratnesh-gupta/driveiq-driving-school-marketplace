@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SchoolCard } from "@/components/school-card";
@@ -11,8 +11,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useListSchools, useListLocalities } from "@/api-client";
+import type { ListSchoolsParams } from "@/api-client/generated/api.schemas";
 import { Search, SlidersHorizontal, X, MapPin, Car } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { CompareBar } from "@/features/comparison/components/compare-bar";
 
 function parseQuery(search: string) {
   const params = new URLSearchParams(search);
@@ -22,8 +24,9 @@ function parseQuery(search: string) {
   };
 }
 
-export default function SearchPage() {
+const ALL = "__all__";
 
+export default function SearchPage() {
   const qs = typeof window !== "undefined" ? window.location.search : "";
   const initial = parseQuery(qs);
 
@@ -41,26 +44,31 @@ export default function SearchPage() {
 
   const { data: localities } = useListLocalities();
 
-  const ALL = "__all__";
+  // Build typed params — only include filters that are actively set
+  const params = useMemo<ListSchoolsParams>(() => {
+    const p: ListSchoolsParams = {};
+    if (locality) p.locality = locality.toLowerCase();
+    if (vehicleType) p.vehicleType = vehicleType.toLowerCase();
+    if (transmission) p.transmission = transmission.toLowerCase();
+    if (hasPickup) p.hasPickup = true;
+    if (womenInstructor) p.womenInstructor = true;
+    if (weekendClasses) p.weekendClasses = true;
+    if (minRating > 0) p.minRating = minRating;
+    if (maxPrice < 10000) p.maxPrice = maxPrice;
+    if (nearMe && geo) {
+      p.nearLat = geo.lat;
+      p.nearLng = geo.lng;
+      p.radiusKm = radiusKm;
+    }
+    return p;
+  }, [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, minRating, maxPrice, nearMe, geo, radiusKm]);
 
-  const params: Record<string, unknown> = {};
-  if (locality) params.locality = locality;
-  if (vehicleType) params.vehicleType = vehicleType;
-  if (transmission) params.transmission = transmission;
-  if (hasPickup) params.hasPickup = true;
-  if (womenInstructor) params.womenInstructor = true;
-  if (weekendClasses) params.weekendClasses = true;
-  if (minRating > 0) params.minRating = minRating;
-  if (maxPrice < 10000) params.maxPrice = maxPrice;
-  if (nearMe && geo) {
-    params.nearLat = geo.lat;
-    params.nearLng = geo.lng;
-    params.radiusKm = radiusKm;
-  }
+  const { data: schools, isLoading } = useListSchools(params);
 
-  const { data: schools, isLoading } = useListSchools(params as never);
-
-  const activeFilterCount = [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, minRating > 0, maxPrice < 10000, nearMe].filter(Boolean).length;
+  const activeFilterCount = [
+    locality, vehicleType, transmission, hasPickup, womenInstructor,
+    weekendClasses, minRating > 0, maxPrice < 10000, nearMe,
+  ].filter(Boolean).length;
 
   const clearFilters = () => {
     setLocality(""); setVehicleType(""); setTransmission("");
@@ -85,6 +93,7 @@ export default function SearchPage() {
 
   const FilterPanel = () => (
     <div className="space-y-6">
+      {/* Nearby Search */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Nearby Search</Label>
         <div className="space-y-3">
@@ -98,65 +107,75 @@ export default function SearchPage() {
             <MapPin className="h-4 w-4 mr-2" />
             {nearMe ? "Using your location" : "Use my location"}
           </Button>
-          <Select value={String(radiusKm)} onValueChange={v => setRadiusKm(Number(v))}>
-            <SelectTrigger data-testid="select-filter-radius">
-              <SelectValue placeholder="Radius" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2">2 km</SelectItem>
-              <SelectItem value="5">5 km</SelectItem>
-              <SelectItem value="10">10 km</SelectItem>
-            </SelectContent>
-          </Select>
+          {nearMe && (
+            <Select value={String(radiusKm)} onValueChange={(v) => setRadiusKm(Number(v))}>
+              <SelectTrigger data-testid="select-filter-radius">
+                <SelectValue placeholder="Radius" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2 km</SelectItem>
+                <SelectItem value="5">5 km</SelectItem>
+                <SelectItem value="10">10 km</SelectItem>
+                <SelectItem value="15">15 km</SelectItem>
+                <SelectItem value="20">20 km</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
+      {/* Locality */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Locality</Label>
-        <Select value={locality || ALL} onValueChange={v => setLocality(v === ALL ? "" : v)}>
+        <Select value={locality || ALL} onValueChange={(v) => setLocality(v === ALL ? "" : v)}>
           <SelectTrigger data-testid="select-filter-locality">
             <SelectValue placeholder="All localities" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All localities</SelectItem>
-            {(localities || []).map(loc => (
+            {(localities || []).map((loc) => (
               <SelectItem key={loc.id} value={loc.slug}>{loc.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </div >
+      </div>
 
+      {/* Vehicle Type */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Vehicle Type</Label>
-        <Select value={vehicleType || ALL} onValueChange={v => setVehicleType(v === ALL ? "" : v)}>
+        <Select value={vehicleType || ALL} onValueChange={(v) => setVehicleType(v === ALL ? "" : v)}>
           <SelectTrigger data-testid="select-filter-vehicle">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All types</SelectItem>
-            {["Car", "Bike", "Scooter", "Heavy Vehicle"].map(v => (
+            {["Car", "Bike", "Scooter", "Heavy Vehicle"].map((v) => (
               <SelectItem key={v} value={v}>{v}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* Transmission */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Transmission</Label>
-        <Select value={transmission || ALL} onValueChange={v => setTransmission(v === ALL ? "" : v)}>
+        <Select value={transmission || ALL} onValueChange={(v) => setTransmission(v === ALL ? "" : v)}>
           <SelectTrigger data-testid="select-filter-transmission">
             <SelectValue placeholder="Any" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Any</SelectItem>
-            <SelectItem value="Manual">Manual</SelectItem>
-            <SelectItem value="Automatic">Automatic</SelectItem>
+            <SelectItem value="manual">Manual</SelectItem>
+            <SelectItem value="automatic">Automatic</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
+      {/* Min Rating */}
       <div>
-        <Label className="text-sm font-semibold mb-3 block">Minimum Rating: {minRating > 0 ? `${minRating}+` : "Any"}</Label>
+        <Label className="text-sm font-semibold mb-3 block">
+          Minimum Rating: {minRating > 0 ? `${minRating}+` : "Any"}
+        </Label>
         <Slider
           min={0} max={5} step={0.5}
           value={[minRating]}
@@ -166,8 +185,11 @@ export default function SearchPage() {
         />
       </div>
 
+      {/* Max Price */}
       <div>
-        <Label className="text-sm font-semibold mb-3 block">Max Price: ₹{maxPrice.toLocaleString()}</Label>
+        <Label className="text-sm font-semibold mb-3 block">
+          Max Price: {maxPrice < 10000 ? `₹${maxPrice.toLocaleString()}` : "Any"}
+        </Label>
         <Slider
           min={1000} max={10000} step={500}
           value={[maxPrice]}
@@ -177,6 +199,7 @@ export default function SearchPage() {
         />
       </div>
 
+      {/* Feature Checkboxes */}
       <div className="space-y-3">
         <Label className="text-sm font-semibold block">Features</Label>
         {[
@@ -196,18 +219,17 @@ export default function SearchPage() {
         ))}
       </div>
 
-  {
-    activeFilterCount > 0 && (
-      <Button variant="outline" className="w-full" onClick={clearFilters} data-testid="button-clear-filters">
-        <X className="h-4 w-4 mr-2" /> Clear Filters
-      </Button>
-    )
-  }
-    </div >
+      {activeFilterCount > 0 && (
+        <Button variant="outline" className="w-full" onClick={clearFilters} data-testid="button-clear-filters">
+          <X className="h-4 w-4 mr-2" /> Clear All Filters
+        </Button>
+      )}
+    </div>
   );
 
   return (
     <PublicLayout>
+      {/* Top Filter Bar */}
       <div className="bg-muted/30 border-b py-6">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-3 flex-wrap">
@@ -221,27 +243,16 @@ export default function SearchPage() {
                 data-testid="input-search-locality"
               />
             </div>
-            <Select value={vehicleType || ALL} onValueChange={v => setVehicleType(v === ALL ? "" : v)}>
+            <Select value={vehicleType || ALL} onValueChange={(v) => setVehicleType(v === ALL ? "" : v)}>
               <SelectTrigger className="w-44" data-testid="select-vehicle-type">
                 <Car className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Vehicle type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>All types</SelectItem>
-                {["Car", "Bike", "Scooter", "Heavy Vehicle"].map(v => (
+                {["Car", "Bike", "Scooter", "Heavy Vehicle"].map((v) => (
                   <SelectItem key={v} value={v}>{v}</SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={String(radiusKm)} onValueChange={v => setRadiusKm(Number(v))}>
-              <SelectTrigger className="w-28" data-testid="select-top-radius">
-                <SelectValue placeholder="Radius" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2">2 km</SelectItem>
-                <SelectItem value="5">5 km</SelectItem>
-                <SelectItem value="10">10 km</SelectItem>
               </SelectContent>
             </Select>
 
@@ -252,105 +263,122 @@ export default function SearchPage() {
               data-testid="button-top-near-me"
             >
               <MapPin className="h-4 w-4 mr-2" />
-              Near me
+              {nearMe ? `Within ${radiusKm}km` : "Near me"}
             </Button>
-  {
-    activeFilterCount > 0 && (
-      <Badge variant="secondary" className="gap-1">
-        {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
-        <button onClick={clearFilters}><X className="h-3 w-3" /></button>
-      </Badge>
-    )
-  }
 
-  {/* Mobile filter trigger */ }
-  <Sheet>
-    <SheetTrigger asChild>
-      <Button variant="outline" className="md:hidden gap-2" data-testid="button-mobile-filters">
-        <SlidersHorizontal className="h-4 w-4" /> Filters
-        {activeFilterCount > 0 && <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs">{activeFilterCount}</Badge>}
-      </Button>
-    </SheetTrigger>
-    <SheetContent side="left" className="overflow-y-auto">
-      <SheetHeader><SheetTitle>Filters</SheetTitle></SheetHeader>
-      <div className="mt-6">
-        <FilterPanel />
-      </div>
-    </SheetContent>
-  </Sheet>
-          </div >
-        </div >
-      </div >
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="gap-1">
+                {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+                <button onClick={clearFilters}><X className="h-3 w-3" /></button>
+              </Badge>
+            )}
 
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex gap-8">
-        {/* Sidebar filters — desktop */}
-        <aside className="hidden md:block w-64 flex-shrink-0">
-          <div className="sticky top-24 rounded-xl border bg-card p-5">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-semibold flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4" /> Filters
-              </h2>
-              {activeFilterCount > 0 && (
-                <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-destructive">Clear all</button>
-              )}
-            </div>
-            <FilterPanel />
+            {/* Mobile filter trigger */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="md:hidden gap-2" data-testid="button-mobile-filters">
+                  <SlidersHorizontal className="h-4 w-4" /> Filters
+                  {activeFilterCount > 0 && (
+                    <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs">{activeFilterCount}</Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="overflow-y-auto">
+                <SheetHeader><SheetTitle>Filters</SheetTitle></SheetHeader>
+                <div className="mt-6">
+                  <FilterPanel />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
-        </aside>
-
-        {/* Results */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-xl font-bold">
-                {locality ? `Schools in ${locality.charAt(0).toUpperCase() + locality.slice(1)}` : "All Driving Schools"}
-              </h1>
-              {!isLoading && (
-                <p className="text-sm text-muted-foreground mt-0.5">{schools?.length || 0} schools found</p>
-              )}
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-72 rounded-xl" />
-              ))}
-            </div>
-          ) : !schools?.length ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p className="text-lg font-medium">No schools found</p>
-              <p className="text-sm mt-1">Try adjusting your filters</p>
-              <Button variant="outline" className="mt-4" onClick={clearFilters}>Clear filters</Button>
-            </div>
-          ) : (
-            <motion.div
-              className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5"
-              initial="initial"
-              animate="animate"
-              variants={{ animate: { transition: { staggerChildren: 0.05 } } }}
-            >
-              <AnimatePresence>
-                {schools.map((school) => (
-                  <motion.div
-                    key={school.id}
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ duration: 0.3 }}
-                    data-testid={`card-school-${school.id}`}
-                  >
-                    <SchoolCard school={school} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          )}
         </div>
       </div>
-    </div>
-    </PublicLayout >
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex gap-8">
+          {/* Sidebar filters — desktop */}
+          <aside className="hidden md:block w-64 flex-shrink-0">
+            <div className="sticky top-24 rounded-xl border bg-card p-5">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-semibold flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4" /> Filters
+                </h2>
+                {activeFilterCount > 0 && (
+                  <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-destructive">
+                    Clear all
+                  </button>
+                )}
+              </div>
+              <FilterPanel />
+            </div>
+          </aside>
+
+          {/* Results */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-xl font-bold">
+                  {locality
+                    ? `Schools in ${locality.charAt(0).toUpperCase() + locality.slice(1)}`
+                    : "All Driving Schools"}
+                </h1>
+                {!isLoading && (
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {schools?.length || 0} schools found
+                    {nearMe && geo && ` within ${radiusKm}km`}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-72 rounded-xl" />
+                ))}
+              </div>
+            ) : !schools?.length ? (
+              <div className="text-center py-20 text-muted-foreground">
+                <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p className="text-lg font-medium">No schools found</p>
+                <p className="text-sm mt-1">
+                  {activeFilterCount > 0
+                    ? "Try adjusting your filters or clearing them"
+                    : "No schools are available yet"}
+                </p>
+                {activeFilterCount > 0 && (
+                  <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <motion.div
+                className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5"
+                initial="initial"
+                animate="animate"
+                variants={{ animate: { transition: { staggerChildren: 0.05 } } }}
+              >
+                <AnimatePresence>
+                  {schools.map((school) => (
+                    <motion.div
+                      key={school.id}
+                      initial={{ opacity: 0, scale: 0.97 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.97 }}
+                      transition={{ duration: 0.3 }}
+                      data-testid={`card-school-${school.id}`}
+                    >
+                      <SchoolCard school={school} showCompare />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </div>
+      <CompareBar />
+    </PublicLayout>
   );
 }

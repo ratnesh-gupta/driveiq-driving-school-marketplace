@@ -1,0 +1,178 @@
+{
+  "countries": [
+    {
+      "code": "IN",
+      "name": "India",
+      "states": [
+        {
+          "code": "MH",
+          "name": "Maharashtra",
+          "cities": [
+            {
+              "slug": "pune",
+              "name": "Pune",
+              "areas": [
+                { "slug": "baner", "name": "Baner", "nearestRtoSlug": "rto-pune-aundh" },
+                { "slug": "hinjewadi", "name": "Hinjewadi", "nearestRtoSlug": "rto-pimpri-chinchwad" },
+                { "slug": "wakad", "name": "Wakad", "nearestRtoSlug": "rto-pimpri-chinchwad" },
+                { "slug": "hadapsar", "name": "Hadapsar", "nearestRtoSlug": "rto-pune-hadapsar" },
+                { "slug": "kothrud", "name": "Kothrud", "nearestRtoSlug": "rto-pune-sangamwadi" },
+                { "slug": "pimpri", "name": "Pimpri-Chinchwad", "nearestRtoSlug": "rto-pimpri-chinchwad" }
+              ],
+              "rtoOffices": [
+                {
+                  "slug": "rto-pune-sangamwadi",
+                  "name": "RTO Pune (Sangamwadi)",
+                  "address": "Sangamwadi, Pune - 411001",
+                  "phone": "020-26126756",
+                  "timings": "Mon–Sat, 10:00 AM – 5:30 PM",
+                  "services": ["Learner License", "Permanent License", "Vehicle Registration", "License Renewal", "Duplicate License"],
+                  "coordinates": { "lat": 18.5362, "lng": 73.8860 },
+                  "googleMapsUrl": "https://maps.google.com/?q=RTO+Pune+Sangamwadi"
+                },
+                {
+                  "slug": "rto-pune-hadapsar",
+                  "name": "RTO Pune (Hadapsar)",
+                  "address": "Hadapsar Industrial Estate, Pune - 411013",
+                  "phone": "020-26871098",
+                  "timings": "Mon–Sat, 10:00 AM – 5:30 PM",
+                  "services": ["Learner License", "Permanent License", "Vehicle Registration", "Transfer of Ownership"],
+                  "coordinates": { "lat": 18.5089, "lng": 73.9260 },
+                  "googleMapsUrl": "https://maps.google.com/?q=RTO+Pune+Hadapsar"
+                },
+                {
+                  "slug": "rto-pimpri-chinchwad",
+                  "name": "RTO Pimpri-Chinchwad",
+                  "address": "Chinchwad, Pune - 411019",
+                  "phone": "020-27653666",
+                  "timings": "Mon–Sat, 10:00 AM – 5:30 PM",
+                  "services": ["Learner License", "Permanent License", "Vehicle Registration", "Fitness Certificate", "NOC"],
+                  "coordinates": { "lat": 18.6298, "lng": 73.7997 },
+                  "googleMapsUrl": "https://maps.google.com/?q=RTO+Pimpri+Chinchwad"
+                },
+                {
+                  "slug": "rto-pune-aundh",
+                  "name": "RTO Pune (Aundh)",
+                  "address": "Aundh, Pune - 411007",
+                  "phone": "020-25880123",
+                  "timings": "Mon–Sat, 10:00 AM – 5:30 PM",
+                  "services": ["Learner License", "Permanent License", "International Driving Permit", "License Renewal"],
+                  "coordinates": { "lat": 18.5590, "lng": 73.8077 },
+                  "googleMapsUrl": "https://maps.google.com/?q=RTO+Pune+Aundh"
+                }
+              ]
+            }
+          ],
+          "regulations": {
+            "minimumAge": [
+              { "vehicleType": "Two Wheeler (Without Gear)", "minimumAge": 16, "notes": "Engine capacity up to 50cc" },
+              { "vehicleType": "Two Wheeler (With Gear)", "minimumAge": 18 },
+              { "vehicleType": "Four Wheeler (Car)", "minimumAge": 18 },
+              { "vehicleType": "Commercial Vehicle", "minimumAge": 20, "notes": "Must hold LMV license for at least 1 year" },
+              { "vehicleType": "Transport Vehicle", "minimumAge": 20, "notes": "Requires 8th pass minimum education" }
+            ],
+            "documentsRequired": [
+              {
+                "licenseType": "Learner License",
+                "documents": [
+                  "Proof of age (Birth certificate / 10th marksheet / Passport)",
+                  "Proof of address (Aadhaar Card / Passport / Utility bill)",
+                  "Passport-size photographs (recent, white background)",
+                  "Medical certificate (Form 1-A) from registered medical practitioner",
+                  "Aadhaar card (for e-KYC verification)",
+                  "Application fee payment receipt"
+                ]
+              },
+              {
+                "licenseType": "Permanent Driving License",
+                "documents": [
+                  "Valid Learner License (at least 30 days old, not expired)",
+                  "Proof of age and address (same as LL)",
+                  "Learner License number",
+                  "Passport-size photographs",
+                  "Training certificate from registered driving school (recommended)",
+                  "Application fee payment receipt"
+                ]
+              }
+            ],
+            "licenseProcess": [
+              {
+                "step": 1,
+                "title": "Apply for Learner License Online",
+                "description": "Visit the Sarathi portal, fill Form 2, upload documents, pay the fee (Rs 200), and book a slot at your nearest RTO.",
+                "duration": "30 minutes online"
+              },
+              {
+                "step": 2,
+                "title": "Pass the Learner License Test",
+                "description": "Appear at the RTO on your booked date. Take the computer-based multiple choice test on traffic rules and signs. You need to score at least 9 out of 15.",
+                "duration": "1 day at RTO"
+              },
+              {
+                "step": 3,
+                "title": "Practice Driving (Mandatory Wait)",
+                "description": "After receiving your Learner License, practice driving for at least 30 days. Enrolling in a registered driving school is highly recommended for structured training.",
+                "duration": "30 days minimum"
+              },
+              {
+                "step": 4,
+                "title": "Apply for Permanent License & Book Driving Test",
+                "description": "Apply online via Sarathi after 30 days (but before LL expires at 6 months). Pay the fee (Rs 300) and book your driving test slot at the RTO.",
+                "duration": "15 minutes online"
+              },
+              {
+                "step": 5,
+                "title": "Pass the Driving Test",
+                "description": "Appear at the RTO with a vehicle for the practical test. The examiner will test your driving skills including road maneuvers, signaling, and traffic rule compliance. On passing, your Permanent Driving License is issued.",
+                "duration": "1 day at RTO"
+              }
+            ],
+            "fees": [
+              { "item": "Learner License Application", "amount": "₹200" },
+              { "item": "Learner License Test Fee", "amount": "₹50" },
+              { "item": "Permanent Driving License Application", "amount": "₹300" },
+              { "item": "Driving Test Fee", "amount": "₹300" },
+              { "item": "Smart Card License Fee", "amount": "₹200" },
+              { "item": "International Driving Permit", "amount": "₹1,000" },
+              { "item": "License Renewal", "amount": "₹200", "notes": "Apply before expiry to avoid late fee" },
+              { "item": "Duplicate License", "amount": "₹200" }
+            ],
+            "governmentLinks": [
+              {
+                "label": "Sarathi — Driving License Services",
+                "url": "https://sarathi.parivahan.gov.in/",
+                "description": "Apply for learner license, permanent license, renewals, and track application status online.",
+                "category": "sarathi"
+              },
+              {
+                "label": "Parivahan Sewa",
+                "url": "https://parivahan.gov.in/parivahan/",
+                "description": "Central portal for all transport-related services including vehicle registration and national permits.",
+                "category": "parivahan"
+              },
+              {
+                "label": "Maharashtra Transport Department",
+                "url": "https://transport.maharashtra.gov.in/",
+                "description": "Official Maharashtra state transport portal for notifications, circulars, and RTO contact information.",
+                "category": "state"
+              },
+              {
+                "label": "eChallan — Check & Pay Traffic Fines",
+                "url": "https://echallan.parivahan.gov.in/",
+                "description": "Check pending traffic challans and pay fines online using your vehicle or license number.",
+                "category": "parivahan"
+              }
+            ],
+            "tips": [
+              "Book your LL test slot for early morning — RTOs are less crowded before 11 AM.",
+              "Carry original documents plus one photocopy set to the RTO.",
+              "Practice on the actual test track near your RTO if possible — each RTO has slightly different layouts.",
+              "A driving school certificate can speed up the DL process and improve your test confidence.",
+              "Apply for your permanent license as soon as the 30-day wait is over — don't let the LL expire."
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

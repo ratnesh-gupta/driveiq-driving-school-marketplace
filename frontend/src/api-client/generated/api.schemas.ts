@@ -39,6 +39,24 @@ export interface School {
   /** @nullable */
   timings?: string | null;
   serviceAreas?: string[];
+  /** Comparison fields — added manually, include in next OpenAPI spec regen */
+  languages: string[];
+  batchTimings: { slot: string; time: string; label?: string; enabled: boolean }[];
+  /** @nullable */
+  pickupRadiusKm?: number | null;
+  simulatorTraining: boolean;
+  acVehicle: boolean;
+  rtoAssistance: boolean;
+  /** @nullable */
+  establishedYear?: string | null;
+  /** @nullable */
+  totalVehicles?: number | null;
+  /** @nullable */
+  totalInstructors?: number | null;
+  acceptedPayments: string[];
+  /** @nullable */
+  cancellationPolicy?: string | null;
+  profileCompleteness: number;
   createdAt: string;
 }
 
@@ -81,6 +99,17 @@ export interface SchoolUpdate {
   timings?: string;
   serviceAreas?: string[];
   verified?: boolean;
+  languages?: string[];
+  batchTimings?: { slot: string; time: string; label?: string; enabled: boolean }[];
+  pickupRadiusKm?: number | null;
+  simulatorTraining?: boolean;
+  acVehicle?: boolean;
+  rtoAssistance?: boolean;
+  establishedYear?: string | null;
+  totalVehicles?: number | null;
+  totalInstructors?: number | null;
+  acceptedPayments?: string[];
+  cancellationPolicy?: string | null;
 }
 
 export interface Locality {
@@ -217,6 +246,9 @@ womenInstructor?: boolean;
 maxPrice?: number;
 transmission?: string;
 weekendClasses?: boolean;
+nearLat?: number;
+nearLng?: number;
+radiusKm?: number;
 limit?: number;
 offset?: number;
 };

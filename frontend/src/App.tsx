@@ -14,6 +14,7 @@ import SearchPage from "@/pages/search";
 import SchoolDetailPage from "@/pages/school-detail";
 import LocalityDetailPage from "@/pages/locality-detail";
 import AboutPage from "@/pages/about";
+import DrivingRulesPage from "@/pages/driving-rules";
 import ContactPage from "@/pages/contact";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -32,6 +33,9 @@ import AdminSchoolsPage from "@/pages/admin/schools";
 import AdminReviewsPage from "@/pages/admin/reviews";
 import AdminLocalitiesPage from "@/pages/admin/localities";
 import AdminUsersPage from "@/pages/admin/users";
+
+// Compare page
+import ComparePage from "@/pages/compare";
 
 // Not found
 import NotFound from "@/pages/not-found";
@@ -54,9 +58,11 @@ function Router() {
       <Route path="/school/:slug" component={SchoolDetailPage} />
       <Route path="/locality/:slug" component={LocalityDetailPage} />
       <Route path="/about" component={AboutPage} />
+      <Route path="/driving-rules" component={DrivingRulesPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
+      <Route path="/compare" component={ComparePage} />
 
       {/* Protected dashboard routes */}
       <Route path="/dashboard">

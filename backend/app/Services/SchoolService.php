@@ -98,11 +98,20 @@ class SchoolService
         }
 
         if (!empty($filters['vehicleType'])) {
-            $query->whereJsonContains('vehicle_types', $filters['vehicleType']);
+            $value = strtolower($filters['vehicleType']);
+            $query->where(function (Builder $q) use ($filters, $value) {
+                // Match both lowercase and original case for backward compatibility
+                $q->whereJsonContains('vehicle_types', $value)
+                  ->orWhereJsonContains('vehicle_types', $filters['vehicleType']);
+            });
         }
 
         if (!empty($filters['transmission'])) {
-            $query->whereJsonContains('transmission', $filters['transmission']);
+            $value = strtolower($filters['transmission']);
+            $query->where(function (Builder $q) use ($filters, $value) {
+                $q->whereJsonContains('transmission', $value)
+                  ->orWhereJsonContains('transmission', $filters['transmission']);
+            });
         }
     }
 

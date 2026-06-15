@@ -16,6 +16,9 @@ class School extends Model
         'phone', 'whatsapp', 'email', 'description', 'image_url', 'rating', 'review_count',
         'verified', 'has_pickup', 'women_instructor', 'weekend_classes', 'vehicle_types',
         'transmission', 'price_from', 'price_to', 'timings', 'service_areas',
+        'languages', 'batch_timings', 'pickup_radius_km', 'simulator_training',
+        'ac_vehicle', 'rto_assistance', 'established_year', 'total_vehicles',
+        'total_instructors', 'accepted_payments', 'cancellation_policy', 'profile_completeness',
     ];
 
     protected function casts(): array
@@ -35,7 +38,53 @@ class School extends Model
             'latitude' => 'float',
             'longitude' => 'float',
             'service_radius_km' => 'float',
+            'languages' => 'array',
+            'batch_timings' => 'array',
+            'pickup_radius_km' => 'float',
+            'simulator_training' => 'boolean',
+            'ac_vehicle' => 'boolean',
+            'rto_assistance' => 'boolean',
+            'accepted_payments' => 'array',
+            'total_vehicles' => 'integer',
+            'total_instructors' => 'integer',
+            'profile_completeness' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (School $school) {
+            $school->profile_completeness = $school->calculateProfileCompleteness();
+        });
+    }
+
+    public function calculateProfileCompleteness(): int
+    {
+        $fields = [
+            'name', 'phone', 'email', 'description', 'address', 'timings',
+            'image_url', 'vehicle_types', 'transmission', 'price_from',
+            'languages', 'batch_timings', 'service_areas',
+            'established_year', 'total_vehicles', 'total_instructors',
+            'accepted_payments',
+        ];
+        $booleanFields = [
+            'has_pickup', 'women_instructor', 'weekend_classes',
+            'simulator_training', 'ac_vehicle', 'rto_assistance',
+        ];
+
+        $filled = 0;
+        $total = count($fields) + count($booleanFields);
+
+        foreach ($fields as $field) {
+            $value = $this->getAttribute($field);
+            if (!is_null($value) && $value !== '' && $value !== []) {
+                $filled++;
+            }
+        }
+        // Boolean fields always count as filled since they have defaults
+        $filled += count($booleanFields);
+
+        return (int) round(($filled / $total) * 100);
     }
 
     public function owner(): BelongsTo

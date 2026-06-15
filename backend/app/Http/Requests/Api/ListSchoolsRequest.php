@@ -26,5 +26,15 @@ class ListSchoolsRequest extends BaseFormRequest
     protected function prepareForValidation(): void
     {
         $this->merge($this->query());
+
+        // Cast string "true"/"false" from query params to actual booleans
+        foreach (['hasPickup', 'womenInstructor', 'weekendClasses'] as $field) {
+            if ($this->has($field)) {
+                $val = $this->input($field);
+                if (is_string($val)) {
+                    $this->merge([$field => filter_var($val, FILTER_VALIDATE_BOOLEAN)]);
+                }
+            }
+        }
     }
 }
