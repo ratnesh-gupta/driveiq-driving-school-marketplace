@@ -109,3 +109,5 @@ frontend/connect.lock
 .replit/
 .cache/
 .local/
+
+frontend_old/
