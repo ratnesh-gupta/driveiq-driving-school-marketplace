@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -19,6 +20,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'school_id',
     ];
 
     protected $hidden = [
@@ -34,6 +36,15 @@ class User extends Authenticatable
         ];
     }
 
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
+
+    /**
+     * Schools owned via schools.user_id (legacy one-to-many).
+     * Prefer school() / school_id for isolation scoping.
+     */
     public function schools(): HasMany
     {
         return $this->hasMany(School::class, 'user_id');
