@@ -1,12 +1,10 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthGuard } from "@/components/auth-guard";
-
-// Layouts
-import { PublicLayout } from "@/components/layout/public-layout";
 
 // Public pages
 import HomePage from "@/pages/home";
@@ -159,6 +157,7 @@ function App() {
             <Router />
           </WouterRouter>
           <Toaster />
+          <SonnerToaster />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
