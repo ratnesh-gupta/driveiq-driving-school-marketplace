@@ -49,6 +49,7 @@ class SchoolResource extends JsonResource
             'cancellationPolicy' => $this->cancellation_policy,
             'profileCompleteness' => (int) ($this->profile_completeness ?? 0),
             'distanceKm' => $this->when(isset($this->distance_km), fn () => round((float) $this->distance_km, 2)),
+            'rankingScore' => $this->when(isset($this->ranking_score), fn () => (float) $this->ranking_score),
             'createdAt' => $this->created_at?->toISOString(),
         ];
     }

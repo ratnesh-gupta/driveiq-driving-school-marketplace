@@ -18,6 +18,7 @@ class ListSchoolsRequest extends BaseFormRequest
             'nearLat' => ['nullable', 'numeric', 'between:-90,90'],
             'nearLng' => ['nullable', 'numeric', 'between:-180,180'],
             'radiusKm' => ['nullable', 'numeric', 'min:1', 'max:50'],
+            'sortBy' => ['nullable', 'string', 'in:distance,rank'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
             'offset' => ['nullable', 'integer', 'min:0'],
         ];
@@ -27,7 +28,6 @@ class ListSchoolsRequest extends BaseFormRequest
     {
         $this->merge($this->query());
 
-        // Cast string "true"/"false" from query params to actual booleans
         foreach (['hasPickup', 'womenInstructor', 'weekendClasses'] as $field) {
             if ($this->has($field)) {
                 $val = $this->input($field);
