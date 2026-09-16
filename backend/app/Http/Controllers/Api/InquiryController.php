@@ -8,6 +8,7 @@ use App\Http\Requests\Api\UpdateInquiryRequest;
 use App\Http\Resources\InquiryResource;
 use App\Models\AuditLog;
 use App\Models\Inquiry;
+use App\Models\LeadStatusHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -55,11 +56,29 @@ class InquiryController extends Controller
         }
 
         $oldValues = $inquiry->only(['status', 'message', 'channel']);
+        $previousStatus = $inquiry->status;
+
         $inquiry->fill($request->toSnakeCase());
         $inquiry->save();
         $inquiry->load('school');
 
-        AuditLog::log('update', 'Inquiry', $inquiry->id, $oldValues, $inquiry->only(['status', 'message', 'channel']));
+        if (array_key_exists('status', $request->toSnakeCase())
+            && $previousStatus !== $inquiry->status) {
+            LeadStatusHistory::create([
+                'inquiry_id' => $inquiry->id,
+                'from_status' => $previousStatus,
+                'to_status' => $inquiry->status,
+                'changed_by_id' => $request->user()?->id,
+            ]);
+        }
+
+        AuditLog::log(
+            'update',
+            'Inquiry',
+            $inquiry->id,
+            $oldValues,
+            $inquiry->only(['status', 'message', 'channel'])
+        );
 
         return response()->json(new InquiryResource($inquiry));
     }
