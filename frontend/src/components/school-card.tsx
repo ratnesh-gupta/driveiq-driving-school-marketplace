@@ -2,12 +2,12 @@ import { School } from "@/api-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Car, ShieldCheck, Columns3, Check } from "lucide-react";
+import { Star, MapPin, Car, ShieldCheck, Columns3, Check, Navigation } from "lucide-react";
 import { Link } from "wouter";
 import { useComparisonStore } from "@/features/comparison/stores/comparison-store";
 
 interface SchoolCardProps {
-  school: School;
+  school: School & { distanceKm?: number | null; rankingScore?: number | null };
   showCompare?: boolean;
 }
 
@@ -16,6 +16,7 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
   const vehicleTypes = Array.isArray(school.vehicleTypes) ? school.vehicleTypes : [];
   const reviewCount = typeof school.reviewCount === "number" ? school.reviewCount : 0;
   const priceFrom = typeof school.priceFrom === "number" ? school.priceFrom : 0;
+  const distanceKm = typeof school.distanceKm === "number" ? school.distanceKm : null;
 
   const { addSchool, removeSchool, isInComparison, canAdd } = useComparisonStore();
   const inComparison = isInComparison(school.id);
@@ -32,7 +33,6 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
     <div className="flex flex-col h-full">
       <Link href={`/school/${school.slug}`} className="flex-1 min-h-0">
         <Card className="group cursor-pointer overflow-hidden transition-all hover:shadow-md h-full flex flex-col">
-          {/* Fixed-ratio image container */}
           <div className="aspect-[4/3] w-full relative bg-muted overflow-hidden">
             {school.imageUrl ? (
               <img
@@ -45,18 +45,22 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
                 <Car className="h-12 w-12 opacity-20" />
               </div>
             )}
-            <div className="absolute top-2 right-2 flex flex-col gap-2">
+            <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
               {school.verified && (
                 <Badge className="bg-green-500 hover:bg-green-600 text-white border-transparent">
                   <ShieldCheck className="h-3 w-3 mr-1" /> Verified
                 </Badge>
               )}
+              {distanceKm !== null && (
+                <Badge variant="secondary" className="bg-background/90 backdrop-blur text-foreground border">
+                  <Navigation className="h-3 w-3 mr-1" />
+                  {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`}
+                </Badge>
+              )}
             </div>
           </div>
 
-          {/* Content — fixed structure with consistent spacing */}
           <CardContent className="p-5 flex flex-col flex-1">
-            {/* Row 1: Name + Rating — fixed height with line clamp */}
             <div className="flex justify-between items-start gap-2 mb-2">
               <h3 className="font-bold text-base leading-snug line-clamp-1 flex-1 group-hover:text-primary transition-colors">
                 {school.name}
@@ -67,7 +71,6 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
               </div>
             </div>
 
-            {/* Row 2: Location + Reviews */}
             <div className="flex items-center text-muted-foreground text-sm mb-3">
               <MapPin className="h-3.5 w-3.5 mr-1 shrink-0" />
               <span className="truncate">{school.localityName || "Pune"}</span>
@@ -75,7 +78,6 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
               <span className="shrink-0">{reviewCount} {reviewCount === 1 ? "review" : "reviews"}</span>
             </div>
 
-            {/* Row 3: Badges — fixed height area (min-h so cards without badges still align) */}
             <div className="flex flex-wrap gap-1.5 min-h-[28px] mb-3">
               {vehicleTypes.slice(0, 2).map((v) => (
                 <Badge key={v} variant="secondary" className="text-xs font-normal capitalize">
@@ -90,7 +92,6 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
               )}
             </div>
 
-            {/* Row 4: Price — pinned to bottom */}
             <div className="pt-3 border-t mt-auto">
               <span className="text-xs text-muted-foreground">Starting from</span>
               <div className="font-bold text-lg leading-tight">₹{priceFrom.toLocaleString()}</div>
