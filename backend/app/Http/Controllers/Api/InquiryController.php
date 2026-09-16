@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\InquiryCreated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreInquiryRequest;
 use App\Http\Requests\Api\UpdateInquiryRequest;
@@ -42,6 +43,8 @@ class InquiryController extends Controller
         $inquiry = Inquiry::withoutGlobalScope('school')
             ->create($request->toSnakeCase());
         $inquiry->load('school');
+
+        event(new InquiryCreated($inquiry));
 
         return response()->json(new InquiryResource($inquiry), 201);
     }
