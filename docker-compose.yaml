@@ -16,6 +16,19 @@ services:
       timeout: 5s
       retries: 20
 
+  redis:
+    image: redis:7-alpine
+    container_name: driveiq-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   backend:
     build:
       context: ./backend
@@ -23,6 +36,8 @@ services:
     container_name: driveiq-backend
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
       - ./backend/.env
@@ -55,3 +70,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
