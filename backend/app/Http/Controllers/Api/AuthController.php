@@ -30,9 +30,12 @@ class AuthController extends Controller
             $school = School::create([
                 'user_id' => $user->id,
                 'name' => $user->name,
-                'slug' => Str::slug($user->name) . '-' . Str::lower(Str::random(5)),
+                'slug' => Str::slug($user->name).'-'.Str::lower(Str::random(5)),
                 'email' => $user->email,
             ]);
+
+            $user->update(['school_id' => $school->id]);
+            $user->refresh();
             $schoolId = $school->id;
         }
 
@@ -56,23 +59,25 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
-        $school = $user->schools()->first();
+
+        // Prefer school_id column; fall back to owned school for legacy rows.
+        $schoolId = $user->school_id ?? $user->schools()->value('id');
 
         return response()->json([
             'user' => $user,
             'token' => $token,
-            'schoolId' => $school?->id,
+            'schoolId' => $schoolId,
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
-        $school = $user->schools()->first();
+        $schoolId = $user->school_id ?? $user->schools()->value('id');
 
         return response()->json([
             'user' => $user,
-            'schoolId' => $school?->id,
+            'schoolId' => $schoolId,
         ]);
     }
 

@@ -63,6 +63,11 @@ class ApiPhaseTwoModulesTest extends TestCase
 
         $schoolId = $schoolResp->json('id') ?? School::query()->value('id');
 
+        // Bind school ownership for isolation-aware dashboard actions.
+        School::where('id', $schoolId)->update(['user_id' => $schoolUser->id]);
+        $schoolUser->update(['school_id' => $schoolId]);
+        $schoolUser->refresh();
+
         $this->getJson('/api/schools?locality=wakad&vehicleType=car')
             ->assertOk()
             ->assertJsonCount(1);
@@ -80,7 +85,7 @@ class ApiPhaseTwoModulesTest extends TestCase
             'transmission' => 'manual',
         ])->assertCreated();
 
-        $packageId = $package->json('id') ?? \App\Models\DrivePackage::query()->value('id');
+        $packageId = $package->json('id') ?? \App\Models\DrivePackage::withoutGlobalScope('school')->value('id');
         $this->patchJson('/api/packages/'.$packageId, ['active' => false])->assertOk()->assertJsonPath('active', false);
 
         Sanctum::actingAs($schoolUser);
@@ -91,7 +96,7 @@ class ApiPhaseTwoModulesTest extends TestCase
             'content' => 'Great experience',
         ])->assertCreated();
 
-        $reviewId = $review->json('id') ?? Review::query()->value('id');
+        $reviewId = $review->json('id') ?? Review::withoutGlobalScope('school')->value('id');
         $this->getJson('/api/reviews?schoolId='.$schoolId)->assertOk()->assertJsonCount(1);
         $this->patchJson('/api/reviews/'.$reviewId, ['approved' => true])->assertOk()->assertJsonPath('approved', true);
 
@@ -103,7 +108,7 @@ class ApiPhaseTwoModulesTest extends TestCase
             'status' => 'pending',
         ])->assertCreated();
 
-        $inquiryId = $inquiry->json('id') ?? Inquiry::query()->value('id');
+        $inquiryId = $inquiry->json('id') ?? Inquiry::withoutGlobalScope('school')->value('id');
         $this->getJson('/api/inquiries?schoolId='.$schoolId)->assertOk()->assertJsonCount(1);
         $this->patchJson('/api/inquiries/'.$inquiryId, ['status' => 'contacted'])->assertOk()->assertJsonPath('status', 'contacted');
 
@@ -148,7 +153,7 @@ class ApiPhaseTwoModulesTest extends TestCase
             'review_count' => 1,
         ]);
 
-        Inquiry::create([
+        Inquiry::withoutGlobalScope('school')->create([
             'school_id' => $school->id,
             'name' => 'Lead',
             'phone' => '9000000001',
@@ -156,7 +161,7 @@ class ApiPhaseTwoModulesTest extends TestCase
             'status' => 'pending',
         ]);
 
-        Review::create([
+        Review::withoutGlobalScope('school')->create([
             'school_id' => $school->id,
             'author_name' => 'User',
             'rating' => 5,

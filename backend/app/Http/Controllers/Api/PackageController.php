@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StorePackageRequest;
 use App\Http\Requests\Api\UpdatePackageRequest;
 use App\Http\Resources\PackageResource;
+use App\Models\AuditLog;
 use App\Models\DrivePackage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ class PackageController extends Controller
             'schoolId' => ['nullable', 'integer'],
         ]);
 
-        $query = DrivePackage::query();
+        // Public listing is cross-school.
+        $query = DrivePackage::withoutGlobalScope('school');
 
         if ($request->filled('schoolId')) {
             $query->where('school_id', $request->input('schoolId'));
@@ -29,7 +31,17 @@ class PackageController extends Controller
 
     public function store(StorePackageRequest $request): JsonResponse
     {
-        $package = DrivePackage::create($request->toSnakeCase());
+        $data = $request->toSnakeCase();
+        $user = $request->user();
+
+        // School role may only create packages for their own school.
+        if ($user && $user->isSchool() && $user->school_id) {
+            $data['school_id'] = $user->school_id;
+        }
+
+        $package = DrivePackage::withoutGlobalScope('school')->create($data);
+
+        AuditLog::log('create', 'DrivePackage', $package->id, [], $package->toArray());
 
         return response()->json(new PackageResource($package), 201);
     }
@@ -42,8 +54,11 @@ class PackageController extends Controller
             return response()->json(['message' => 'Package not found'], 404);
         }
 
+        $oldValues = $package->toArray();
         $package->fill($request->toSnakeCase());
         $package->save();
+
+        AuditLog::log('update', 'DrivePackage', $package->id, $oldValues, $package->toArray());
 
         return response()->json(new PackageResource($package));
     }
@@ -56,6 +71,7 @@ class PackageController extends Controller
             return response()->json(['message' => 'Package not found'], 404);
         }
 
+        AuditLog::log('delete', 'DrivePackage', $package->id, $package->toArray(), []);
         $package->delete();
 
         return response()->json(null, 204);

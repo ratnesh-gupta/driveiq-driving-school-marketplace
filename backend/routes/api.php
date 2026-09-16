@@ -56,7 +56,7 @@ Route::post('/reviews', [ReviewController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:10,1']);
 
 Route::post('/inquiries', [InquiryController::class, 'store'])
-    ->middleware('throttle:20,1');
+    ->middleware('throttle:10,1');
 
 Route::get('/packages', [PackageController::class, 'index']);
 
