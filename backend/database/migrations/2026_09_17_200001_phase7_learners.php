@@ -29,15 +29,15 @@ return new class extends Migration
             $table->string('learner_license_number')->nullable();
             $table->date('license_issue_date')->nullable();
             $table->date('license_expiry_date')->nullable();
-            $table->string('permanent_license_status')->nullable(); // none|applied|passed|issued
-            $table->string('status')->default('active')->index(); // active|inactive|completed|suspended
+            $table->string('permanent_license_status')->nullable();
+            $table->string('status')->default('active')->index();
             $table->text('notes')->nullable();
             $table->timestamps();
 
             $table->foreign('school_id')->references('id')->on('schools')->cascadeOnDelete();
             $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
             $table->foreign('converted_from_inquiry_id')->references('id')->on('inquiries')->nullOnDelete();
-            $table->foreign('package_id')->references('id')->on('drive_packages')->nullOnDelete();
+            $table->foreign('package_id')->references('id')->on('packages')->nullOnDelete();
             $table->foreign('assigned_instructor_id')->references('id')->on('instructors')->nullOnDelete();
             $table->foreign('assigned_vehicle_id')->references('id')->on('vehicles')->nullOnDelete();
         });
@@ -46,7 +46,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('learner_id')->index();
             $table->unsignedBigInteger('school_id')->index();
-            $table->string('type'); // aadhaar|pan|photo|learner_license|medical|other
+            $table->string('type');
             $table->string('file_path')->nullable();
             $table->string('file_name')->nullable();
             $table->string('status')->default('pending')->index();
@@ -68,7 +68,7 @@ return new class extends Migration
             $table->unsignedBigInteger('instructor_id')->nullable();
             $table->unsignedBigInteger('vehicle_id')->nullable();
             $table->unsignedBigInteger('assigned_by')->nullable();
-            $table->string('action')->default('assign'); // assign|reassign|unassign
+            $table->string('action')->default('assign');
             $table->text('notes')->nullable();
             $table->timestamps();
 
@@ -76,7 +76,6 @@ return new class extends Migration
             $table->foreign('school_id')->references('id')->on('schools')->cascadeOnDelete();
         });
 
-        // Allow schedules.learner_id FK now that learners exist
         Schema::table('schedules', function (Blueprint $table): void {
             $table->foreign('learner_id')->references('id')->on('learners')->nullOnDelete();
         });
