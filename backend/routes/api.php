@@ -7,12 +7,14 @@ use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SchoolDashboardController;
 use App\Http\Controllers\Api\SchoolSettingsController;
 use App\Http\Controllers\Api\SchoolTeamController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\VehicleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', fn () => response()->json([
@@ -48,7 +50,6 @@ Route::post('/inquiries', [InquiryController::class, 'store'])
     ->middleware('throttle:10,1');
 
 Route::get('/packages', [PackageController::class, 'index']);
-
 Route::get('/plans', [SubscriptionController::class, 'plans']);
 
 Route::prefix('stats')->group(function (): void {
@@ -72,9 +73,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/admin/ping', fn () => response()->json(['ok' => true]))->middleware('role:admin');
     Route::get('/school/ping', fn () => response()->json(['ok' => true]))->middleware('role:school,admin');
 
-    // Phase 5 — instructor self
     Route::middleware('role:instructor,school,admin')->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
+        Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
     });
 
     Route::middleware('role:admin')->group(function (): void {
@@ -116,7 +117,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/schools/{id}/subscription', [SubscriptionController::class, 'showForSchool'])
             ->whereNumber('id');
 
-        // Phase 5 — instructor management
         Route::get('/schools/{id}/instructors', [InstructorController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/instructors', [InstructorController::class, 'store'])->whereNumber('id');
         Route::get('/instructors/{id}', [InstructorController::class, 'show'])->whereNumber('id');
@@ -127,5 +127,19 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/instructors/{id}/documents', [InstructorController::class, 'addDocument'])->whereNumber('id');
         Route::patch('/instructors/{id}/documents/{docId}', [InstructorController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
+
+        // Phase 6 — vehicles & schedules
+        Route::get('/schools/{id}/vehicles', [VehicleController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/vehicles', [VehicleController::class, 'store'])->whereNumber('id');
+        Route::patch('/vehicles/{id}', [VehicleController::class, 'update'])->whereNumber('id');
+        Route::post('/vehicles/{id}/documents', [VehicleController::class, 'addDocument'])->whereNumber('id');
+
+        Route::get('/schools/{id}/schedules', [ScheduleController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/schedules', [ScheduleController::class, 'store'])->whereNumber('id');
+        Route::patch('/schedules/{id}', [ScheduleController::class, 'update'])->whereNumber('id');
+
+        Route::get('/schools/{id}/leave-requests', [ScheduleController::class, 'listLeave'])->whereNumber('id');
+        Route::post('/schools/{id}/leave-requests', [ScheduleController::class, 'requestLeave'])->whereNumber('id');
+        Route::patch('/leave-requests/{id}', [ScheduleController::class, 'reviewLeave'])->whereNumber('id');
     });
 });
