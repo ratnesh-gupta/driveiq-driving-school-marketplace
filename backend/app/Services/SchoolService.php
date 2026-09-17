@@ -9,6 +9,10 @@ use Illuminate\Support\Collection;
 
 class SchoolService
 {
+    public function __construct(
+        private readonly SubscriptionService $subscriptions,
+    ) {}
+
     public function list(array $filters): Collection
     {
         $query = School::with('locality');
@@ -28,28 +32,50 @@ class SchoolService
         $schools = $query
             ->orderByDesc('rating')
             ->orderByDesc('review_count')
-            ->get();
+            ->get()
+            ->map(fn (School $s) => $this->attachPlanMeta($s));
+
+        // Paid tiers first when not using pure distance sort
+        $schools = $schools->sortBy([
+            ['plan_boost', 'desc'],
+            ['rating', 'desc'],
+            ['review_count', 'desc'],
+        ])->values();
 
         return $this->paginate($schools, $filters);
     }
 
     public function featured(): Collection
     {
-        return School::with('locality')
+        $schools = School::with('locality')
             ->verified()
             ->orderByDesc('rating')
-            ->limit(6)
-            ->get();
+            ->limit(24)
+            ->get()
+            ->map(fn (School $s) => $this->attachPlanMeta($s));
+
+        return $schools
+            ->sortBy([
+                ['homepage_featured', 'desc'],
+                ['plan_boost', 'desc'],
+                ['rating', 'desc'],
+            ])
+            ->take(6)
+            ->values();
     }
 
     public function findById(int $id): ?School
     {
-        return School::with('locality')->find($id);
+        $school = School::with('locality')->find($id);
+
+        return $school ? $this->attachPlanMeta($school) : null;
     }
 
     public function findBySlug(string $slug): ?School
     {
-        return School::with('locality')->where('slug', $slug)->first();
+        $school = School::with('locality')->where('slug', $slug)->first();
+
+        return $school ? $this->attachPlanMeta($school) : null;
     }
 
     public function create(array $data): School
@@ -140,13 +166,13 @@ class SchoolService
             ->whereBetween('longitude', [$lng - $lngDelta, $lng + $lngDelta])
             ->selectRaw("schools.*, {$haversine} as distance_km")
             ->havingRaw('distance_km <= ?', [$radiusKm])
-            ->get();
+            ->get()
+            ->map(function (School $school) use ($radiusKm) {
+                $this->attachPlanMeta($school);
+                $school->ranking_score = $this->computeRankingScore($school, $radiusKm);
 
-        $schools = $schools->map(function (School $school) use ($radiusKm) {
-            $school->ranking_score = $this->computeRankingScore($school, $radiusKm);
-
-            return $school;
-        });
+                return $school;
+            });
 
         $sortBy = $filters['sortBy'] ?? 'rank';
 
@@ -154,6 +180,7 @@ class SchoolService
             $schools = $schools
                 ->sortBy([
                     ['distance_km', 'asc'],
+                    ['plan_boost', 'desc'],
                     ['verified', 'desc'],
                     ['rating', 'desc'],
                 ])
@@ -184,14 +211,27 @@ class SchoolService
         $ratingScore = min(max((float) ($school->rating ?? 0) / 5.0, 0.0), 1.0);
         $reviewScore = min((int) ($school->review_count ?? 0) / $reviewCap, 1.0);
         $verifiedBonus = $school->verified ? 1.0 : 0.0;
+        $premiumBoost = (float) ($school->plan_boost ?? 0.0);
 
         $score =
-            ((float) $weights['weight_distance'] * $distanceScore)
-            + ((float) $weights['weight_rating'] * $ratingScore)
-            + ((float) $weights['weight_reviews'] * $reviewScore)
-            + ((float) $weights['weight_verified'] * $verifiedBonus);
+            ((float) ($weights['weight_distance'] ?? 0.4) * $distanceScore)
+            + ((float) ($weights['weight_rating'] ?? 0.25) * $ratingScore)
+            + ((float) ($weights['weight_reviews'] ?? 0.12) * $reviewScore)
+            + ((float) ($weights['weight_verified'] ?? 0.08) * $verifiedBonus)
+            + ((float) ($weights['weight_premium'] ?? 0.15) * $premiumBoost);
 
         return round($score, 6);
+    }
+
+    private function attachPlanMeta(School $school): School
+    {
+        $sub = $this->subscriptions->activeForSchool((int) $school->id);
+        $school->plan_code = $sub?->plan?->code ?? 'basic';
+        $school->plan_boost = $sub?->plan?->rankingBoostScore() ?? 0.0;
+        $school->is_sponsored = (bool) ($sub?->plan?->is_sponsored);
+        $school->homepage_featured = (bool) ($sub?->plan?->homepage_featured);
+
+        return $school;
     }
 
     private function paginate(Collection $schools, array $filters): Collection

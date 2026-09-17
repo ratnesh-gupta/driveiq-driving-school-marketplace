@@ -31,6 +31,8 @@ class SchoolResource extends JsonResource
             'businessVerified' => (bool) ($this->business_verified ?? false),
             'locationVerified' => (bool) ($this->location_verified ?? false),
             'premiumVerified' => (bool) ($this->premium_verified ?? false),
+            'planCode' => $this->plan_code ?? 'basic',
+            'isSponsored' => (bool) ($this->is_sponsored ?? false),
             'hasPickup' => (bool) $this->has_pickup,
             'womenInstructor' => (bool) $this->women_instructor,
             'weekendClasses' => (bool) $this->weekend_classes,
