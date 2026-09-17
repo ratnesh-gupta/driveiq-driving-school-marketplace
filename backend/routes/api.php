@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
+use App\Http\Controllers\Api\LearnerController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
@@ -78,6 +79,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
     });
 
+    // Phase 7 — learner portal
+    Route::middleware('role:learner,school,admin')->group(function (): void {
+        Route::get('/learner/me', [LearnerController::class, 'me']);
+        Route::post('/learners/{id}/documents', [LearnerController::class, 'addDocument'])->whereNumber('id');
+    });
+
     Route::middleware('role:admin')->group(function (): void {
         Route::post('/schools', [SchoolController::class, 'store']);
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
@@ -97,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/inquiries', [InquiryController::class, 'index']);
         Route::patch('/inquiries/{id}', [InquiryController::class, 'update'])->whereNumber('id');
+        Route::post('/inquiries/{id}/convert', [LearnerController::class, 'convertInquiry'])->whereNumber('id');
 
         Route::post('/packages', [PackageController::class, 'store']);
         Route::patch('/packages/{id}', [PackageController::class, 'update'])->whereNumber('id');
@@ -128,7 +136,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/instructors/{id}/documents/{docId}', [InstructorController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
 
-        // Phase 6 — vehicles & schedules
         Route::get('/schools/{id}/vehicles', [VehicleController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/vehicles', [VehicleController::class, 'store'])->whereNumber('id');
         Route::patch('/vehicles/{id}', [VehicleController::class, 'update'])->whereNumber('id');
@@ -141,5 +148,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/schools/{id}/leave-requests', [ScheduleController::class, 'listLeave'])->whereNumber('id');
         Route::post('/schools/{id}/leave-requests', [ScheduleController::class, 'requestLeave'])->whereNumber('id');
         Route::patch('/leave-requests/{id}', [ScheduleController::class, 'reviewLeave'])->whereNumber('id');
+
+        // Phase 7 — learners
+        Route::get('/schools/{id}/learners', [LearnerController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/learners', [LearnerController::class, 'store'])->whereNumber('id');
+        Route::get('/learners/{id}', [LearnerController::class, 'show'])->whereNumber('id');
+        Route::patch('/learners/{id}', [LearnerController::class, 'update'])->whereNumber('id');
+        Route::post('/learners/{id}/assign', [LearnerController::class, 'assign'])->whereNumber('id');
+        Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
+        Route::patch('/learners/{id}/documents/{docId}', [LearnerController::class, 'updateDocument'])
+            ->whereNumber(['id', 'docId']);
     });
 });
