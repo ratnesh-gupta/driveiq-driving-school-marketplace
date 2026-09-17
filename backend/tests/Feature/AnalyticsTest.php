@@ -27,7 +27,7 @@ class AnalyticsTest extends TestCase
             'address' => 'Baner',
             'phone' => '9000013000',
             'user_id' => $owner->id,
-            'active' => true,
+            'verified' => true,
         ]);
         $owner->update(['school_id' => $school->id]);
 
@@ -99,7 +99,7 @@ class AnalyticsTest extends TestCase
         $this->getJson('/api/admin/analytics')
             ->assertOk()
             ->assertJsonStructure([
-                'schools' => ['total', 'active', 'subscribed'],
+                'schools' => ['total', 'verified', 'subscribed'],
                 'funnel' => ['inquiries', 'converted', 'conversionRate'],
                 'revenue' => ['mrr', 'arr', 'byPlan'],
                 'topLocalities',

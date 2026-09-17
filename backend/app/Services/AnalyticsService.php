@@ -6,7 +6,6 @@ use App\Models\Attendance;
 use App\Models\Inquiry;
 use App\Models\Instructor;
 use App\Models\Learner;
-use App\Models\Locality;
 use App\Models\Schedule;
 use App\Models\School;
 use App\Models\Subscription;
@@ -64,7 +63,6 @@ class AnalyticsService
             ? round($completedLearners / $totalLearners, 4)
             : 0.0;
 
-        // Average overall skill progress across active learners
         $avgProgress = (float) (TrainingProgress::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
             ->avg('percentage') ?? 0);
@@ -82,29 +80,7 @@ class AnalyticsService
 
         $instructorStats = $this->instructorBreakdown($schoolId);
 
-        // Monthly inquiry trend (last 6 months)
-        $trend = Inquiry::withoutGlobalScope('school')
-            ->where('school_id', $schoolId)
-            ->where('created_at', '>=', $now->copy()->subMonths(5)->startOfMonth())
-            ->selectRaw("to_char(created_at, 'YYYY-MM') as month, count(*) as count")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(fn ($r) => ['month' => $r->month, 'count' => (int) $r->count])
-            ->values()
-            ->all();
-
-        // Fallback for SQLite tests without to_char
-        if (empty($trend) && DB::getDriverName() !== 'pgsql') {
-            $trend = Inquiry::withoutGlobalScope('school')
-                ->where('school_id', $schoolId)
-                ->where('created_at', '>=', $now->copy()->subMonths(5)->startOfMonth())
-                ->get()
-                ->groupBy(fn ($i) => $i->created_at?->format('Y-m'))
-                ->map(fn ($g, $m) => ['month' => $m, 'count' => $g->count()])
-                ->values()
-                ->all();
-        }
+        $trend = $this->inquiryTrend($schoolId, $now);
 
         return [
             'schoolId' => $schoolId,
@@ -187,7 +163,6 @@ class AnalyticsService
                 ? round($completedLearners / $learnersAssigned, 4)
                 : 0.0;
 
-            // Hours this week (approximate from session durations)
             $weekStart = now()->startOfWeek()->toDateString();
             $weekSessions = Schedule::withoutGlobalScope('school')
                 ->where('school_id', $schoolId)
@@ -203,7 +178,7 @@ class AnalyticsService
 
                     return $end > $start ? ($end - $start) / 3600 : 0;
                 } catch (\Throwable) {
-                    return 1.0; // default 1h session
+                    return 1.0;
                 }
             });
 
@@ -224,16 +199,15 @@ class AnalyticsService
     public function platform(): array
     {
         $totalSchools = School::count();
-        $activeSchools = School::where('active', true)->count();
+        $verifiedSchools = School::where('verified', true)->count();
 
-        // Schools with active subscription
-        $subscribed = Subscription::withoutGlobalScope('school')
+        $activeSubsQuery = Subscription::withoutGlobalScope('school')
             ->where('status', 'active')
             ->where(function ($q) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
-            })
-            ->distinct('school_id')
-            ->count('school_id');
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            });
+
+        $subscribed = (clone $activeSubsQuery)->distinct()->count('school_id');
 
         $totalInquiries = Inquiry::withoutGlobalScope('school')->count();
         $converted = Inquiry::withoutGlobalScope('school')->where('status', 'converted')->count();
@@ -243,17 +217,24 @@ class AnalyticsService
         $totalLearners = Learner::withoutGlobalScope('school')->count();
         $activeLearners = Learner::withoutGlobalScope('school')->where('status', 'active')->count();
 
-        // Revenue by plan (MRR approximation from active subscriptions)
         $mrrByPlan = Subscription::withoutGlobalScope('school')
-            ->where('status', 'active')
+            ->join('plans', 'subscriptions.plan_id', '=', 'plans.id')
+            ->where('subscriptions.status', 'active')
             ->where(function ($q) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                $q->whereNull('subscriptions.expires_at')
+                    ->orWhere('subscriptions.expires_at', '>', now());
             })
-            ->select('plan', DB::raw('count(*) as schools'), DB::raw('coalesce(sum(amount), 0) as mrr'))
-            ->groupBy('plan')
+            ->select(
+                'plans.code as plan',
+                'plans.name as plan_name',
+                DB::raw('count(subscriptions.id) as schools'),
+                DB::raw('coalesce(sum(plans.price_monthly), 0) as mrr')
+            )
+            ->groupBy('plans.code', 'plans.name')
             ->get()
             ->map(fn ($r) => [
                 'plan' => $r->plan,
+                'planName' => $r->plan_name,
                 'schools' => (int) $r->schools,
                 'mrr' => (float) $r->mrr,
             ])
@@ -262,7 +243,6 @@ class AnalyticsService
 
         $totalMrr = collect($mrrByPlan)->sum('mrr');
 
-        // Top localities by inquiry volume
         $topLocalities = Inquiry::withoutGlobalScope('school')
             ->join('schools', 'inquiries.school_id', '=', 'schools.id')
             ->leftJoin('localities', 'schools.locality_id', '=', 'localities.id')
@@ -286,7 +266,7 @@ class AnalyticsService
         return [
             'schools' => [
                 'total' => $totalSchools,
-                'active' => $activeSchools,
+                'verified' => $verifiedSchools,
                 'subscribed' => $subscribed,
             ],
             'funnel' => [
@@ -307,6 +287,34 @@ class AnalyticsService
             ],
             'topLocalities' => $topLocalities,
         ];
+    }
+
+    private function inquiryTrend(int $schoolId, $now): array
+    {
+        $since = $now->copy()->subMonths(5)->startOfMonth();
+
+        if (DB::getDriverName() === 'pgsql') {
+            return Inquiry::withoutGlobalScope('school')
+                ->where('school_id', $schoolId)
+                ->where('created_at', '>=', $since)
+                ->selectRaw("to_char(created_at, 'YYYY-MM') as month, count(*) as count")
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get()
+                ->map(fn ($r) => ['month' => $r->month, 'count' => (int) $r->count])
+                ->values()
+                ->all();
+        }
+
+        return Inquiry::withoutGlobalScope('school')
+            ->where('school_id', $schoolId)
+            ->where('created_at', '>=', $since)
+            ->get()
+            ->groupBy(fn ($i) => $i->created_at?->format('Y-m') ?? 'unknown')
+            ->map(fn ($g, $m) => ['month' => $m, 'count' => $g->count()])
+            ->sortKeys()
+            ->values()
+            ->all();
     }
 
     private function instructorBreakdown(int $schoolId): array
