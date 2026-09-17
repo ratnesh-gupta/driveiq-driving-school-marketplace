@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LearnerController;
 use App\Http\Controllers\Api\LocalityController;
+use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\ProgressController;
@@ -75,6 +76,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('/admin/ping', fn () => response()->json(['ok' => true]))->middleware('role:admin');
     Route::get('/school/ping', fn () => response()->json(['ok' => true]))->middleware('role:school,admin');
+
+    // Phase 9 — messaging (all authenticated school roles)
+    Route::middleware('role:school,instructor,learner,admin')->group(function (): void {
+        Route::get('/messages/threads', [MessageController::class, 'threads']);
+        Route::get('/messages/unread-count', [MessageController::class, 'unreadCount']);
+        Route::get('/messages/threads/{id}', [MessageController::class, 'show'])->whereNumber('id');
+        Route::post('/messages', [MessageController::class, 'send'])->middleware('throttle:30,1');
+        Route::post('/messages/threads/{id}/read', [MessageController::class, 'markRead'])->whereNumber('id');
+    });
 
     Route::middleware('role:instructor,school,admin')->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
@@ -163,7 +173,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/learners/{id}/documents/{docId}', [LearnerController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
 
-        // Phase 8 — driving tests (school managed)
         Route::post('/learners/{id}/driving-tests', [ProgressController::class, 'createTest'])->whereNumber('id');
         Route::patch('/driving-tests/{id}', [ProgressController::class, 'updateTest'])->whereNumber('id');
     });
