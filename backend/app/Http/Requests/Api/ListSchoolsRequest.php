@@ -13,6 +13,7 @@ class ListSchoolsRequest extends BaseFormRequest
             'hasPickup' => ['nullable', 'boolean'],
             'womenInstructor' => ['nullable', 'boolean'],
             'weekendClasses' => ['nullable', 'boolean'],
+            'verified' => ['nullable', 'boolean'],
             'maxPrice' => ['nullable', 'numeric', 'min:0'],
             'transmission' => ['nullable', 'string'],
             'nearLat' => ['nullable', 'numeric', 'between:-90,90'],
@@ -28,7 +29,7 @@ class ListSchoolsRequest extends BaseFormRequest
     {
         $this->merge($this->query());
 
-        foreach (['hasPickup', 'womenInstructor', 'weekendClasses'] as $field) {
+        foreach (['hasPickup', 'womenInstructor', 'weekendClasses', 'verified'] as $field) {
             if ($this->has($field)) {
                 $val = $this->input($field);
                 if (is_string($val)) {

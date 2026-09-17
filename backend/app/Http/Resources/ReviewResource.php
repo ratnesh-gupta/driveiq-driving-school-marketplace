@@ -17,6 +17,8 @@ class ReviewResource extends JsonResource
             'rating' => (int) $this->rating,
             'content' => $this->content,
             'approved' => (bool) $this->approved,
+            'eligibilitySource' => $this->eligibility_source,
+            'reportCount' => (int) ($this->report_count ?? 0),
             'createdAt' => $this->created_at?->toISOString(),
         ];
     }

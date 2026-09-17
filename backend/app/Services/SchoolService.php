@@ -101,6 +101,10 @@ class SchoolService
             $query->where('price_from', '<=', $filters['maxPrice']);
         }
 
+        if (isset($filters['verified']) && $filters['verified']) {
+            $query->where('verified', true);
+        }
+
         if (! empty($filters['vehicleType'])) {
             $value = strtolower($filters['vehicleType']);
             $query->where(function (Builder $q) use ($filters, $value) {
@@ -120,7 +124,6 @@ class SchoolService
 
     private function listWithGeo(Builder $query, float $lat, float $lng, float $radiusKm, array $filters): Collection
     {
-        // ~1 degree latitude ≈ 111 km; longitude shrinks by cos(lat).
         $latDelta = $radiusKm / 111.0;
         $lngDelta = $radiusKm / max(111.0 * cos(deg2rad($lat)), 0.01);
 
@@ -156,7 +159,6 @@ class SchoolService
                 ])
                 ->values();
         } else {
-            // Default: composite geo rank (higher is better), then closer distance.
             $schools = $schools
                 ->sortBy([
                     ['ranking_score', 'desc'],
@@ -169,9 +171,6 @@ class SchoolService
         return $this->paginate($schools, $filters);
     }
 
-    /**
-     * Deterministic ranking score in [0, 1].
-     */
     public function computeRankingScore(School $school, float $radiusKm): float
     {
         $weights = config('geo.ranking');
