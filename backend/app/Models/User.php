@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -41,13 +42,14 @@ class User extends Authenticatable
         return $this->belongsTo(School::class);
     }
 
-    /**
-     * Schools owned via schools.user_id (legacy one-to-many).
-     * Prefer school() / school_id for isolation scoping.
-     */
     public function schools(): HasMany
     {
         return $this->hasMany(School::class, 'user_id');
+    }
+
+    public function instructorProfile(): HasOne
+    {
+        return $this->hasOne(Instructor::class);
     }
 
     public function isAdmin(): bool
@@ -58,5 +60,10 @@ class User extends Authenticatable
     public function isSchool(): bool
     {
         return $this->role === 'school';
+    }
+
+    public function isInstructor(): bool
+    {
+        return $this->role === 'instructor';
     }
 }

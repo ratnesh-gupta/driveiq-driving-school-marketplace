@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InquiryController;
+use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
@@ -29,6 +30,7 @@ Route::prefix('schools')->group(function (): void {
     Route::get('/', [SchoolController::class, 'index']);
     Route::get('/featured', [SchoolController::class, 'featured']);
     Route::get('/slug/{slug}', [SchoolController::class, 'showBySlug']);
+    Route::get('/slug/{slug}/trainers', [InstructorController::class, 'publicTrainers']);
     Route::get('/{id}', [SchoolController::class, 'show'])->whereNumber('id');
 });
 
@@ -47,7 +49,6 @@ Route::post('/inquiries', [InquiryController::class, 'store'])
 
 Route::get('/packages', [PackageController::class, 'index']);
 
-// Phase 4 — public plan catalog
 Route::get('/plans', [SubscriptionController::class, 'plans']);
 
 Route::prefix('stats')->group(function (): void {
@@ -71,6 +72,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/admin/ping', fn () => response()->json(['ok' => true]))->middleware('role:admin');
     Route::get('/school/ping', fn () => response()->json(['ok' => true]))->middleware('role:school,admin');
 
+    // Phase 5 — instructor self
+    Route::middleware('role:instructor,school,admin')->group(function (): void {
+        Route::get('/instructor/me', [InstructorController::class, 'me']);
+    });
+
     Route::middleware('role:admin')->group(function (): void {
         Route::post('/schools', [SchoolController::class, 'store']);
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
@@ -79,7 +85,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/review-reports', [ReviewController::class, 'reports']);
         Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
 
-        // Phase 4 — monetization admin
         Route::get('/admin/subscriptions/overview', [SubscriptionController::class, 'overview']);
         Route::post('/admin/subscriptions', [SubscriptionController::class, 'assign']);
         Route::post('/admin/subscriptions/{schoolId}/cancel', [SubscriptionController::class, 'cancel'])
@@ -110,5 +115,17 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/schools/{id}/subscription', [SubscriptionController::class, 'showForSchool'])
             ->whereNumber('id');
+
+        // Phase 5 — instructor management
+        Route::get('/schools/{id}/instructors', [InstructorController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/instructors', [InstructorController::class, 'store'])->whereNumber('id');
+        Route::get('/instructors/{id}', [InstructorController::class, 'show'])->whereNumber('id');
+        Route::patch('/instructors/{id}', [InstructorController::class, 'update'])->whereNumber('id');
+        Route::delete('/instructors/{id}', [InstructorController::class, 'destroy'])->whereNumber('id');
+
+        Route::get('/instructors/{id}/documents', [InstructorController::class, 'listDocuments'])->whereNumber('id');
+        Route::post('/instructors/{id}/documents', [InstructorController::class, 'addDocument'])->whereNumber('id');
+        Route::patch('/instructors/{id}/documents/{docId}', [InstructorController::class, 'updateDocument'])
+            ->whereNumber(['id', 'docId']);
     });
 });
