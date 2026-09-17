@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SchoolController;
+use App\Http\Controllers\Api\SchoolDashboardController;
+use App\Http\Controllers\Api\SchoolSettingsController;
+use App\Http\Controllers\Api\SchoolTeamController;
 use App\Http\Controllers\Api\StatsController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,7 +60,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
-    // Phase 2: report a review
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])
         ->whereNumber('id')
         ->middleware('throttle:10,1');
@@ -86,5 +88,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::patch('/reviews/{id}', [ReviewController::class, 'update'])->whereNumber('id');
         Route::delete('/reviews/{id}', [ReviewController::class, 'delete'])->whereNumber('id');
+
+        // Phase 3 — school ops
+        Route::get('/schools/{id}/dashboard', [SchoolDashboardController::class, 'show'])->whereNumber('id');
+        Route::get('/schools/{id}/audit-logs', [SchoolDashboardController::class, 'auditLogs'])->whereNumber('id');
+        Route::get('/schools/{id}/settings', [SchoolSettingsController::class, 'show'])->whereNumber('id');
+        Route::put('/schools/{id}/settings', [SchoolSettingsController::class, 'update'])->whereNumber('id');
+        Route::get('/schools/{id}/team', [SchoolTeamController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/team', [SchoolTeamController::class, 'invite'])->whereNumber('id');
+        Route::delete('/schools/{id}/team/{memberId}', [SchoolTeamController::class, 'remove'])
+            ->whereNumber(['id', 'memberId']);
     });
 });
