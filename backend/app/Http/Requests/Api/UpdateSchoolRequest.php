@@ -20,6 +20,10 @@ class UpdateSchoolRequest extends BaseFormRequest
         'rating' => 'rating',
         'reviewCount' => 'review_count',
         'verified' => 'verified',
+        'phoneVerified' => 'phone_verified',
+        'businessVerified' => 'business_verified',
+        'locationVerified' => 'location_verified',
+        'premiumVerified' => 'premium_verified',
         'hasPickup' => 'has_pickup',
         'womenInstructor' => 'women_instructor',
         'weekendClasses' => 'weekend_classes',
@@ -46,7 +50,7 @@ class UpdateSchoolRequest extends BaseFormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'slug' => ['sometimes', 'string', 'max:255', 'unique:schools,slug,' . $this->route('school')],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:schools,slug,' . $this->route('id')],
             'localityId' => ['sometimes', 'integer', 'exists:localities,id'],
             'address' => ['sometimes', 'string'],
             'latitude' => ['sometimes', 'numeric', 'between:-90,90'],
@@ -60,6 +64,10 @@ class UpdateSchoolRequest extends BaseFormRequest
             'rating' => ['sometimes', 'numeric', 'min:0', 'max:5'],
             'reviewCount' => ['sometimes', 'integer', 'min:0'],
             'verified' => ['sometimes', 'boolean'],
+            'phoneVerified' => ['sometimes', 'boolean'],
+            'businessVerified' => ['sometimes', 'boolean'],
+            'locationVerified' => ['sometimes', 'boolean'],
+            'premiumVerified' => ['sometimes', 'boolean'],
             'hasPickup' => ['sometimes', 'boolean'],
             'womenInstructor' => ['sometimes', 'boolean'],
             'weekendClasses' => ['sometimes', 'boolean'],
@@ -90,6 +98,20 @@ class UpdateSchoolRequest extends BaseFormRequest
 
     public function toSnakeCase(): array
     {
-        return $this->camelToSnake($this->validated(), self::FIELD_MAP);
+        $data = $this->camelToSnake($this->validated(), self::FIELD_MAP);
+
+        // Only platform admins may set verification flags.
+        $user = $this->user();
+        if (! $user || ! method_exists($user, 'isAdmin') || ! $user->isAdmin()) {
+            unset(
+                $data['verified'],
+                $data['phone_verified'],
+                $data['business_verified'],
+                $data['location_verified'],
+                $data['premium_verified'],
+            );
+        }
+
+        return $data;
     }
 }

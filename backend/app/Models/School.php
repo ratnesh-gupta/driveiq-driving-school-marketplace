@@ -14,7 +14,8 @@ class School extends Model
     protected $fillable = [
         'user_id', 'name', 'slug', 'locality_id', 'address', 'latitude', 'longitude', 'service_radius_km',
         'phone', 'whatsapp', 'email', 'description', 'image_url', 'rating', 'review_count',
-        'verified', 'has_pickup', 'women_instructor', 'weekend_classes', 'vehicle_types',
+        'verified', 'phone_verified', 'business_verified', 'location_verified', 'premium_verified',
+        'has_pickup', 'women_instructor', 'weekend_classes', 'vehicle_types',
         'transmission', 'price_from', 'price_to', 'timings', 'service_areas',
         'languages', 'batch_timings', 'pickup_radius_km', 'simulator_training',
         'ac_vehicle', 'rto_assistance', 'established_year', 'total_vehicles',
@@ -25,6 +26,10 @@ class School extends Model
     {
         return [
             'verified' => 'boolean',
+            'phone_verified' => 'boolean',
+            'business_verified' => 'boolean',
+            'location_verified' => 'boolean',
+            'premium_verified' => 'boolean',
             'has_pickup' => 'boolean',
             'women_instructor' => 'boolean',
             'weekend_classes' => 'boolean',
@@ -77,11 +82,10 @@ class School extends Model
 
         foreach ($fields as $field) {
             $value = $this->getAttribute($field);
-            if (!is_null($value) && $value !== '' && $value !== []) {
+            if (! is_null($value) && $value !== '' && $value !== []) {
                 $filled++;
             }
         }
-        // Boolean fields always count as filled since they have defaults
         $filled += count($booleanFields);
 
         return (int) round(($filled / $total) * 100);

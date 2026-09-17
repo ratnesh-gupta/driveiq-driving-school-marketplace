@@ -10,34 +10,16 @@ use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\StatsController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Health Check
-|--------------------------------------------------------------------------
-*/
-
 Route::get('/healthz', fn () => response()->json([
     'status' => 'ok',
     'service' => 'driveiq-backend',
     'timestamp' => now()->toIso8601String(),
 ]));
 
-/*
-|--------------------------------------------------------------------------
-| Authentication
-|--------------------------------------------------------------------------
-*/
-
 Route::prefix('auth')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 });
-
-/*
-|--------------------------------------------------------------------------
-| Public Routes
-|--------------------------------------------------------------------------
-*/
 
 Route::prefix('schools')->group(function (): void {
     Route::get('/', [SchoolController::class, 'index']);
@@ -66,35 +48,32 @@ Route::prefix('stats')->group(function (): void {
     Route::get('/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Authenticated Routes
-|--------------------------------------------------------------------------
-*/
-
 Route::middleware('auth:sanctum')->group(function (): void {
 
-    // Auth profile
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-    // Notifications (Phase 0.5)
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
-    // Admin-only pings
+    // Phase 2: report a review
+    Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])
+        ->whereNumber('id')
+        ->middleware('throttle:10,1');
+
     Route::get('/admin/ping', fn () => response()->json(['ok' => true]))->middleware('role:admin');
     Route::get('/school/ping', fn () => response()->json(['ok' => true]))->middleware('role:school,admin');
 
-    // Admin-only routes
     Route::middleware('role:admin')->group(function (): void {
         Route::post('/schools', [SchoolController::class, 'store']);
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
         Route::post('/localities', [LocalityController::class, 'store']);
+
+        Route::get('/review-reports', [ReviewController::class, 'reports']);
+        Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
     });
 
-    // School owner + Admin routes
     Route::middleware('role:school,admin')->group(function (): void {
         Route::patch('/schools/{id}', [SchoolController::class, 'update'])->whereNumber('id');
 

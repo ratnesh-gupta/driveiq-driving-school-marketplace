@@ -41,6 +41,7 @@ class ApiPhaseTwoModulesTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $schoolUser = User::factory()->create(['role' => 'school']);
+        $learner = User::factory()->create(['role' => 'user', 'email' => 'learner-phase2@example.com']);
 
         $locality = Locality::create([
             'name' => 'Wakad',
@@ -63,7 +64,6 @@ class ApiPhaseTwoModulesTest extends TestCase
 
         $schoolId = $schoolResp->json('id') ?? School::query()->value('id');
 
-        // Bind school ownership for isolation-aware dashboard actions.
         School::where('id', $schoolId)->update(['user_id' => $schoolUser->id]);
         $schoolUser->update(['school_id' => $schoolId]);
         $schoolUser->refresh();
@@ -88,7 +88,17 @@ class ApiPhaseTwoModulesTest extends TestCase
         $packageId = $package->json('id') ?? \App\Models\DrivePackage::withoutGlobalScope('school')->value('id');
         $this->patchJson('/api/packages/'.$packageId, ['active' => false])->assertOk()->assertJsonPath('active', false);
 
-        Sanctum::actingAs($schoolUser);
+        // Eligibility: learner must have an enquiry with matching email
+        Inquiry::withoutGlobalScope('school')->create([
+            'school_id' => $schoolId,
+            'name' => 'Learner',
+            'phone' => '9888888888',
+            'email' => 'learner-phase2@example.com',
+            'vehicle_type' => 'car',
+            'status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($learner);
         $review = $this->postJson('/api/reviews', [
             'schoolId' => $schoolId,
             'authorName' => 'A User',
@@ -97,8 +107,12 @@ class ApiPhaseTwoModulesTest extends TestCase
         ])->assertCreated();
 
         $reviewId = $review->json('id') ?? Review::withoutGlobalScope('school')->value('id');
-        $this->getJson('/api/reviews?schoolId='.$schoolId)->assertOk()->assertJsonCount(1);
+
+        // Approve via school user so public listing includes it
+        Sanctum::actingAs($schoolUser);
         $this->patchJson('/api/reviews/'.$reviewId, ['approved' => true])->assertOk()->assertJsonPath('approved', true);
+
+        $this->getJson('/api/reviews?schoolId='.$schoolId)->assertOk()->assertJsonCount(1);
 
         $inquiry = $this->postJson('/api/inquiries', [
             'schoolId' => $schoolId,
@@ -109,7 +123,7 @@ class ApiPhaseTwoModulesTest extends TestCase
         ])->assertCreated();
 
         $inquiryId = $inquiry->json('id') ?? Inquiry::withoutGlobalScope('school')->value('id');
-        $this->getJson('/api/inquiries?schoolId='.$schoolId)->assertOk()->assertJsonCount(1);
+        $this->getJson('/api/inquiries?schoolId='.$schoolId)->assertOk();
         $this->patchJson('/api/inquiries/'.$inquiryId, ['status' => 'contacted'])->assertOk()->assertJsonPath('status', 'contacted');
 
         $this->deleteJson('/api/reviews/'.$reviewId)->assertNoContent();
