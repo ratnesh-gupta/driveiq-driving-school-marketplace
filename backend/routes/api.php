@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SchoolDashboardController;
 use App\Http\Controllers\Api\SchoolSettingsController;
 use App\Http\Controllers\Api\SchoolTeamController;
 use App\Http\Controllers\Api\StatsController;
+use App\Http\Controllers\Api\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', fn () => response()->json([
@@ -46,6 +47,9 @@ Route::post('/inquiries', [InquiryController::class, 'store'])
 
 Route::get('/packages', [PackageController::class, 'index']);
 
+// Phase 4 — public plan catalog
+Route::get('/plans', [SubscriptionController::class, 'plans']);
+
 Route::prefix('stats')->group(function (): void {
     Route::get('/overview', [StatsController::class, 'overview']);
     Route::get('/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
@@ -74,6 +78,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/review-reports', [ReviewController::class, 'reports']);
         Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
+
+        // Phase 4 — monetization admin
+        Route::get('/admin/subscriptions/overview', [SubscriptionController::class, 'overview']);
+        Route::post('/admin/subscriptions', [SubscriptionController::class, 'assign']);
+        Route::post('/admin/subscriptions/{schoolId}/cancel', [SubscriptionController::class, 'cancel'])
+            ->whereNumber('schoolId');
     });
 
     Route::middleware('role:school,admin')->group(function (): void {
@@ -89,7 +99,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/reviews/{id}', [ReviewController::class, 'update'])->whereNumber('id');
         Route::delete('/reviews/{id}', [ReviewController::class, 'delete'])->whereNumber('id');
 
-        // Phase 3 — school ops
         Route::get('/schools/{id}/dashboard', [SchoolDashboardController::class, 'show'])->whereNumber('id');
         Route::get('/schools/{id}/audit-logs', [SchoolDashboardController::class, 'auditLogs'])->whereNumber('id');
         Route::get('/schools/{id}/settings', [SchoolSettingsController::class, 'show'])->whereNumber('id');
@@ -98,5 +107,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/schools/{id}/team', [SchoolTeamController::class, 'invite'])->whereNumber('id');
         Route::delete('/schools/{id}/team/{memberId}', [SchoolTeamController::class, 'remove'])
             ->whereNumber(['id', 'memberId']);
+
+        Route::get('/schools/{id}/subscription', [SubscriptionController::class, 'showForSchool'])
+            ->whereNumber('id');
     });
 });
