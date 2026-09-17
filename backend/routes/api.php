@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\LearnerController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
+use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SchoolController;
@@ -52,6 +53,7 @@ Route::post('/inquiries', [InquiryController::class, 'store'])
 
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
+Route::get('/training-skills', [ProgressController::class, 'skillsCatalog']);
 
 Route::prefix('stats')->group(function (): void {
     Route::get('/overview', [StatsController::class, 'overview']);
@@ -77,12 +79,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::middleware('role:instructor,school,admin')->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
+        Route::put('/learners/{id}/progress', [ProgressController::class, 'update'])->whereNumber('id');
     });
 
-    // Phase 7 — learner portal
-    Route::middleware('role:learner,school,admin')->group(function (): void {
+    Route::middleware('role:learner,school,admin,instructor')->group(function (): void {
         Route::get('/learner/me', [LearnerController::class, 'me']);
         Route::post('/learners/{id}/documents', [LearnerController::class, 'addDocument'])->whereNumber('id');
+        Route::get('/learners/{id}/progress', [ProgressController::class, 'show'])->whereNumber('id');
+        Route::get('/learners/{id}/sessions', [ProgressController::class, 'sessionHistory'])->whereNumber('id');
+        Route::get('/learners/{id}/driving-tests', [ProgressController::class, 'listTests'])->whereNumber('id');
     });
 
     Route::middleware('role:admin')->group(function (): void {
@@ -149,7 +154,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/schools/{id}/leave-requests', [ScheduleController::class, 'requestLeave'])->whereNumber('id');
         Route::patch('/leave-requests/{id}', [ScheduleController::class, 'reviewLeave'])->whereNumber('id');
 
-        // Phase 7 — learners
         Route::get('/schools/{id}/learners', [LearnerController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/learners', [LearnerController::class, 'store'])->whereNumber('id');
         Route::get('/learners/{id}', [LearnerController::class, 'show'])->whereNumber('id');
@@ -158,5 +162,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
         Route::patch('/learners/{id}/documents/{docId}', [LearnerController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
+
+        // Phase 8 — driving tests (school managed)
+        Route::post('/learners/{id}/driving-tests', [ProgressController::class, 'createTest'])->whereNumber('id');
+        Route::patch('/driving-tests/{id}', [ProgressController::class, 'updateTest'])->whereNumber('id');
     });
 });
