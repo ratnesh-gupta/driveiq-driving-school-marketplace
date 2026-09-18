@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\ScheduleController;
@@ -113,7 +114,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/admin/subscriptions/{schoolId}/cancel', [SubscriptionController::class, 'cancel'])
             ->whereNumber('schoolId');
 
-        // Phase 10 — platform analytics
         Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
     });
 
@@ -179,8 +179,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/learners/{id}/driving-tests', [ProgressController::class, 'createTest'])->whereNumber('id');
         Route::patch('/driving-tests/{id}', [ProgressController::class, 'updateTest'])->whereNumber('id');
 
-        // Phase 10 — school analytics
         Route::get('/schools/{id}/analytics', [AnalyticsController::class, 'school'])->whereNumber('id');
         Route::get('/schools/{id}/analytics/instructors', [AnalyticsController::class, 'instructors'])->whereNumber('id');
+
+        // Payments
+        Route::get('/schools/{id}/payments', [PaymentController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/payments/package', [PaymentController::class, 'purchasePackage'])->whereNumber('id');
+        Route::post('/payments/{id}/mark-paid', [PaymentController::class, 'markPaid'])->whereNumber('id');
+        Route::post('/payments/{id}/mark-failed', [PaymentController::class, 'markFailed'])->whereNumber('id');
     });
 });
