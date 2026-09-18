@@ -37,7 +37,6 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return text ? JSON.parse(text) : (undefined as T);
 }
 
-// —— School analytics ——
 export function fetchSchoolAnalytics(schoolId: number) {
   return request<Record<string, unknown>>(`/api/schools/${schoolId}/analytics`);
 }
@@ -52,7 +51,6 @@ export function fetchPlatformAnalytics() {
   return request<Record<string, unknown>>(`/api/admin/analytics`);
 }
 
-// —— Learners ——
 export function listLearners(schoolId: number, status?: string) {
   const q = status ? `?status=${encodeURIComponent(status)}` : "";
   return request<unknown[]>(`/api/schools/${schoolId}/learners${q}`);
@@ -89,7 +87,6 @@ export function fetchLearnerMe() {
   return request<{ learner: Record<string, unknown>; upcomingSessions: unknown[] }>(`/api/learner/me`);
 }
 
-// —— Instructors ——
 export function listInstructors(schoolId: number) {
   return request<unknown[]>(`/api/schools/${schoolId}/instructors`);
 }
@@ -105,7 +102,6 @@ export function fetchInstructorMe() {
   return request<Record<string, unknown>>(`/api/instructor/me`);
 }
 
-// —— Schedules / vehicles ——
 export function listSchedules(schoolId: number, params?: { from?: string; to?: string }) {
   const sp = new URLSearchParams();
   if (params?.from) sp.set("from", params.from);
@@ -132,7 +128,6 @@ export function listVehicles(schoolId: number) {
   return request<unknown[]>(`/api/schools/${schoolId}/vehicles`);
 }
 
-// —— Messaging ——
 export function listMessageThreads() {
   return request<
     {
@@ -159,4 +154,51 @@ export function sendMessage(body: { receiverId?: number; threadId?: number; body
 
 export function unreadMessageCount() {
   return request<{ unreadCount: number }>(`/api/messages/unread-count`);
+}
+
+export type PaymentRow = {
+  id: number;
+  schoolId: number;
+  invoiceId: number | null;
+  learnerId: number | null;
+  learnerName?: string | null;
+  purpose: string;
+  packageId: number | null;
+  packageName?: string | null;
+  amount: number;
+  currency: string;
+  method: string;
+  status: string;
+  provider?: string | null;
+  receipt?: string | null;
+  paidAt?: string | null;
+  createdAt?: string | null;
+};
+
+export function listPayments(schoolId: number) {
+  return request<PaymentRow[]>(`/api/schools/${schoolId}/payments`);
+}
+
+export function purchasePackage(
+  schoolId: number,
+  body: { learnerId: number; packageId: number; method?: string; markPaid?: boolean }
+) {
+  return request<{ payment: PaymentRow; invoice: Record<string, unknown>; gateway: Record<string, unknown> | null }>(
+    `/api/schools/${schoolId}/payments/package`,
+    { method: "POST", body: JSON.stringify(body) }
+  );
+}
+
+export function markPaymentPaid(paymentId: number, providerPaymentId?: string) {
+  return request<PaymentRow>(`/api/payments/${paymentId}/mark-paid`, {
+    method: "POST",
+    body: JSON.stringify({ providerPaymentId }),
+  });
+}
+
+export function markPaymentFailed(paymentId: number, notes?: string) {
+  return request<PaymentRow>(`/api/payments/${paymentId}/mark-failed`, {
+    method: "POST",
+    body: JSON.stringify({ notes }),
+  });
 }

@@ -3,7 +3,7 @@ import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu,
-  GraduationCap, Car, CalendarDays, MessageSquare, UserCog,
+  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -15,6 +15,7 @@ const DASHBOARD_LINKS = [
   { href: "/dashboard/instructors", label: "Instructors", icon: UserCog },
   { href: "/dashboard/schedules", label: "Schedules", icon: CalendarDays },
   { href: "/dashboard/vehicles", label: "Vehicles", icon: Car },
+  { href: "/dashboard/payments", label: "Payments", icon: IndianRupee },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/packages", label: "Packages", icon: PkgIcon },

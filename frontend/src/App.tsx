@@ -27,6 +27,7 @@ import InstructorsPage from "@/pages/dashboard/instructors";
 import SchedulesPage from "@/pages/dashboard/schedules";
 import VehiclesPage from "@/pages/dashboard/vehicles";
 import SchoolMessagesPage from "@/pages/dashboard/messages";
+import PaymentsPage from "@/pages/dashboard/payments";
 
 import AdminHomePage from "@/pages/admin/index";
 import AdminSchoolsPage from "@/pages/admin/schools";
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/dashboard/instructors">{() => schoolGuard(<InstructorsPage />)}</Route>
       <Route path="/dashboard/schedules">{() => schoolGuard(<SchedulesPage />)}</Route>
       <Route path="/dashboard/vehicles">{() => schoolGuard(<VehiclesPage />)}</Route>
+      <Route path="/dashboard/payments">{() => schoolGuard(<PaymentsPage />)}</Route>
       <Route path="/dashboard/messages">{() => schoolGuard(<SchoolMessagesPage />)}</Route>
       <Route path="/dashboard/profile">{() => schoolGuard(<ProfilePage />)}</Route>
       <Route path="/dashboard/packages">{() => schoolGuard(<PackagesPage />)}</Route>
