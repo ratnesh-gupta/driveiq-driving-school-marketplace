@@ -5,21 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SessionCalendar, type CalendarSession } from "@/components/schedule/session-calendar";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { createSchedule, listInstructors, listLearners, listSchedules } from "@/lib/ops-api";
-import { CalendarDays, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
-
-type ScheduleRow = {
-  id: number;
-  sessionDate: string;
-  startTime: string;
-  endTime: string;
-  learnerName?: string;
-  instructorName?: string;
-  status: string;
-  pickupLocation?: string;
-};
 
 type Named = { id: number; name: string };
 
@@ -36,7 +26,7 @@ export default function SchedulesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["schedules", schoolId],
-    queryFn: () => listSchedules(schoolId!) as Promise<ScheduleRow[]>,
+    queryFn: () => listSchedules(schoolId!) as Promise<CalendarSession[]>,
     enabled: !!schoolId,
   });
 
@@ -78,7 +68,7 @@ export default function SchedulesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Schedules</h1>
-          <p className="text-sm text-muted-foreground mt-1">Training sessions across your fleet</p>
+          <p className="text-sm text-muted-foreground mt-1">Week and month view of training sessions</p>
         </div>
         <Button onClick={() => setOpen((v) => !v)}><Plus className="h-4 w-4 mr-1" /> New session</Button>
       </div>
@@ -124,28 +114,9 @@ export default function SchedulesPage() {
       )}
 
       {isLoading ? (
-        <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
-      ) : !data?.length ? (
-        <div className="py-16 text-center text-muted-foreground">
-          <CalendarDays className="h-10 w-10 mx-auto mb-2 opacity-30" />
-          No sessions scheduled.
-        </div>
+        <Skeleton className="h-[420px] rounded-xl" />
       ) : (
-        <div className="rounded-xl border bg-card divide-y">
-          {data.map((s) => (
-            <div key={s.id} className="flex items-center justify-between px-5 py-3.5">
-              <div>
-                <div className="font-medium text-sm">
-                  {s.sessionDate} · {s.startTime}–{s.endTime}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {[s.learnerName, s.instructorName, s.pickupLocation].filter(Boolean).join(" · ") || "—"}
-                </div>
-              </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{s.status}</span>
-            </div>
-          ))}
-        </div>
+        <SessionCalendar sessions={data ?? []} />
       )}
     </DashboardLayout>
   );
