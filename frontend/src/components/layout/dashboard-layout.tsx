@@ -1,13 +1,21 @@
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu } from "lucide-react";
+import {
+  LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu,
+  GraduationCap, Car, CalendarDays, MessageSquare, UserCog,
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const DASHBOARD_LINKS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/leads", label: "Leads", icon: Users },
+  { href: "/dashboard/learners", label: "Learners", icon: GraduationCap },
+  { href: "/dashboard/instructors", label: "Instructors", icon: UserCog },
+  { href: "/dashboard/schedules", label: "Schedules", icon: CalendarDays },
+  { href: "/dashboard/vehicles", label: "Vehicles", icon: Car },
+  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/packages", label: "Packages", icon: PkgIcon },
   { href: "/dashboard/reviews", label: "Reviews", icon: Star },
@@ -23,10 +31,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="h-16 flex items-center px-6 border-b">
         <Link href="/" className="font-bold text-xl text-primary tracking-tight">DriveIQ Partner</Link>
       </div>
-      <div className="flex-1 py-6 flex flex-col gap-2 px-4">
+      <div className="flex-1 py-6 flex flex-col gap-1 px-3 overflow-y-auto">
         {DASHBOARD_LINKS.map((link) => {
           const Icon = link.icon;
-          const isActive = location === link.href;
+          const isActive = location === link.href || (link.href !== "/dashboard" && location.startsWith(link.href));
           return (
             <Link key={link.href} href={link.href}>
               <Button
@@ -69,7 +77,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </SheetContent>
             </Sheet>
           </div>
-          <div className="font-semibold text-lg ml-2 md:ml-0">Dashboard</div>
+          <div className="font-semibold text-lg ml-2 md:ml-0">School Dashboard</div>
           <div className="flex items-center gap-2">
             <NotificationBell />
           </div>
