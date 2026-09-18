@@ -1,4 +1,4 @@
-export type UserRole = "user" | "school" | "admin";
+export type UserRole = "user" | "school" | "admin" | "instructor" | "learner";
 
 export type AuthUser = {
   id: number;
@@ -127,4 +127,19 @@ export async function logoutApi(token: string): Promise<void> {
       Accept: "application/json",
     },
   });
+}
+
+export function roleHomePath(role: UserRole | null | undefined): string {
+  switch (role) {
+    case "admin":
+      return "/admin";
+    case "school":
+      return "/dashboard";
+    case "instructor":
+      return "/instructor";
+    case "learner":
+      return "/learner";
+    default:
+      return "/search";
+  }
 }

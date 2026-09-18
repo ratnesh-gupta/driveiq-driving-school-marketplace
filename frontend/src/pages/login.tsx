@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/store";
+import { roleHomePath } from "@/lib/auth-api";
 import { Car, ShieldCheck, Star } from "lucide-react";
 
 function FieldError({ errors }: { errors?: string[] }) {
@@ -30,9 +31,7 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       const role = useAuthStore.getState().userRole ?? userRole;
-      if (role === "admin") setLocation("/admin");
-      else if (role === "school") setLocation("/dashboard");
-      else setLocation("/search");
+      setLocation(roleHomePath(role));
     } catch {
       // errors are in the store
     }
@@ -47,11 +46,11 @@ export default function LoginPage() {
         <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveIQ</Link>
         <div className="flex-1 flex flex-col justify-center z-10">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h2 className="text-4xl font-bold mb-4 leading-tight">Welcome back to<br />DriveIQ Partner</h2>
-            <p className="text-white/70 text-lg leading-relaxed max-w-sm">Manage your driving school, track leads, and grow your student base — all in one place.</p>
+            <h2 className="text-4xl font-bold mb-4 leading-tight">Welcome back to<br />DriveIQ</h2>
+            <p className="text-white/70 text-lg leading-relaxed max-w-sm">School, instructor, learner, and admin portals — one sign-in.</p>
           </motion.div>
           <motion.div className="mt-12 space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-            {[{ icon: ShieldCheck, label: "Verified school listings" }, { icon: Star, label: "Manage student reviews" }, { icon: Car, label: "Real-time lead management" }].map((item) => (
+            {[{ icon: ShieldCheck, label: "Role-based dashboards" }, { icon: Star, label: "Realtime notifications" }, { icon: Car, label: "Training & leads in one place" }].map((item) => (
               <div key={item.label} className="flex items-center gap-3 text-white/80">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center"><item.icon className="h-4 w-4" /></div>
                 <span className="text-sm">{item.label}</span>
@@ -77,9 +76,7 @@ export default function LoginPage() {
               <FieldError errors={fieldErrors.email} />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label>Password</Label>
-              </div>
+              <Label>Password</Label>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required data-testid="input-login-password" />
               <FieldError errors={fieldErrors.password} />
             </div>

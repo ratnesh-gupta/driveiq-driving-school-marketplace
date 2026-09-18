@@ -1,12 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Store, Star, MapPin, Users, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, Store, Star, MapPin, Users, LogOut, Menu, BarChart3 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const ADMIN_LINKS = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/schools", label: "Schools", icon: Store },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/localities", label: "Localities", icon: MapPin },

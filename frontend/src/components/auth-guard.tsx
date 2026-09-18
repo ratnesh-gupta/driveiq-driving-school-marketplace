@@ -1,15 +1,32 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuthStore } from "@/lib/store";
+import { roleHomePath, type UserRole } from "@/lib/auth-api";
 import { Loader2 } from "lucide-react";
 
-export function AuthGuard({ children, requireRole }: { children: React.ReactNode, requireRole?: "school" | "admin" }) {
+type GuardRole = UserRole | UserRole[];
+
+export function AuthGuard({
+  children,
+  requireRole,
+}: {
+  children: React.ReactNode;
+  requireRole?: GuardRole;
+}) {
   const { isLoggedIn, userRole, isAuthLoading } = useAuthStore();
   const [, setLocation] = useLocation();
 
-  const hasAccess = !requireRole
-    || userRole === requireRole
-    || (requireRole === "school" && userRole === "admin");
+  const allowed = Array.isArray(requireRole)
+    ? requireRole
+    : requireRole
+      ? [requireRole]
+      : null;
+
+  const hasAccess =
+    !allowed ||
+    (userRole != null &&
+      (allowed.includes(userRole) ||
+        (allowed.includes("school") && userRole === "admin")));
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -17,9 +34,9 @@ export function AuthGuard({ children, requireRole }: { children: React.ReactNode
     if (!isLoggedIn) {
       setLocation("/auth/login");
     } else if (!hasAccess) {
-      setLocation("/");
+      setLocation(roleHomePath(userRole));
     }
-  }, [isLoggedIn, hasAccess, setLocation, isAuthLoading]);
+  }, [isLoggedIn, hasAccess, setLocation, isAuthLoading, userRole]);
 
   if (isAuthLoading) {
     return (

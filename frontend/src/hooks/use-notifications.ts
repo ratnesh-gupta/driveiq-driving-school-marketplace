@@ -8,11 +8,13 @@ import {
   markNotificationRead,
   type AppNotification,
 } from "@/lib/notifications-api";
+import { ensureEcho, subscribePrivate } from "@/lib/realtime";
 
 const QUERY_KEY = ["notifications"] as const;
 
 export function useNotifications() {
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const queryClient = useQueryClient();
   const prevUnread = useRef<number | null>(null);
@@ -21,9 +23,37 @@ export function useNotifications() {
     queryKey: [...QUERY_KEY, token],
     queryFn: () => listNotifications(token!, { limit: 30 }),
     enabled: Boolean(isLoggedIn && token),
+    // Polling fallback; Echo will invalidate immediately when connected
     refetchInterval: 30_000,
     staleTime: 10_000,
   });
+
+  // Reverb / Echo realtime when configured
+  useEffect(() => {
+    if (!isLoggedIn || !token || !user?.id) return;
+
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+
+    void (async () => {
+      const ok = await ensureEcho(token);
+      if (!ok || cancelled) return;
+
+      unsub = subscribePrivate(`App.Models.User.${user.id}`, ".notification.created", (payload) => {
+        const data = payload as { title?: string; body?: string } | undefined;
+        toast(data?.title ?? "New notification", {
+          description: data?.body,
+        });
+        void queryClient.invalidateQueries({ queryKey: [...QUERY_KEY] });
+        void queryClient.invalidateQueries({ queryKey: ["messages"] });
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
+  }, [isLoggedIn, token, user?.id, queryClient]);
 
   useEffect(() => {
     const count = query.data?.unreadCount;
