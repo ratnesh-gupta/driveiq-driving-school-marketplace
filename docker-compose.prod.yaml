@@ -1,0 +1,108 @@
+# Production-oriented compose (no source bind-mounts).
+# Usage: docker compose -f docker-compose.prod.yaml up -d --build
+#
+# Provide secrets via environment or an external .env — never commit real keys.
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-driveiq}
+      POSTGRES_USER: ${POSTGRES_USER:-driveiq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-driveiq}
+      DB_USERNAME: ${POSTGRES_USER:-driveiq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      BROADCAST_CONNECTION: log
+    ports:
+      - "8000:8000"
+    command: >
+      sh -lc "composer install --no-dev --optimize-autoloader --no-interaction
+      && php artisan migrate --force
+      && php artisan config:cache
+      && php artisan route:cache
+      && php artisan serve --host=0.0.0.0 --port=8000"
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-driveiq}
+      DB_USERNAME: ${POSTGRES_USER:-driveiq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+    command: >
+      sh -lc "composer install --no-dev --optimize-autoloader --no-interaction
+      && php artisan queue:work redis --sleep=1 --tries=3 --max-time=3600"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "5173:5173"
+    command: >
+      sh -lc "corepack enable && pnpm install --frozen-lockfile
+      && pnpm build && pnpm serve --host 0.0.0.0 --port 5173"
+
+volumes:
+  postgres_data:
+  redis_data:
