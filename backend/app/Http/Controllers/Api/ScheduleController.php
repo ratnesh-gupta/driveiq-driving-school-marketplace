@@ -43,6 +43,29 @@ class ScheduleController extends Controller
         return response()->json($items);
     }
 
+    public function instructorSessions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $instructor = Instructor::withoutGlobalScope('school')
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $instructor) {
+            return response()->json(['message' => 'Instructor profile not found'], 404);
+        }
+
+        $items = Schedule::withoutGlobalScope('school')
+            ->with(['vehicle:id,registration_number,type', 'attendance'])
+            ->where('instructor_id', $instructor->id)
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->limit(100)
+            ->get()
+            ->map(fn (Schedule $s) => $this->serialize($s));
+
+        return response()->json($items);
+    }
+
     public function store(Request $request, int $schoolId): JsonResponse
     {
         if ($deny = $this->authSchool($request, $schoolId)) {

@@ -10,6 +10,8 @@ export default function InstructorHomePage() {
     queryFn: fetchInstructorMe,
   });
 
+  const instructor = (data?.instructor ?? data) as Record<string, unknown> | undefined;
+
   return (
     <InstructorLayout>
       <div className="mb-6">
@@ -19,19 +21,19 @@ export default function InstructorHomePage() {
 
       {isLoading ? (
         <Skeleton className="h-40 rounded-xl" />
-      ) : !data ? (
+      ) : !instructor ? (
         <div className="py-16 text-center text-muted-foreground">
           <User className="h-10 w-10 mx-auto mb-2 opacity-30" />
           Instructor profile not linked yet. Ask your school admin to link your account.
         </div>
       ) : (
         <div className="rounded-xl border bg-card p-6 space-y-3">
-          <div className="text-lg font-semibold">{String(data.name ?? "Trainer")}</div>
+          <div className="text-lg font-semibold">{String(instructor.name ?? "Trainer")}</div>
           <div className="grid sm:grid-cols-2 gap-3 text-sm">
-            <div><span className="text-muted-foreground">Status:</span> {String(data.status ?? "—")}</div>
-            <div><span className="text-muted-foreground">Mobile:</span> {String(data.mobile ?? "—")}</div>
-            <div><span className="text-muted-foreground">Experience:</span> {String(data.experienceYears ?? "—")} yrs</div>
-            <div><span className="text-muted-foreground">Learners trained:</span> {String(data.totalLearnersTrained ?? 0)}</div>
+            <div><span className="text-muted-foreground">Status:</span> {String(instructor.status ?? "—")}</div>
+            <div><span className="text-muted-foreground">Mobile:</span> {String(instructor.mobile ?? "—")}</div>
+            <div><span className="text-muted-foreground">Experience:</span> {String(instructor.yearsExperience ?? instructor.experienceYears ?? "—")} yrs</div>
+            <div><span className="text-muted-foreground">Learners trained:</span> {String(instructor.totalLearnersTrained ?? 0)}</div>
           </div>
         </div>
       )}

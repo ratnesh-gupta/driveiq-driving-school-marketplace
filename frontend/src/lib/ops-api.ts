@@ -99,7 +99,11 @@ export function createInstructor(schoolId: number, body: Record<string, unknown>
 }
 
 export function fetchInstructorMe() {
-  return request<Record<string, unknown>>(`/api/instructor/me`);
+  return request<{ instructor?: Record<string, unknown>; dashboard?: Record<string, unknown> } & Record<string, unknown>>(`/api/instructor/me`);
+}
+
+export function listInstructorSessions() {
+  return request<unknown[]>(`/api/instructor/sessions`);
 }
 
 export function listSchedules(schoolId: number, params?: { from?: string; to?: string }) {

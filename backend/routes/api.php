@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::middleware('role:instructor,school,admin')->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
+        Route::get('/instructor/sessions', [ScheduleController::class, 'instructorSessions']);
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
         Route::put('/learners/{id}/progress', [ProgressController::class, 'update'])->whereNumber('id');
     });
@@ -182,7 +183,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/schools/{id}/analytics', [AnalyticsController::class, 'school'])->whereNumber('id');
         Route::get('/schools/{id}/analytics/instructors', [AnalyticsController::class, 'instructors'])->whereNumber('id');
 
-        // Payments
         Route::get('/schools/{id}/payments', [PaymentController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/payments/package', [PaymentController::class, 'purchasePackage'])->whereNumber('id');
         Route::post('/payments/{id}/mark-paid', [PaymentController::class, 'markPaid'])->whereNumber('id');
