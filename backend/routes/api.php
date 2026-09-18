@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
@@ -77,7 +78,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/admin/ping', fn () => response()->json(['ok' => true]))->middleware('role:admin');
     Route::get('/school/ping', fn () => response()->json(['ok' => true]))->middleware('role:school,admin');
 
-    // Phase 9 — messaging (all authenticated school roles)
     Route::middleware('role:school,instructor,learner,admin')->group(function (): void {
         Route::get('/messages/threads', [MessageController::class, 'threads']);
         Route::get('/messages/unread-count', [MessageController::class, 'unreadCount']);
@@ -112,6 +112,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/admin/subscriptions', [SubscriptionController::class, 'assign']);
         Route::post('/admin/subscriptions/{schoolId}/cancel', [SubscriptionController::class, 'cancel'])
             ->whereNumber('schoolId');
+
+        // Phase 10 — platform analytics
+        Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
     });
 
     Route::middleware('role:school,admin')->group(function (): void {
@@ -175,5 +178,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::post('/learners/{id}/driving-tests', [ProgressController::class, 'createTest'])->whereNumber('id');
         Route::patch('/driving-tests/{id}', [ProgressController::class, 'updateTest'])->whereNumber('id');
+
+        // Phase 10 — school analytics
+        Route::get('/schools/{id}/analytics', [AnalyticsController::class, 'school'])->whereNumber('id');
+        Route::get('/schools/{id}/analytics/instructors', [AnalyticsController::class, 'instructors'])->whereNumber('id');
     });
 });
