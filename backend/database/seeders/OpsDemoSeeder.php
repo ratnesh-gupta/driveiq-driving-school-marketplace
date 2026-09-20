@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\DrivePackage;
 use App\Models\Instructor;
 use App\Models\Learner;
+use App\Models\Schedule;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -78,7 +79,7 @@ class OpsDemoSeeder extends Seeder
             ->where('name', 'Starter Manual')
             ->first();
 
-        Learner::withoutGlobalScope('school')->updateOrCreate(
+        $learner = Learner::withoutGlobalScope('school')->updateOrCreate(
             ['school_id' => $school->id, 'email' => 'learner.asha@driveiq.in'],
             [
                 'user_id' => $learnerUser->id,
@@ -89,6 +90,24 @@ class OpsDemoSeeder extends Seeder
                 'package_id' => $package?->id,
                 'assigned_instructor_id' => $instructor->id,
                 'start_date' => now()->subDays(10)->toDateString(),
+            ]
+        );
+
+        $date = now()->addDay()->toDateString();
+        Schedule::withoutGlobalScope('school')->updateOrCreate(
+            [
+                'school_id' => $school->id,
+                'instructor_id' => $instructor->id,
+                'learner_id' => $learner->id,
+                'session_date' => $date,
+                'start_time' => '07:00',
+            ],
+            [
+                'learner_name' => $learner->name,
+                'end_time' => '08:00',
+                'pickup_location' => 'Baner Road',
+                'status' => 'scheduled',
+                'created_by' => $owner?->id,
             ]
         );
     }
