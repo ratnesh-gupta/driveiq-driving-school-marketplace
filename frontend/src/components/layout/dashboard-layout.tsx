@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { RoleConsentGate } from "@/components/legal/role-consent-gate";
+import { PortalLegalFooter } from "@/components/legal/portal-legal-footer";
 
 const DASHBOARD_LINKS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -59,34 +61,37 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row bg-muted/20">
-      <aside className="hidden md:flex w-64 flex-col border-r bg-card min-h-[100dvh]">
-        <SidebarContent />
-      </aside>
+    <RoleConsentGate role="school">
+      <div className="min-h-[100dvh] flex flex-col md:flex-row bg-muted/20">
+        <aside className="hidden md:flex w-64 flex-col border-r bg-card min-h-[100dvh]">
+          <SidebarContent />
+        </aside>
 
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <header className="h-16 border-b bg-card flex items-center justify-between px-4 md:px-8">
-          <div className="flex items-center md:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-64">
-                <SidebarContent />
-              </SheetContent>
-            </Sheet>
-          </div>
-          <div className="font-semibold text-lg ml-2 md:ml-0">School Dashboard</div>
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-4 md:p-8">
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <header className="h-16 border-b bg-card flex items-center justify-between px-4 md:px-8">
+            <div className="flex items-center md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-64">
+                  <SidebarContent />
+                </SheetContent>
+              </Sheet>
+            </div>
+            <div className="font-semibold text-lg ml-2 md:ml-0">School Dashboard</div>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto p-4 md:p-8">
+            {children}
+            <PortalLegalFooter />
+          </main>
+        </div>
       </div>
-    </div>
+    </RoleConsentGate>
   );
 }

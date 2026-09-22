@@ -4,7 +4,9 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthStore } from "@/lib/store";
+import { saveRegisterConsent, setRoleConsent } from "@/lib/consent";
 import { Users, Building2 } from "lucide-react";
 
 type AccountType = "user" | "school";
@@ -26,15 +28,31 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeProcessing, setAgreeProcessing] = useState(false);
   const { register, isAuthLoading, authError, fieldErrors, clearAuthErrors, userRole } = useAuthStore();
   const [, setLocation] = useLocation();
 
+  const canSubmit = agreeTerms && agreePrivacy && agreeProcessing;
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return;
     clearAuthErrors();
     try {
+      saveRegisterConsent({
+        terms: agreeTerms,
+        privacy: agreePrivacy,
+        processing: agreeProcessing,
+        role: accountType,
+      });
       await register({ name, email, password, role: accountType });
       const role = useAuthStore.getState().userRole ?? userRole;
+      const userId = useAuthStore.getState().user?.id;
+      if (role === "school" || role === "user") {
+        setRoleConsent(role === "school" ? "school" : "user", userId);
+      }
       setLocation(role === "school" ? "/dashboard" : "/search");
     } catch {
       // errors are in the store
@@ -99,12 +117,35 @@ export default function RegisterPage() {
               <FieldError errors={fieldErrors.password} />
             </div>
 
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-3 text-sm">
+              <p className="text-xs font-medium text-foreground">Consent (required)</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                We collect name, email, phone (if provided), and account role to create your account
+                and provide marketplace / school services. Optional location is only used if you later
+                choose &quot;Use my location&quot; on search.
+              </p>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <Checkbox checked={agreeTerms} onCheckedChange={(v) => setAgreeTerms(!!v)} className="mt-0.5" data-testid="checkbox-agree-terms" />
+                <span className="text-xs">I agree to the <Link href="/terms" className="text-primary underline">Terms of Service</Link></span>
+              </label>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <Checkbox checked={agreePrivacy} onCheckedChange={(v) => setAgreePrivacy(!!v)} className="mt-0.5" data-testid="checkbox-agree-privacy" />
+                <span className="text-xs">I have read the <Link href="/privacy" className="text-primary underline">Privacy Policy</Link></span>
+              </label>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <Checkbox checked={agreeProcessing} onCheckedChange={(v) => setAgreeProcessing(!!v)} className="mt-0.5" data-testid="checkbox-agree-processing" />
+                <span className="text-xs">I consent to processing of my personal data for account creation and the services described above</span>
+              </label>
+            </div>
+
             {authError && !hasFieldErrors ? <p className="text-sm text-destructive">{authError}</p> : null}
 
-            <Button type="submit" className="w-full" size="lg" data-testid="button-register-submit" disabled={isAuthLoading}>
+            <Button type="submit" className="w-full" size="lg" data-testid="button-register-submit" disabled={isAuthLoading || !canSubmit}>
               {isAuthLoading ? "Creating Account..." : "Create Account"}
             </Button>
-            <p className="text-xs text-center text-muted-foreground">By creating an account, you agree to our Terms of Service and Privacy Policy.</p>
+            <p className="text-[11px] text-center text-muted-foreground">
+              Grievance / data rights: <Link href="/privacy/data-request" className="underline">request form</Link> · privacy@driveiq.in
+            </p>
           </form>
         </motion.div>
       </div>

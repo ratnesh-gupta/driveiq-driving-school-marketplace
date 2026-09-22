@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LearnerController;
@@ -53,6 +54,9 @@ Route::post('/reviews', [ReviewController::class, 'store'])
 
 Route::post('/inquiries', [InquiryController::class, 'store'])
     ->middleware('throttle:10,1');
+
+Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
+    ->middleware('throttle:5,1');
 
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
@@ -116,6 +120,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
             ->whereNumber('schoolId');
 
         Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
+
+        Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
+        Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
     });
 
     Route::middleware('role:school,admin')->group(function (): void {
