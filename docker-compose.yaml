@@ -66,7 +66,7 @@ services:
       - ./frontend:/app/frontend
       - /app/frontend/node_modules
     command: >
-      sh -lc "corepack enable && pnpm approve-builds esbuild 2>/dev/null || true && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0 --port 5173"
+      sh -lc "corepack enable && pnpm approve-builds esbuild 2>/dev/null || true && pnpm install && pnpm dev --host 0.0.0.0 --port 5173"
 
 volumes:
   postgres_data:

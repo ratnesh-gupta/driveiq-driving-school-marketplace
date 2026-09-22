@@ -9,33 +9,36 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RoleConsentGate } from "@/components/legal/role-consent-gate";
 import { PortalLegalFooter } from "@/components/legal/portal-legal-footer";
-
-const DASHBOARD_LINKS = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/leads", label: "Leads", icon: Users },
-  { href: "/dashboard/learners", label: "Learners", icon: GraduationCap },
-  { href: "/dashboard/instructors", label: "Instructors", icon: UserCog },
-  { href: "/dashboard/schedules", label: "Schedules", icon: CalendarDays },
-  { href: "/dashboard/vehicles", label: "Vehicles", icon: Car },
-  { href: "/dashboard/payments", label: "Payments", icon: IndianRupee },
-  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/profile", label: "Profile", icon: User },
-  { href: "/dashboard/packages", label: "Packages", icon: PkgIcon },
-  { href: "/dashboard/reviews", label: "Reviews", icon: Star },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-];
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useT } from "@/i18n/use-locale";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { logout } = useAuthStore();
+  const t = useT();
+
+  const links = [
+    { href: "/dashboard", label: t("schoolNav.overview"), icon: LayoutDashboard },
+    { href: "/dashboard/leads", label: t("schoolNav.leads"), icon: Users },
+    { href: "/dashboard/learners", label: t("schoolNav.learners"), icon: GraduationCap },
+    { href: "/dashboard/instructors", label: t("schoolNav.instructors"), icon: UserCog },
+    { href: "/dashboard/schedules", label: t("schoolNav.schedules"), icon: CalendarDays },
+    { href: "/dashboard/vehicles", label: t("schoolNav.vehicles"), icon: Car },
+    { href: "/dashboard/payments", label: t("schoolNav.payments"), icon: IndianRupee },
+    { href: "/dashboard/messages", label: t("schoolNav.messages"), icon: MessageSquare },
+    { href: "/dashboard/profile", label: t("schoolNav.profile"), icon: User },
+    { href: "/dashboard/packages", label: t("schoolNav.packages"), icon: PkgIcon },
+    { href: "/dashboard/reviews", label: t("schoolNav.reviews"), icon: Star },
+    { href: "/dashboard/analytics", label: t("schoolNav.analytics"), icon: BarChart3 },
+  ];
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="h-16 flex items-center px-6 border-b">
-        <Link href="/" className="font-bold text-xl text-primary tracking-tight">DriveIQ Partner</Link>
+        <Link href="/" className="font-bold text-xl text-primary tracking-tight">{t("schoolNav.brand")}</Link>
       </div>
       <div className="flex-1 py-6 flex flex-col gap-1 px-3 overflow-y-auto">
-        {DASHBOARD_LINKS.map((link) => {
+        {links.map((link) => {
           const Icon = link.icon;
           const isActive = location === link.href || (link.href !== "/dashboard" && location.startsWith(link.href));
           return (
@@ -54,7 +57,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="p-4 border-t">
         <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { void logout(); }}>
           <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          {t("common.logout")}
         </Button>
       </div>
     </div>
@@ -81,8 +84,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </SheetContent>
               </Sheet>
             </div>
-            <div className="font-semibold text-lg ml-2 md:ml-0">School Dashboard</div>
+            <div className="font-semibold text-lg ml-2 md:ml-0">{t("schoolNav.title")}</div>
             <div className="flex items-center gap-2">
+              <LanguageSwitcher />
               <NotificationBell />
             </div>
           </header>

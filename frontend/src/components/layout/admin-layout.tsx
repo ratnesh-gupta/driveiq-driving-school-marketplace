@@ -6,28 +6,31 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RoleConsentGate } from "@/components/legal/role-consent-gate";
 import { PortalLegalFooter } from "@/components/legal/portal-legal-footer";
-
-const ADMIN_LINKS = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/schools", label: "Schools", icon: Store },
-  { href: "/admin/reviews", label: "Reviews", icon: Star },
-  { href: "/admin/localities", label: "Localities", icon: MapPin },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/data-requests", label: "Data requests", icon: Shield },
-];
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useT } from "@/i18n/use-locale";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { logout } = useAuthStore();
+  const t = useT();
+
+  const links = [
+    { href: "/admin", label: t("adminNav.overview"), icon: LayoutDashboard },
+    { href: "/admin/analytics", label: t("adminNav.analytics"), icon: BarChart3 },
+    { href: "/admin/schools", label: t("adminNav.schools"), icon: Store },
+    { href: "/admin/reviews", label: t("adminNav.reviews"), icon: Star },
+    { href: "/admin/localities", label: t("adminNav.localities"), icon: MapPin },
+    { href: "/admin/users", label: t("adminNav.users"), icon: Users },
+    { href: "/admin/data-requests", label: t("adminNav.dataRequests"), icon: Shield },
+  ];
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="h-16 flex items-center px-6 border-b">
-        <Link href="/" className="font-bold text-xl text-primary tracking-tight">DriveIQ Admin</Link>
+        <Link href="/" className="font-bold text-xl text-primary tracking-tight">{t("adminNav.brand")}</Link>
       </div>
       <div className="flex-1 py-6 flex flex-col gap-2 px-4">
-        {ADMIN_LINKS.map((link) => {
+        {links.map((link) => {
           const Icon = link.icon;
           const isActive = location === link.href;
           return (
@@ -46,7 +49,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <div className="p-4 border-t">
         <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { void logout(); }}>
           <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          {t("common.logout")}
         </Button>
       </div>
     </div>
@@ -73,8 +76,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 </SheetContent>
               </Sheet>
             </div>
-            <div className="font-semibold text-lg ml-2 md:ml-0">Admin Portal</div>
+            <div className="font-semibold text-lg ml-2 md:ml-0">{t("adminNav.title")}</div>
             <div className="flex items-center gap-2">
+              <LanguageSwitcher />
               <NotificationBell />
             </div>
           </header>
