@@ -86,6 +86,13 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" size="lg" data-testid="button-login-submit" disabled={isAuthLoading}>
               {isAuthLoading ? "Signing In..." : "Sign In"}
             </Button>
+            <p className="text-[11px] text-center text-muted-foreground">
+              By signing in you continue under our{" "}
+              <Link href="/privacy" className="underline text-primary">Privacy Policy</Link>
+              {" and "}
+              <Link href="/terms" className="underline text-primary">Terms</Link>.
+              Role portals may ask you to confirm data-use notice on first visit.
+            </p>
           </form>
         </motion.div>
       </div>
