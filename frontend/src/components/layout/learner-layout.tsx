@@ -34,7 +34,7 @@ export function LearnerLayout({ children }: { children: React.ReactNode }) {
           const isActive = location === link.href;
           return (
             <Link key={link.href} href={link.href}>
-              <Button variant={isActive ? "secondary" : "ghost"} className={`w-full justify-start ${isActive ? "bg-secondary text-primary" : "text-muted-foreground"`}>
+              <Button variant={isActive ? "secondary" : "ghost"} className={`w-full justify-start ${isActive ? "bg-secondary text-primary" : "text-muted-foreground"}`}>
                 <Icon className="mr-2 h-4 w-4" />
                 {link.label}
               </Button>
