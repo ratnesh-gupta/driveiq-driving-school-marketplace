@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/store";
 import { roleHomePath } from "@/lib/auth-api";
 import { Car, ShieldCheck, Star } from "lucide-react";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useT } from "@/i18n/use-locale";
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
@@ -24,6 +26,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const { login, authError, fieldErrors, clearAuthErrors, isAuthLoading, userRole } = useAuthStore();
   const [, setLocation] = useLocation();
+  const t = useT();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,14 +46,17 @@ export default function LoginPage() {
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:flex flex-col bg-gradient-to-br from-[hsl(221,83%,12%)] via-[hsl(221,83%,20%)] to-[hsl(258,60%,25%)] text-white p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)" }} />
-        <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveIQ</Link>
+        <div className="flex items-center justify-between z-10">
+          <Link href="/" className="font-bold text-2xl tracking-tight">DriveIQ</Link>
+          <LanguageSwitcher variant="outline" />
+        </div>
         <div className="flex-1 flex flex-col justify-center z-10">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h2 className="text-4xl font-bold mb-4 leading-tight">Welcome back to<br />DriveIQ</h2>
-            <p className="text-white/70 text-lg leading-relaxed max-w-sm">School, instructor, learner, and admin portals — one sign-in.</p>
+            <h2 className="text-4xl font-bold mb-4 leading-tight">{t("auth.welcomeBack")}<br />DriveIQ</h2>
+            <p className="text-white/70 text-lg leading-relaxed max-w-sm">{t("nav.tagline")}</p>
           </motion.div>
           <motion.div className="mt-12 space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-            {[{ icon: ShieldCheck, label: "Role-based dashboards" }, { icon: Star, label: "Realtime notifications" }, { icon: Car, label: "Training & leads in one place" }].map((item) => (
+            {[{ icon: ShieldCheck, label: t("home.trust1") }, { icon: Star, label: t("home.trust4") }, { icon: Car, label: t("schoolNav.title") }].map((item) => (
               <div key={item.label} className="flex items-center gap-3 text-white/80">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center"><item.icon className="h-4 w-4" /></div>
                 <span className="text-sm">{item.label}</span>
@@ -58,25 +64,26 @@ export default function LoginPage() {
             ))}
           </motion.div>
         </div>
-        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveIQ. All rights reserved.</div>
+        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveIQ</div>
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-background">
+      <div className="flex items-center justify-center p-8 bg-background relative">
+        <div className="absolute top-4 right-4 lg:hidden"><LanguageSwitcher /></div>
         <motion.div className="w-full max-w-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-8">
             <Link href="/" className="font-bold text-xl text-primary lg:hidden">DriveIQ</Link>
-            <h1 className="text-2xl font-bold mt-4">Sign in to your account</h1>
-            <p className="text-muted-foreground text-sm mt-1">Don't have an account? <Link href="/auth/register" className="text-primary hover:underline">Sign up</Link></p>
+            <h1 className="text-2xl font-bold mt-4">{t("auth.signInTitle")}</h1>
+            <p className="text-muted-foreground text-sm mt-1">{t("auth.noAccount")} <Link href="/auth/register" className="text-primary hover:underline">{t("common.signup")}</Link></p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <Label>Email</Label>
+              <Label>{t("auth.email")}</Label>
               <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required data-testid="input-login-email" />
               <FieldError errors={fieldErrors.email} />
             </div>
             <div>
-              <Label>Password</Label>
+              <Label>{t("auth.password")}</Label>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required data-testid="input-login-password" />
               <FieldError errors={fieldErrors.password} />
             </div>
@@ -84,7 +91,7 @@ export default function LoginPage() {
             {authError && !hasFieldErrors ? <p className="text-sm text-destructive">{authError}</p> : null}
 
             <Button type="submit" className="w-full" size="lg" data-testid="button-login-submit" disabled={isAuthLoading}>
-              {isAuthLoading ? "Signing In..." : "Sign In"}
+              {isAuthLoading ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
         </motion.div>
