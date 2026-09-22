@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { SchoolCard } from "@/components/school-card";
 import { Button } from "@/components/ui/button";
@@ -41,10 +42,10 @@ export default function SearchPage() {
   const [nearMe, setNearMe] = useState(false);
   const [radiusKm, setRadiusKm] = useState<number>(5);
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationPrompt, setLocationPrompt] = useState(false);
 
   const { data: localities } = useListLocalities();
 
-  // Build typed params — only include filters that are actively set
   const params = useMemo<ListSchoolsParams>(() => {
     const p: ListSchoolsParams = {};
     if (locality) p.locality = locality.toLowerCase();
@@ -77,7 +78,7 @@ export default function SearchPage() {
     setNearMe(false); setGeo(null); setRadiusKm(5);
   };
 
-  const handleUseMyLocation = () => {
+  const requestBrowserLocation = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -91,9 +92,23 @@ export default function SearchPage() {
     );
   };
 
+  /** Show purpose notice before the browser permission prompt. */
+  const handleUseMyLocation = () => {
+    if (nearMe && geo) {
+      setNearMe(false);
+      setGeo(null);
+      return;
+    }
+    setLocationPrompt(true);
+  };
+
+  const confirmLocationUse = () => {
+    setLocationPrompt(false);
+    requestBrowserLocation();
+  };
+
   const FilterPanel = () => (
     <div className="space-y-6">
-      {/* Nearby Search */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Nearby Search</Label>
         <div className="space-y-3">
@@ -107,6 +122,10 @@ export default function SearchPage() {
             <MapPin className="h-4 w-4 mr-2" />
             {nearMe ? "Using your location" : "Use my location"}
           </Button>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Optional. Used only to rank schools near you for this search — not continuous tracking.{" "}
+            <Link href="/privacy" className="underline">Privacy</Link>
+          </p>
           {nearMe && (
             <Select value={String(radiusKm)} onValueChange={(v) => setRadiusKm(Number(v))}>
               <SelectTrigger data-testid="select-filter-radius">
@@ -124,7 +143,6 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Locality */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Locality</Label>
         <Select value={locality || ALL} onValueChange={(v) => setLocality(v === ALL ? "" : v)}>
@@ -140,7 +158,6 @@ export default function SearchPage() {
         </Select>
       </div>
 
-      {/* Vehicle Type */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Vehicle Type</Label>
         <Select value={vehicleType || ALL} onValueChange={(v) => setVehicleType(v === ALL ? "" : v)}>
@@ -156,7 +173,6 @@ export default function SearchPage() {
         </Select>
       </div>
 
-      {/* Transmission */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">Transmission</Label>
         <Select value={transmission || ALL} onValueChange={(v) => setTransmission(v === ALL ? "" : v)}>
@@ -171,7 +187,6 @@ export default function SearchPage() {
         </Select>
       </div>
 
-      {/* Min Rating */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">
           Minimum Rating: {minRating > 0 ? `${minRating}+` : "Any"}
@@ -185,7 +200,6 @@ export default function SearchPage() {
         />
       </div>
 
-      {/* Max Price */}
       <div>
         <Label className="text-sm font-semibold mb-3 block">
           Max Price: {maxPrice < 10000 ? `₹${maxPrice.toLocaleString()}` : "Any"}
@@ -199,7 +213,6 @@ export default function SearchPage() {
         />
       </div>
 
-      {/* Feature Checkboxes */}
       <div className="space-y-3">
         <Label className="text-sm font-semibold block">Features</Label>
         {[
@@ -229,7 +242,31 @@ export default function SearchPage() {
 
   return (
     <PublicLayout>
-      {/* Top Filter Bar */}
+      {locationPrompt && (
+        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/40 p-4">
+          <div
+            role="dialog"
+            aria-labelledby="location-purpose-title"
+            className="w-full max-w-md rounded-2xl border bg-background p-5 shadow-xl space-y-4"
+          >
+            <h2 id="location-purpose-title" className="text-lg font-semibold">Use your location?</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              DriveIQ will ask your browser for your current position <strong>only to show driving schools near you</strong> for this search.
+              We do not track you continuously or sell location data. You can use locality filters instead.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Details in our <Link href="/privacy" className="underline text-primary">Privacy Policy</Link>.
+            </p>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setLocationPrompt(false)}>Not now</Button>
+              <Button onClick={confirmLocationUse}>
+                <MapPin className="h-4 w-4 mr-1" /> Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-muted/30 border-b py-6">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-3 flex-wrap">
@@ -273,7 +310,6 @@ export default function SearchPage() {
               </Badge>
             )}
 
-            {/* Mobile filter trigger */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" className="md:hidden gap-2" data-testid="button-mobile-filters">
@@ -296,7 +332,6 @@ export default function SearchPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex gap-8">
-          {/* Sidebar filters — desktop */}
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="sticky top-24 rounded-xl border bg-card p-5">
               <div className="flex items-center justify-between mb-6">
@@ -313,7 +348,6 @@ export default function SearchPage() {
             </div>
           </aside>
 
-          {/* Results */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-6">
               <div>
