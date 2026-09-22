@@ -5,6 +5,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthGuard } from "@/components/auth-guard";
+import { CookieConsent } from "@/components/legal/cookie-consent";
 
 import HomePage from "@/pages/home";
 import SearchPage from "@/pages/search";
@@ -15,6 +16,9 @@ import DrivingRulesPage from "@/pages/driving-rules";
 import ContactPage from "@/pages/contact";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
+import PrivacyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
+import DataRequestPage from "@/pages/data-request";
 
 import DashboardHomePage from "@/pages/dashboard/index";
 import LeadsPage from "@/pages/dashboard/leads";
@@ -71,6 +75,9 @@ function Router() {
       <Route path="/about" component={AboutPage} />
       <Route path="/driving-rules" component={DrivingRulesPage} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/privacy/data-request" component={DataRequestPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
       <Route path="/compare" component={ComparePage} />
@@ -119,6 +126,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
+          <CookieConsent />
           <Toaster />
           <SonnerToaster />
         </TooltipProvider>

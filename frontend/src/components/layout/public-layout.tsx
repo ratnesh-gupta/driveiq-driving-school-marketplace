@@ -38,44 +38,45 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                   <Button variant="ghost" onClick={() => { void logout(); }}>Logout</Button>
                 </>
               ) : (
-    <>
-      <Link href="/auth/login"><Button variant="ghost">Log in</Button></Link>
-      <Link href="/auth/register"><Button>Sign up</Button></Link>
-    </>
-  )
-}
-            </div >
+                <>
+                  <Link href="/auth/login"><Button variant="ghost">Log in</Button></Link>
+                  <Link href="/auth/register"><Button>Sign up</Button></Link>
+                </>
+              )}
+            </div>
 
-  <Sheet>
-    <SheetTrigger asChild>
-      <Button variant="outline" size="icon" className="md:hidden">
-        <Menu className="h-5 w-5" />
-      </Button>
-    </SheetTrigger>
-    <SheetContent side="right">
-      <nav className="flex flex-col gap-4 mt-8">
-        <Link href="/search" className="text-sm font-medium">Search</Link>
-        <Link href="/driving-rules" className="text-sm font-medium">Driving Rules</Link>
-        <Link href="/about" className="text-sm font-medium">About</Link>
-        <Link href="/contact" className="text-sm font-medium">Contact</Link>
-        <hr className="my-2" />
-        {isLoggedIn ? (
-          <>
-            <Link href={userRole === "admin" ? "/admin" : userRole === "school" ? "/dashboard" : "/search"} className="text-sm font-medium">Dashboard</Link>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <nav className="flex flex-col gap-4 mt-8">
+                  <Link href="/search" className="text-sm font-medium">Search</Link>
+                  <Link href="/driving-rules" className="text-sm font-medium">Driving Rules</Link>
+                  <Link href="/about" className="text-sm font-medium">About</Link>
+                  <Link href="/contact" className="text-sm font-medium">Contact</Link>
+                  <Link href="/privacy" className="text-sm font-medium">Privacy</Link>
+                  <Link href="/terms" className="text-sm font-medium">Terms</Link>
+                  <hr className="my-2" />
+                  {isLoggedIn ? (
+                    <>
+                      <Link href={userRole === "admin" ? "/admin" : userRole === "school" ? "/dashboard" : "/search"} className="text-sm font-medium">Dashboard</Link>
                       <button onClick={() => { void logout(); }} className="text-sm font-medium text-left text-destructive">Logout</button>
                     </>
                   ) : (
-  <>
-    <Link href="/auth/login" className="text-sm font-medium">Log in</Link>
-    <Link href="/auth/register" className="text-sm font-medium">Sign up</Link>
-  </>
-)}
-                </nav >
-              </SheetContent >
-            </Sheet >
-          </div >
-        </div >
-      </header >
+                    <>
+                      <Link href="/auth/login" className="text-sm font-medium">Log in</Link>
+                      <Link href="/auth/register" className="text-sm font-medium">Sign up</Link>
+                    </>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </header>
 
       <main className="flex-1">
         {children}
@@ -101,12 +102,14 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link href="/about" className="hover:text-primary">About Us</Link></li>
               <li><Link href="/contact" className="hover:text-primary">Contact</Link></li>
-              <li><Link href="/blog" className="hover:text-primary">Blog</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">For Schools</h4>
+            <h4 className="font-semibold mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><Link href="/privacy" className="hover:text-primary">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-primary">Terms of Service</Link></li>
+              <li><Link href="/privacy/data-request" className="hover:text-primary">Data rights request</Link></li>
               <li><Link href="/auth/register" className="hover:text-primary">Partner with us</Link></li>
               <li><Link href="/auth/login" className="hover:text-primary">School Login</Link></li>
             </ul>
@@ -114,8 +117,12 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         </div>
         <div className="container mx-auto px-4 mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} DriveIQ. All rights reserved.
+          {" · "}
+          <Link href="/privacy" className="hover:text-primary">Privacy</Link>
+          {" · "}
+          <Link href="/terms" className="hover:text-primary">Terms</Link>
         </div>
       </footer>
-    </div >
+    </div>
   );
 }
