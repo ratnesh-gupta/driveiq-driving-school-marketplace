@@ -100,10 +100,14 @@ class UpdateSchoolRequest extends BaseFormRequest
     {
         $data = $this->camelToSnake($this->validated(), self::FIELD_MAP);
 
-        // Only platform admins may set verification flags.
+        // Only platform admins may set verification flags, the public slug,
+        // or rating/review_count (otherwise derived from approved reviews).
         $user = $this->user();
         if (! $user || ! method_exists($user, 'isAdmin') || ! $user->isAdmin()) {
             unset(
+                $data['slug'],
+                $data['rating'],
+                $data['review_count'],
                 $data['verified'],
                 $data['phone_verified'],
                 $data['business_verified'],
