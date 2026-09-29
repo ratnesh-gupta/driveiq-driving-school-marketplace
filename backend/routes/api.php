@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminMonetizationController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
@@ -164,6 +165,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
 
         Route::get('/admin/subscriptions/overview', [SubscriptionController::class, 'overview']);
+        Route::get('/admin/subscriptions', [AdminMonetizationController::class, 'subscriptions']);
+        Route::get('/admin/placements', [AdminMonetizationController::class, 'placements']);
+        Route::post('/admin/placements', [AdminMonetizationController::class, 'storePlacement']);
+        Route::post('/admin/placements/{id}/end', [AdminMonetizationController::class, 'endPlacement'])->whereNumber('id');
+        Route::get('/admin/marketplace-settings', [AdminMonetizationController::class, 'settings']);
+        Route::put('/admin/marketplace-settings', [AdminMonetizationController::class, 'updateSettings']);
         Route::get('/admin/billing/invoices', [BillingController::class, 'adminIndex']);
         Route::post('/admin/billing/invoices/{id}/record-payment', [BillingController::class, 'recordPayment'])->whereNumber('id');
         Route::post('/admin/billing/invoices/{id}/void', [BillingController::class, 'void'])->whereNumber('id');

@@ -212,6 +212,7 @@ const hi: TranslationTree = {
     users: "उपयोगकर्ता",
     dataRequests: "डेटा अनुरोध",
     messages: "संदेश",
+    billing: "आय और बिलिंग",
     title: "एडमिन पोर्टल",
     brand: "DriveIQ एडमिन",
   },

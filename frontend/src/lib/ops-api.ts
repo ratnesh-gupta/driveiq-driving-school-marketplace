@@ -643,3 +643,97 @@ export function requestPlanInvoice(schoolId: number, body: { planCode: string; m
 export function cancelPlanInvoice(schoolId: number, invoiceId: number) {
   return request<PlatformInvoice>(`/api/schools/${schoolId}/billing/invoices/${invoiceId}/cancel`, { method: "POST" });
 }
+
+// ── Admin monetization console (DIQ-806) ──
+
+export type MonetizationOverview = {
+  activeSubscriptions: number;
+  activePaid: number;
+  byTier: Record<string, number>;
+  mrr: number;
+  arr: number;
+  mrrByTier: Record<string, number>;
+  trials: number;
+  churn30d: { churned: number; paidAtStart: number; rate: number };
+  expiringSoon: { id: number; schoolId: number; schoolName: string | null; planCode: string | null; expiresAt: string | null }[];
+  trialsEndingSoon: { id: number; schoolId: number; schoolName: string | null; planCode: string | null; expiresAt: string | null }[];
+  sponsoredSlots: { perPage: number; eligibleSchools: number; utilization: number };
+  pendingInvoices: { count: number; total: number };
+};
+
+export type AdminSubscriptionRow = {
+  id: number;
+  schoolId: number;
+  schoolName: string | null;
+  planCode: string | null;
+  priceMonthly: number | null;
+  status: string;
+  startsAt: string | null;
+  expiresAt: string | null;
+  current: boolean;
+  notes: string | null;
+};
+
+export type PlacementRow = {
+  id: number;
+  schoolId: number;
+  schoolName: string | null;
+  placement: "search_top" | "homepage" | "locality";
+  localityId: number | null;
+  localityName: string | null;
+  startsAt: string;
+  endsAt: string;
+  live: boolean;
+  notes: string | null;
+};
+
+export const fetchMonetizationOverview = () => request<MonetizationOverview>(`/api/admin/subscriptions/overview`);
+
+export function listAdminInvoices(status?: string) {
+  return request<Paged<PlatformInvoice>>(`/api/admin/billing/invoices${status ? `?status=${status}` : ""}`);
+}
+
+export function recordInvoicePayment(id: number, body: { reference: string; paidAt?: string }) {
+  return request<PlatformInvoice>(`/api/admin/billing/invoices/${id}/record-payment`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function voidInvoice(id: number, reason?: string) {
+  return request<PlatformInvoice>(`/api/admin/billing/invoices/${id}/void`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
+export function listAdminSubscriptions(params: { status?: string; search?: string; page?: number }) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => v !== undefined && v !== "" && q.set(k, String(v)));
+  return request<Paged<AdminSubscriptionRow>>(`/api/admin/subscriptions?${q.toString()}`);
+}
+
+export function assignSubscription(body: { schoolId: number; planCode: string; months: number; notes?: string }) {
+  return request(`/api/admin/subscriptions`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function cancelSubscription(schoolId: number) {
+  return request(`/api/admin/subscriptions/${schoolId}/cancel`, { method: "POST" });
+}
+
+export const listPlacements = () => request<PlacementRow[]>(`/api/admin/placements`);
+
+export function createPlacement(body: {
+  schoolId: number;
+  placement: PlacementRow["placement"];
+  localityId?: number;
+  startsAt: string;
+  endsAt: string;
+  notes?: string;
+}) {
+  return request<PlacementRow>(`/api/admin/placements`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export const endPlacement = (id: number) => request<PlacementRow>(`/api/admin/placements/${id}/end`, { method: "POST" });
+
+export type MarketplaceSettings = { sponsored_slots_per_page: number; homepage_slots: number };
+
+export const fetchMarketplaceSettings = () => request<MarketplaceSettings>(`/api/admin/marketplace-settings`);
+
+export function saveMarketplaceSettings(body: Partial<MarketplaceSettings>) {
+  return request<MarketplaceSettings>(`/api/admin/marketplace-settings`, { method: "PUT", body: JSON.stringify(body) });
+}

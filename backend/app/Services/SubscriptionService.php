@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\FeaturedPlacement;
+use App\Models\MarketplaceSetting;
 use App\Models\Plan;
+use App\Models\PlatformInvoice;
 use App\Models\Subscription;
 use Illuminate\Support\Collection;
 
@@ -131,26 +134,46 @@ class SubscriptionService
         return $sub->fresh('plan');
     }
 
+    /**
+     * Admin monetization metrics (DIQ-806). "Paid" means a plan with a price.
+     * Churn (30 days) = paid subscriptions that ended in the window with no
+     * paid plan active now, divided by paid subscriptions live at its start.
+     */
     public function adminOverview(): array
     {
-        $active = Subscription::withoutGlobalScope('school')
-            ->with('plan')
-            ->where('status', 'active')
-            ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->get();
+        $now = now();
+        $live = fn ($q) => $q->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', $now));
+        $paid = fn ($q) => $q->whereHas('plan', fn ($p) => $p->where('price_monthly', '>', 0));
 
-        $byTier = $active->groupBy(fn (Subscription $s) => $s->plan?->code ?? 'unknown')
-            ->map->count();
+        $active = Subscription::withoutGlobalScope('school')->with('plan')
+            ->where('status', 'active')->tap($live)->get();
+        $activePaid = $active->filter(fn (Subscription $s) => (int) ($s->plan?->price_monthly ?? 0) > 0);
 
-        $mrr = $active->sum(fn (Subscription $s) => (int) ($s->plan?->price_monthly ?? 0));
+        $byTier = $active->groupBy(fn (Subscription $s) => $s->plan?->code ?? 'unknown')->map->count();
+        $mrrByTier = $activePaid->groupBy(fn (Subscription $s) => $s->plan->code)
+            ->map(fn ($subs) => $subs->sum(fn (Subscription $s) => (int) $s->plan->price_monthly));
+        $mrr = (int) $mrrByTier->sum();
 
-        $expiringSoon = Subscription::withoutGlobalScope('school')
+        $windowStart = $now->copy()->subDays(30);
+        $paidAtStart = Subscription::withoutGlobalScope('school')->tap($paid)
+            ->whereIn('status', ['active', 'cancelled', 'expired'])
+            ->where('starts_at', '<=', $windowStart)
+            ->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', $windowStart))
+            ->count();
+        $payingNow = $activePaid->pluck('school_id')->unique();
+        $churned = Subscription::withoutGlobalScope('school')->tap($paid)
+            ->where(fn ($q) => $q
+                ->whereBetween('expires_at', [$windowStart, $now])
+                ->orWhere(fn ($c) => $c->where('status', 'cancelled')->whereBetween('updated_at', [$windowStart, $now])))
+            ->whereNotIn('school_id', $payingNow->all() ?: [0])
+            ->distinct()
+            ->count('school_id');
+
+        $soon = fn (string $status, int $days) => Subscription::withoutGlobalScope('school')
             ->with(['plan', 'school:id,name,slug'])
-            ->where('status', 'active')
+            ->where('status', $status)
             ->whereNotNull('expires_at')
-            ->whereBetween('expires_at', [now(), now()->addDays(14)])
+            ->whereBetween('expires_at', [$now, $now->copy()->addDays($days)])
             ->orderBy('expires_at')
             ->limit(20)
             ->get()
@@ -162,11 +185,38 @@ class SubscriptionService
                 'expiresAt' => $s->expires_at?->toISOString(),
             ]);
 
+        $slots = (int) MarketplaceSetting::get('sponsored_slots_per_page');
+        $topPlans = config('geo.top_placement_plans', []);
+        $sponsorSchools = $active->filter(fn (Subscription $s) => in_array($s->plan?->code, $topPlans, true))->pluck('school_id')
+            ->merge(FeaturedPlacement::live()->where('placement', 'search_top')->pluck('school_id'))
+            ->unique()->count();
+
+        $pending = PlatformInvoice::where('status', 'issued');
+
         return [
             'activeSubscriptions' => $active->count(),
             'byTier' => $byTier,
+            'activePaid' => $activePaid->count(),
             'mrr' => $mrr,
-            'expiringSoon' => $expiringSoon,
+            'arr' => $mrr * 12,
+            'mrrByTier' => $mrrByTier,
+            'trials' => Subscription::withoutGlobalScope('school')->where('status', 'trial')->tap($live)->count(),
+            'churn30d' => [
+                'churned' => $churned,
+                'paidAtStart' => $paidAtStart,
+                'rate' => $paidAtStart > 0 ? round($churned / $paidAtStart, 4) : 0.0,
+            ],
+            'expiringSoon' => $soon('active', 14),
+            'trialsEndingSoon' => $soon('trial', 7),
+            'sponsoredSlots' => [
+                'perPage' => $slots,
+                'eligibleSchools' => $sponsorSchools,
+                'utilization' => $slots > 0 ? round(min($sponsorSchools, $slots) / $slots, 4) : 0.0,
+            ],
+            'pendingInvoices' => [
+                'count' => (clone $pending)->count(),
+                'total' => (int) (clone $pending)->sum('total'),
+            ],
         ];
     }
 }

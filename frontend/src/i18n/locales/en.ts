@@ -215,6 +215,7 @@ const en = {
     users: "Users",
     dataRequests: "Data requests",
     messages: "Messages",
+    billing: "Monetization",
     title: "Admin Portal",
     brand: "DriveIQ Admin",
   },

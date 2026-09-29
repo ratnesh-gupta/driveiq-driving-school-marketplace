@@ -212,6 +212,7 @@ const mr: TranslationTree = {
     users: "वापरकर्ते",
     dataRequests: "डेटा विनंत्या",
     messages: "संदेश",
+    billing: "उत्पन्न आणि बिलिंग",
     title: "अॅडमिन पोर्टल",
     brand: "DriveIQ अॅडमिन",
   },
