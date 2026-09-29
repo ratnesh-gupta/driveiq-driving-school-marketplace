@@ -3,7 +3,7 @@ import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu,
-  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound,
+  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound, Settings,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -31,6 +31,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/packages", label: t("schoolNav.packages"), icon: PkgIcon },
     { href: "/dashboard/reviews", label: t("schoolNav.reviews"), icon: Star },
     { href: "/dashboard/analytics", label: t("schoolNav.analytics"), icon: BarChart3 },
+    { href: "/dashboard/settings", label: t("schoolNav.settings"), icon: Settings },
   ];
 
   const SidebarContent = () => (

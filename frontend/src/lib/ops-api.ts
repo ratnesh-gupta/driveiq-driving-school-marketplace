@@ -513,3 +513,30 @@ export function addLeadNote(inquiryId: number, body: { body: string; followUpAt?
     body: JSON.stringify(body),
   });
 }
+
+// ── School settings (DIQ-707) ──
+
+export type SchoolSettings = {
+  notifications: {
+    email: boolean;
+    sms: boolean;
+    in_app: boolean;
+    new_inquiry: boolean;
+    new_review: boolean;
+    reminder_after_minutes: number;
+  };
+  timezone: string;
+  locale: string;
+  lead_auto_assign: boolean;
+};
+
+export function fetchSchoolSettings(schoolId: number) {
+  return request<{ schoolId: number; settings: SchoolSettings }>(`/api/schools/${schoolId}/settings`);
+}
+
+export function saveSchoolSettings(schoolId: number, settings: Partial<SchoolSettings>) {
+  return request<{ schoolId: number; settings: SchoolSettings }>(`/api/schools/${schoolId}/settings`, {
+    method: "PUT",
+    body: JSON.stringify({ settings }),
+  });
+}
