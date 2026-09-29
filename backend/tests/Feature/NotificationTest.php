@@ -47,6 +47,7 @@ class NotificationTest extends TestCase
             'name' => 'Lead',
             'phone' => '9888888888',
             'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
         ])->assertCreated();
 
         $this->assertDatabaseHas('notifications', [

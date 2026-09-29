@@ -31,10 +31,10 @@ Route::get('/healthz', fn () => response()->json([
 ]));
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth');
 });
 
 Route::prefix('schools')->group(function (): void {
@@ -53,21 +53,21 @@ Route::prefix('localities')->group(function (): void {
 
 Route::get('/reviews', [ReviewController::class, 'index']);
 // One-time review link from an inquiry confirmation email (DIQ-407).
-Route::get('/reviews/via-inquiry/{token}', [ReviewController::class, 'showInquiryReview'])->middleware('throttle:20,1');
-Route::post('/reviews/via-inquiry', [ReviewController::class, 'storeViaInquiry'])->middleware('throttle:5,1');
+Route::get('/reviews/via-inquiry/{token}', [ReviewController::class, 'showInquiryReview'])->middleware('throttle:public-lookups');
+Route::post('/reviews/via-inquiry', [ReviewController::class, 'storeViaInquiry'])->middleware('throttle:public-forms');
 Route::post('/reviews', [ReviewController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:10,1']);
 
 Route::post('/inquiries', [InquiryController::class, 'store'])
-    ->middleware('throttle:10,1');
+    ->middleware('throttle:inquiries');
 
 // Manager invitations (DIQ-403): usable before the invitee has an account.
 Route::get('/team/invitations/{token}', [SchoolTeamController::class, 'showInvitation'])
-    ->middleware('throttle:20,1');
-Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware('throttle:10,1');
+    ->middleware('throttle:public-lookups');
+Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware('throttle:public-forms');
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
-    ->middleware('throttle:5,1');
+    ->middleware('throttle:public-forms');
 
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/store";
+import type { InquiryInput } from "@/api-client/generated/api.schemas";
 import { useT } from "@/i18n/use-locale";
 import {
   useGetSchoolBySlug,
@@ -90,19 +91,37 @@ export default function SchoolDetailPage() {
   const createReview = useCreateReview();
 
   const [inquiryForm, setInquiryForm] = useState({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
+  // Anti-spam (DIQ-404): when the form was opened, and a honeypot field people never see.
+  const inquiryStartedAt = useRef(Date.now());
+  const [honeypot, setHoneypot] = useState("");
+  const openInquiry = (open: boolean) => {
+    if (open) inquiryStartedAt.current = Date.now();
+    setInquiryOpen(open);
+  };
   const [reviewForm, setReviewForm] = useState({ authorName: "", rating: 5, content: "" });
 
   const handleInquiry = async () => {
     if (!school) return;
+    // The generated InquiryInput type predates the anti-spam fields; the API requires them.
+    const payload: InquiryInput & { formStartedAt: number; website: string } = {
+      ...inquiryForm,
+      schoolId: school.id,
+      formStartedAt: inquiryStartedAt.current,
+      website: honeypot,
+    };
     createInquiry.mutate(
-      { data: { ...inquiryForm, schoolId: school.id } },
+      { data: payload },
       {
         onSuccess: () => {
           toast({ title: "Inquiry sent!", description: "The school will contact you shortly." });
           setInquiryOpen(false);
           setInquiryForm({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
         },
-        onError: () => toast({ title: "Failed to send inquiry", variant: "destructive" }),
+        onError: (err: unknown) => {
+          const data = (err as { status?: number; data?: { message?: string; errors?: Record<string, string[]> } })?.data;
+          const detail = data?.errors ? Object.values(data.errors).flat()[0] : data?.message;
+          toast({ title: "Failed to send inquiry", description: detail, variant: "destructive" });
+        },
       }
     );
   };
@@ -353,7 +372,7 @@ export default function SchoolDetailPage() {
                 <div className="text-2xl font-bold mb-1">₹{school.priceFrom.toLocaleString()}<span className="text-base font-normal text-muted-foreground"> / course</span></div>
                 <Separator className="my-4" />
 
-                <Dialog open={inquiryOpen} onOpenChange={setInquiryOpen}>
+                <Dialog open={inquiryOpen} onOpenChange={openInquiry}>
                   <DialogTrigger asChild>
                     <Button className="w-full" size="lg" data-testid="button-send-inquiry">
                       <Send className="h-4 w-4 mr-2" /> Send Inquiry
@@ -362,6 +381,13 @@ export default function SchoolDetailPage() {
                   <DialogContent>
                     <DialogHeader><DialogTitle>Send Inquiry to {school.name}</DialogTitle></DialogHeader>
                     <div className="space-y-4 mt-2">
+                      {/* Honeypot: hidden from people and assistive tech; bots tend to fill it. */}
+                      <div aria-hidden="true" className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden">
+                        <label>
+                          Website
+                          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                        </label>
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Label>Your Name</Label>

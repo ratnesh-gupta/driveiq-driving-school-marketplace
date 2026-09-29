@@ -112,6 +112,7 @@ class TrustAndReviewTest extends TestCase
             'phone' => '9777777777',
             'email' => 'enquirer@example.com',
             'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
         ])->assertCreated();
 
         $url = null;
@@ -149,6 +150,7 @@ class TrustAndReviewTest extends TestCase
 
         $this->postJson('/api/inquiries', [
             'schoolId' => $school->id, 'name' => 'No Email', 'phone' => '9777777700', 'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
         ])->assertCreated();
 
         Notification::assertNothingSent();

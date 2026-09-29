@@ -126,6 +126,7 @@ class ApiPhaseTwoModulesTest extends TestCase
             'name' => 'Lead One',
             'phone' => '9888888888',
             'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
             'status' => 'pending',
         ])->assertCreated();
 
