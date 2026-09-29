@@ -110,6 +110,7 @@ class LearnerController extends Controller
 
         $previous = $inquiry->status;
         $inquiry->update(['status' => 'converted']);
+        $inquiry->markResponded();
 
         LeadStatusHistory::create([
             'inquiry_id' => $inquiry->id,

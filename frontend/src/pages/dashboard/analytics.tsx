@@ -28,9 +28,11 @@ export default function AnalyticsPage() {
     { rating: "1 star", count: (reviews || []).filter(r => r.rating === 1).length },
   ];
 
-  const statusData = LEAD_STATUSES.map((s) => ({
+  // Colour follows the status (not the slice index), so it stays stable when some statuses are empty.
+  const statusData = LEAD_STATUSES.map((s, idx) => ({
     name: leadStatusLabel(s),
     value: (inquiries || []).filter(i => i.status === s).length,
+    color: COLORS[idx % COLORS.length],
   })).filter(d => d.value > 0);
 
   return (
@@ -82,7 +84,7 @@ export default function AnalyticsPage() {
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {statusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  {statusData.map((d) => <Cell key={d.name} fill={d.color} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>

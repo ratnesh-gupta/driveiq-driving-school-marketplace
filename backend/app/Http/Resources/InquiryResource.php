@@ -23,6 +23,8 @@ class InquiryResource extends JsonResource
             'message' => $this->message,
             'status' => $this->status,
             'lostReason' => $this->lost_reason,
+            'firstRespondedAt' => $this->first_responded_at?->toISOString(),
+            'responseSeconds' => $this->response_seconds,
             'createdAt' => $this->created_at?->toISOString(),
         ];
     }

@@ -91,6 +91,7 @@ class AnalyticsService
                 'converted' => $converted,
                 'conversionRate' => $conversionRate,
                 'trend' => $trend,
+                'responseTime' => app(LeadResponseStats::class)->summary($schoolId),
             ],
             'learners' => [
                 'active' => $activeLearners,
@@ -277,6 +278,10 @@ class AnalyticsService
                 'converted' => $converted,
                 'lost' => $lost,
                 'conversionRate' => $totalInquiries > 0 ? round($converted / $totalInquiries, 4) : 0.0,
+            ],
+            'responseTime' => [
+                'overall' => app(LeadResponseStats::class)->summary(),
+                'slowestSchools' => app(LeadResponseStats::class)->bySchool(),
             ],
             'learners' => [
                 'total' => $totalLearners,

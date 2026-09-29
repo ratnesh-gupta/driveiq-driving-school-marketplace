@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Inquiry;
 use App\Models\Review;
 use App\Models\School;
+use App\Services\LeadResponseStats;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -91,6 +92,7 @@ class SchoolDashboardController extends Controller
                 'inquiriesLastMonth' => $inquiriesLastMonth,
                 'responseRate' => $responseRate,
                 'conversionRate' => $conversionRate,
+                'responseTime' => app(LeadResponseStats::class)->summary($schoolId),
                 'pendingReviews' => $pendingReviews,
                 'rating' => (float) ($school->rating ?? 0),
                 'reviewCount' => (int) ($school->review_count ?? 0),

@@ -76,6 +76,9 @@ class InquiryController extends Controller
             $inquiry->lost_reason = null;
         }
         $inquiry->save();
+        if (in_array($inquiry->status, Inquiry::RESPONDED_STATUSES, true)) {
+            $inquiry->markResponded();
+        }
         $inquiry->load('school');
 
         if (array_key_exists('status', $request->toSnakeCase())
