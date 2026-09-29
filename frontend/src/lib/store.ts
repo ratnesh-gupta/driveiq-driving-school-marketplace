@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ApiValidationError, getStoredToken, loginApi, logoutApi, meApi, registerApi, setStoredToken, type AuthUser, type FieldErrors, type UserRole } from "@/lib/auth-api";
+import { ApiValidationError, getStoredToken, loginApi, logoutApi, meApi, registerApi, setStoredToken, type AuthUser, type FieldErrors, type SchoolRole, type UserRole } from "@/lib/auth-api";
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -7,6 +7,7 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   schoolId: number | null;
+  schoolRole: SchoolRole | null;
   isAuthLoading: boolean;
   authError: string | null;
   fieldErrors: FieldErrors;
@@ -23,6 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   schoolId: null,
+  schoolRole: null,
   isAuthLoading: !!getStoredToken(),
   authError: null,
   fieldErrors: {},
@@ -41,6 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: data.user,
         userRole: data.user.role,
         schoolId: data.schoolId,
+        schoolRole: data.schoolRole ?? null,
         isLoggedIn: true,
         isAuthLoading: false,
       });
@@ -51,6 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: null,
         userRole: null,
         schoolId: null,
+        schoolRole: null,
         isLoggedIn: false,
         isAuthLoading: false,
       });
@@ -67,6 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: data.user,
         userRole: data.user.role,
         schoolId: data.schoolId,
+        schoolRole: data.schoolRole ?? null,
         isLoggedIn: true,
         isAuthLoading: false,
       });
@@ -91,6 +96,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: data.user,
         userRole: data.user.role,
         schoolId: data.schoolId,
+        schoolRole: data.schoolRole ?? null,
         isLoggedIn: true,
         isAuthLoading: false,
       });
@@ -121,6 +127,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: null,
       userRole: null,
       schoolId: null,
+      schoolRole: null,
       isLoggedIn: false,
       authError: null,
       fieldErrors: {},

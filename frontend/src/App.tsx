@@ -16,6 +16,8 @@ import DrivingRulesPage from "@/pages/driving-rules";
 import ContactPage from "@/pages/contact";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import DataRequestPage from "@/pages/data-request";
@@ -32,6 +34,9 @@ import SchedulesPage from "@/pages/dashboard/schedules";
 import VehiclesPage from "@/pages/dashboard/vehicles";
 import SchoolMessagesPage from "@/pages/dashboard/messages";
 import PaymentsPage from "@/pages/dashboard/payments";
+import TeamPage from "@/pages/dashboard/team";
+import TeamAcceptPage from "@/pages/team-accept";
+import ReviewViaLinkPage from "@/pages/review-via-link";
 
 import AdminHomePage from "@/pages/admin/index";
 import AdminSchoolsPage from "@/pages/admin/schools";
@@ -81,7 +86,11 @@ function Router() {
       <Route path="/privacy/data-request" component={DataRequestPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
+      <Route path="/auth/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/auth/reset-password" component={ResetPasswordPage} />
       <Route path="/compare" component={ComparePage} />
+      <Route path="/team/accept" component={TeamAcceptPage} />
+      <Route path="/review" component={ReviewViaLinkPage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>
       <Route path="/dashboard/leads">{() => schoolGuard(<LeadsPage />)}</Route>
@@ -91,6 +100,7 @@ function Router() {
       <Route path="/dashboard/vehicles">{() => schoolGuard(<VehiclesPage />)}</Route>
       <Route path="/dashboard/payments">{() => schoolGuard(<PaymentsPage />)}</Route>
       <Route path="/dashboard/messages">{() => schoolGuard(<SchoolMessagesPage />)}</Route>
+      <Route path="/dashboard/team">{() => schoolGuard(<TeamPage />)}</Route>
       <Route path="/dashboard/profile">{() => schoolGuard(<ProfilePage />)}</Route>
       <Route path="/dashboard/packages">{() => schoolGuard(<PackagesPage />)}</Route>
       <Route path="/dashboard/reviews">{() => schoolGuard(<DashboardReviewsPage />)}</Route>

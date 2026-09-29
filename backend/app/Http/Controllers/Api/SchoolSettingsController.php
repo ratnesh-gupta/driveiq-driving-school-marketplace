@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
-use App\Models\School;
 use App\Models\SchoolSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +12,7 @@ class SchoolSettingsController extends Controller
 {
     public function show(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -34,7 +33,7 @@ class SchoolSettingsController extends Controller
 
     public function update(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -56,23 +55,5 @@ class SchoolSettingsController extends Controller
             'schoolId' => $schoolId,
             'settings' => $merged,
         ]);
-    }
-
-    private function authorizeSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-
-        if ((int) $user->school_id !== $schoolId) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        return null;
     }
 }

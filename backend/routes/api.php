@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\InquiryController;
@@ -30,8 +31,10 @@ Route::get('/healthz', fn () => response()->json([
 ]));
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth');
 });
 
 Route::prefix('schools')->group(function (): void {
@@ -49,23 +52,28 @@ Route::prefix('localities')->group(function (): void {
 });
 
 Route::get('/reviews', [ReviewController::class, 'index']);
+// One-time review link from an inquiry confirmation email (DIQ-407).
+Route::get('/reviews/via-inquiry/{token}', [ReviewController::class, 'showInquiryReview'])->middleware('throttle:public-lookups');
+Route::post('/reviews/via-inquiry', [ReviewController::class, 'storeViaInquiry'])->middleware('throttle:public-forms');
 Route::post('/reviews', [ReviewController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:10,1']);
 
 Route::post('/inquiries', [InquiryController::class, 'store'])
-    ->middleware('throttle:10,1');
+    ->middleware('throttle:inquiries');
+
+// Manager invitations (DIQ-403): usable before the invitee has an account.
+Route::get('/team/invitations/{token}', [SchoolTeamController::class, 'showInvitation'])
+    ->middleware('throttle:public-lookups');
+Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware('throttle:public-forms');
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
-    ->middleware('throttle:5,1');
+    ->middleware('throttle:public-forms');
 
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
 Route::get('/training-skills', [ProgressController::class, 'skillsCatalog']);
 
-Route::prefix('stats')->group(function (): void {
-    Route::get('/overview', [StatsController::class, 'overview']);
-    Route::get('/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
-});
+Route::get('/stats/overview', [StatsController::class, 'overview']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
 
@@ -124,6 +132,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
             ->whereNumber('schoolId');
 
         Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
+        Route::get('/admin/audit-logs', [AuditLogController::class, 'index']);
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
@@ -141,6 +150,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/packages/{id}', [PackageController::class, 'delete'])->whereNumber('id');
 
         Route::get('/schools/{id}/dashboard', [SchoolDashboardController::class, 'show'])->whereNumber('id');
+        // A school's lead/review counts are private to that school and admins.
+        Route::get('/stats/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
         Route::get('/schools/{id}/audit-logs', [SchoolDashboardController::class, 'auditLogs'])->whereNumber('id');
         Route::get('/schools/{id}/settings', [SchoolSettingsController::class, 'show'])->whereNumber('id');
         Route::put('/schools/{id}/settings', [SchoolSettingsController::class, 'update'])->whereNumber('id');

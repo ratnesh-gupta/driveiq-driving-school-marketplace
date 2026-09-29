@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\Locality;
 use App\Models\School;
 use Illuminate\Database\Eloquent\Builder;
@@ -82,19 +83,36 @@ class SchoolService
     {
         $school = School::create($data);
 
+        AuditLog::log('create', 'School', $school->id, [], $school->only(array_keys($data)), $school->id);
+
         return $school->load('locality');
     }
 
     public function update(School $school, array $data): School
     {
+        $original = $school->getOriginal();
         $school->fill($data);
         $school->save();
+
+        // Log only what actually changed (old -> new), not the whole row.
+        $changed = array_diff_key($school->getChanges(), ['updated_at' => true]);
+        if ($changed !== []) {
+            AuditLog::log(
+                'update',
+                'School',
+                $school->id,
+                array_intersect_key($original, $changed),
+                $changed,
+                $school->id,
+            );
+        }
 
         return $school->load('locality');
     }
 
     public function delete(School $school): void
     {
+        AuditLog::log('delete', 'School', $school->id, $school->only(['name', 'slug', 'user_id']), [], $school->id);
         $school->delete();
     }
 

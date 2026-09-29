@@ -1,3 +1,5 @@
+import { handleUnauthorized } from "@/lib/auth-api";
+
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)
     ?.replace(/\/+$/, "")
@@ -31,7 +33,9 @@ async function authFetch(path: string, token: string, init: RequestInit = {}): P
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(apiUrl(path), { ...init, headers });
+  const res = await fetch(apiUrl(path), { ...init, headers });
+  if (res.status === 401) handleUnauthorized();
+  return res;
 }
 
 export async function listNotifications(

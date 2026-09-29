@@ -19,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class LearnerController extends Controller
 {
@@ -28,7 +29,7 @@ class LearnerController extends Controller
 
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -48,11 +49,12 @@ class LearnerController extends Controller
 
     public function store(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
-        $data = $this->validateLearner($request);
+        // createLearner() expects snake_case (same mapping as update()).
+        $data = $this->mapLearnerPayload($this->validateLearner($request));
         $learner = $this->createLearner($schoolId, $data, $request->user());
 
         return response()->json($this->serialize($learner->load(['instructor', 'vehicle', 'package']), full: true), 201);
@@ -66,7 +68,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Inquiry not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $inquiry->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $inquiry->school_id)) {
             return $deny;
         }
 
@@ -101,6 +103,8 @@ class LearnerController extends Controller
             'converted_from_inquiry_id' => $inquiry->id,
             'status' => 'active',
             'create_login' => (bool) ($extra['createLogin'] ?? false),
+            // Only the account that submitted this enquiry itself may be linked.
+            'link_user_id' => $inquiry->user_id,
         ], $request->user());
 
         $previous = $inquiry->status;
@@ -131,7 +135,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -146,7 +150,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -169,7 +173,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -253,7 +257,7 @@ class LearnerController extends Controller
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -272,7 +276,7 @@ class LearnerController extends Controller
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchoolOrLearner($request, $learner)) {
+        if ($deny = $this->access()->learner($request, $learner, allowSelf: true)) {
             return $deny;
         }
 
@@ -304,7 +308,7 @@ class LearnerController extends Controller
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -378,25 +382,8 @@ class LearnerController extends Controller
 
     private function createLearner(int $schoolId, array $data, User $actor): Learner
     {
-        $userId = null;
-        if (! empty($data['create_login']) && ! empty($data['email'])) {
-            $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
-            if (! $user) {
-                $user = User::create([
-                    'name' => $data['name'],
-                    'email' => strtolower($data['email']),
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => 'learner',
-                    'school_id' => $schoolId,
-                ]);
-            } else {
-                $user->update([
-                    'role' => $user->isAdmin() ? $user->role : 'learner',
-                    'school_id' => $schoolId,
-                ]);
-            }
-            $userId = $user->id;
-        }
+        $user = $this->learnerAccountFor($schoolId, $data);
+        $userId = $user?->id;
 
         $learner = Learner::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
@@ -436,7 +423,64 @@ class LearnerController extends Controller
 
         AuditLog::log('create', 'Learner', $learner->id, [], ['name' => $learner->name]);
 
+        if ($user) {
+            $schoolName = School::whereKey($schoolId)->value('name');
+            $this->notifications->notify(
+                $user,
+                'learner_enrolled',
+                'You are enrolled',
+                "{$schoolName} has enrolled you. Your trainer, sessions and progress now appear in your portal.",
+                ['learnerId' => $learner->id],
+                $schoolId
+            );
+        }
+
         return $learner;
+    }
+
+    /**
+     * The login account to attach to a new learner record (DIQ-406), or null.
+     *
+     * - Consent: an existing learner account is linked only when that learner
+     *   submitted the converted enquiry while signed in (link_user_id), and
+     *   has no school yet. Knowing someone's email is never enough.
+     * - With create_login and no existing account, a new learner account is
+     *   created (they set a password via "forgot password").
+     * - Existing accounts are otherwise never modified; asking to create a
+     *   login for an email that already has an account is rejected.
+     */
+    private function learnerAccountFor(int $schoolId, array $data): ?User
+    {
+        if (! empty($data['link_user_id'])) {
+            $user = User::find($data['link_user_id']);
+            if ($user?->isLearner() && ($user->school_id === null || (int) $user->school_id === $schoolId)) {
+                if ($user->school_id === null) {
+                    $user->forceFill(['school_id' => $schoolId])->save();
+                }
+
+                return $user;
+            }
+        }
+
+        if (empty($data['email']) || empty($data['create_login'])) {
+            return null;
+        }
+
+        $email = strtolower($data['email']);
+
+        if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => 'This email already belongs to another DriveIQ account.',
+            ]);
+        }
+
+        return User::create([
+            'name' => $data['name'],
+            'email' => $email,
+            'password' => Hash::make(Str::random(24)),
+            'role' => 'learner',
+            'school_id' => $schoolId,
+        ]);
     }
 
     private function validateLearner(Request $request, bool $partial = false): array
@@ -562,34 +606,5 @@ class LearnerController extends Controller
             'verifiedAt' => $d->verified_at?->toISOString(),
             'notes' => $d->notes,
         ];
-    }
-
-    private function authSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-        $user = $request->user();
-        if ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === $schoolId)) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
-    }
-
-    private function authSchoolOrLearner(Request $request, Learner $learner): ?JsonResponse
-    {
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-        if ($user->isSchool() && (int) $user->school_id === (int) $learner->school_id) {
-            return null;
-        }
-        if ($user->role === 'learner' && (int) $user->id === (int) $learner->user_id) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

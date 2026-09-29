@@ -40,8 +40,16 @@ class InquiryController extends Controller
 
     public function store(StoreInquiryRequest $request): JsonResponse
     {
-        $inquiry = Inquiry::withoutGlobalScope('school')
-            ->create($request->toSnakeCase());
+        $data = $request->toSnakeCase();
+
+        // A signed-in learner enquiring for themself: lets the school link their
+        // account when it converts this enquiry (DIQ-406).
+        $user = $request->user('sanctum');
+        if ($user?->isLearner()) {
+            $data['user_id'] = $user->id;
+        }
+
+        $inquiry = Inquiry::withoutGlobalScope('school')->create($data);
         $inquiry->load('school');
 
         event(new InquiryCreated($inquiry));

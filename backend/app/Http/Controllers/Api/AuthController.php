@@ -11,7 +11,9 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -56,6 +58,7 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
             'schoolId' => $schoolId,
+            'schoolRole' => $schoolId ? 'owner' : null,
         ], 201);
     }
 
@@ -78,6 +81,7 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
             'schoolId' => $schoolId,
+            'schoolRole' => $this->schoolRole($user, $schoolId),
         ]);
     }
 
@@ -89,6 +93,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'schoolId' => $schoolId,
+            'schoolRole' => $this->schoolRole($user, $schoolId),
         ]);
     }
 
@@ -99,5 +104,51 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email' => ['required', 'email', 'max:255']]);
+
+        Password::sendResetLink($request->only('email'));
+
+        // Same answer whether or not the account exists (no user enumeration).
+        return response()->json([
+            'message' => 'If an account exists for that email, a reset link has been sent.',
+        ]);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'string', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password): void {
+                $user->forceFill(['password' => $password])->save();
+                // Sign out every existing session/token.
+                $user->tokens()->delete();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'This reset link is invalid or has expired.'], 422);
+        }
+
+        return response()->json(['message' => 'Password has been reset.']);
+    }
+
+    /** 'owner' | 'manager' for school staff, otherwise null. */
+    private function schoolRole(User $user, ?int $schoolId): ?string
+    {
+        if (! $user->isSchool() || ! $schoolId) {
+            return null;
+        }
+
+        return $this->access()->isOwner($user, (int) $schoolId) ? 'owner' : 'manager';
     }
 }

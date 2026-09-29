@@ -33,7 +33,7 @@ class SubscriptionController extends Controller
 
     public function showForSchool(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -122,23 +122,5 @@ class SubscriptionController extends Controller
             'rankingBoost' => (int) ($sub->plan?->ranking_boost ?? 0),
             'features' => $sub->plan?->features ?? [],
         ];
-    }
-
-    private function authorizeSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-
-        if ((int) $user->school_id !== $schoolId) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        return null;
     }
 }

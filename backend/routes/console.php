@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 
@@ -39,3 +40,6 @@ Artisan::command('driveiq:create-admin {email} {--name=Platform Admin}', functio
 
     return 0;
 })->purpose('Create a platform admin account');
+
+// Remove API tokens that expired more than a day ago (config sanctum.expiration).
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

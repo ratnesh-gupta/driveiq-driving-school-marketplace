@@ -1,4 +1,4 @@
-import { getStoredToken } from "@/lib/auth-api";
+import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)
@@ -21,6 +21,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   const res = await fetch(apiUrl(path), { ...init, headers });
+  if (res.status === 401 && token) handleUnauthorized();
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     try {
@@ -213,4 +214,74 @@ export function reportReview(reviewId: number, body: { reason: string; details?:
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+// ── Team (DIQ-403) ──────────────────────────────────────────────
+
+export type TeamMember = {
+  id: number;
+  userId: number | null;
+  name: string | null;
+  email: string | null;
+  role: "owner" | "manager";
+  status: "pending" | "active";
+  invitedAt: string | null;
+  acceptedAt: string | null;
+  inviteExpiresAt: string | null;
+};
+
+export function listTeam(schoolId: number) {
+  return request<TeamMember[]>(`/api/schools/${schoolId}/team`);
+}
+
+export function inviteManager(schoolId: number, email: string) {
+  return request<TeamMember>(`/api/schools/${schoolId}/team`, {
+    method: "POST",
+    body: JSON.stringify({ email, role: "manager" }),
+  });
+}
+
+export function removeTeamMember(schoolId: number, memberId: number) {
+  return request<void>(`/api/schools/${schoolId}/team/${memberId}`, { method: "DELETE" });
+}
+
+export type InvitationPreview = {
+  schoolName: string;
+  email: string;
+  role: "manager";
+  hasAccount: boolean;
+  expiresAt: string | null;
+};
+
+export function getInvitation(token: string) {
+  return request<InvitationPreview>(`/api/team/invitations/${encodeURIComponent(token)}`);
+}
+
+export function acceptInvitation(body: {
+  token: string;
+  name?: string;
+  password?: string;
+  password_confirmation?: string;
+}) {
+  return request<{ token: string | null; schoolId: number; schoolRole: "manager" }>(`/api/team/accept`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// ── One-time inquiry review link (DIQ-407) ──────────────────────
+
+export type InquiryReviewPreview = {
+  schoolId: number;
+  schoolName: string;
+  schoolSlug: string;
+  authorName: string;
+};
+
+export function getInquiryReview(token: string) {
+  return request<InquiryReviewPreview>(`/api/reviews/via-inquiry/${encodeURIComponent(token)}`);
+}
+
+export function submitInquiryReview(body: { token: string; authorName: string; rating: number; content: string }) {
+  return request<{ id: number }>(`/api/reviews/via-inquiry`, { method: "POST", body: JSON.stringify(body) });
 }

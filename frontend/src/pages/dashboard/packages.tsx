@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useListPackages, useCreatePackage, useUpdatePackage, useDeletePackage, getListPackagesQueryKey } from "@/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSchoolId } from "@/hooks/use-school-id";
+import { useAuthStore } from "@/lib/store";
 import { Plus, Pencil, Trash2, Package } from "lucide-react";
 
 export default function PackagesPage() {
@@ -27,6 +28,8 @@ export default function PackagesPage() {
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
   const deletePackage = useDeletePackage();
+  // Deleting packages is owner-only; managers can create and edit.
+  const isOwner = useAuthStore((s) => s.schoolRole === "owner");
 
   const resetForm = () => setForm({ name: "", description: "", price: "", sessions: "", vehicleType: "Car", transmission: "Manual", hasPickup: false });
 
@@ -153,9 +156,11 @@ export default function PackagesPage() {
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpen(pkg)} data-testid={`button-edit-package-${pkg.id}`}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(pkg.id)} data-testid={`button-delete-package-${pkg.id}`}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {isOwner && (
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(pkg.id)} data-testid={`button-delete-package-${pkg.id}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
               {pkg.description && <p className="text-sm text-muted-foreground mb-3">{pkg.description}</p>}

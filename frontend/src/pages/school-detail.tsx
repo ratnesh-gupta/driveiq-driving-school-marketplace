@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/lib/store";
+import type { InquiryInput } from "@/api-client/generated/api.schemas";
+import { useT } from "@/i18n/use-locale";
 import {
   useGetSchoolBySlug,
   useListReviews,
@@ -71,6 +74,8 @@ export default function SchoolDetailPage() {
   const queryClient = useQueryClient();
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const { userRole, schoolId: mySchoolId } = useAuthStore();
+  const t = useT();
 
   const { data: school, isLoading } = useGetSchoolBySlug(params.slug);
   const { data: reviews } = useListReviews(
@@ -86,19 +91,37 @@ export default function SchoolDetailPage() {
   const createReview = useCreateReview();
 
   const [inquiryForm, setInquiryForm] = useState({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
+  // Anti-spam (DIQ-404): when the form was opened, and a honeypot field people never see.
+  const inquiryStartedAt = useRef(Date.now());
+  const [honeypot, setHoneypot] = useState("");
+  const openInquiry = (open: boolean) => {
+    if (open) inquiryStartedAt.current = Date.now();
+    setInquiryOpen(open);
+  };
   const [reviewForm, setReviewForm] = useState({ authorName: "", rating: 5, content: "" });
 
   const handleInquiry = async () => {
     if (!school) return;
+    // The generated InquiryInput type predates the anti-spam fields; the API requires them.
+    const payload: InquiryInput & { formStartedAt: number; website: string } = {
+      ...inquiryForm,
+      schoolId: school.id,
+      formStartedAt: inquiryStartedAt.current,
+      website: honeypot,
+    };
     createInquiry.mutate(
-      { data: { ...inquiryForm, schoolId: school.id } },
+      { data: payload },
       {
         onSuccess: () => {
           toast({ title: "Inquiry sent!", description: "The school will contact you shortly." });
           setInquiryOpen(false);
           setInquiryForm({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
         },
-        onError: () => toast({ title: "Failed to send inquiry", variant: "destructive" }),
+        onError: (err: unknown) => {
+          const data = (err as { status?: number; data?: { message?: string; errors?: Record<string, string[]> } })?.data;
+          const detail = data?.errors ? Object.values(data.errors).flat()[0] : data?.message;
+          toast({ title: "Failed to send inquiry", description: detail, variant: "destructive" });
+        },
       }
     );
   };
@@ -113,10 +136,16 @@ export default function SchoolDetailPage() {
           setReviewOpen(false);
           queryClient.invalidateQueries({ queryKey: getListReviewsQueryKey({ schoolId: school.id }) });
         },
-        onError: () => toast({ title: "Failed to submit review", variant: "destructive" }),
+        onError: (err: unknown) => {
+          const message = (err as { data?: { message?: string } })?.data?.message;
+          toast({ title: "Failed to submit review", description: message, variant: "destructive" });
+        },
       }
     );
   };
+
+  // PBAC: only learners enrolled at this school review from their account (DIQ-407).
+  const canReview = userRole === "learner" && !!school && mySchoolId === school.id;
 
   if (isLoading) {
     return (
@@ -250,37 +279,43 @@ export default function SchoolDetailPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }} className="rounded-xl border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-lg">Reviews ({approvedReviews.length})</h2>
-                <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" data-testid="button-write-review">Write a Review</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Write a Review</DialogTitle></DialogHeader>
-                    <div className="space-y-4 mt-2">
-                      <div>
-                        <Label>Your Name</Label>
-                        <Input value={reviewForm.authorName} onChange={e => setReviewForm(p => ({ ...p, authorName: e.target.value }))} placeholder="Enter your name" data-testid="input-reviewer-name" />
-                      </div>
-                      <div>
-                        <Label>Rating</Label>
-                        <div className="flex gap-1 mt-1">
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <button key={n} onClick={() => setReviewForm(p => ({ ...p, rating: n }))}>
-                              <Star className={`h-7 w-7 transition-colors ${n <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
-                            </button>
-                          ))}
+                {canReview ? (
+                  <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" data-testid="button-write-review">Write a Review</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Write a Review</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-2">
+                        <div>
+                          <Label>Your Name</Label>
+                          <Input value={reviewForm.authorName} onChange={e => setReviewForm(p => ({ ...p, authorName: e.target.value }))} placeholder="Enter your name" data-testid="input-reviewer-name" />
                         </div>
+                        <div>
+                          <Label>Rating</Label>
+                          <div className="flex gap-1 mt-1">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <button key={n} onClick={() => setReviewForm(p => ({ ...p, rating: n }))}>
+                                <Star className={`h-7 w-7 transition-colors ${n <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Review</Label>
+                          <Textarea value={reviewForm.content} onChange={e => setReviewForm(p => ({ ...p, content: e.target.value }))} placeholder="Share your experience..." rows={4} data-testid="textarea-review-content" />
+                        </div>
+                        <Button onClick={handleReview} disabled={createReview.isPending} className="w-full" data-testid="button-submit-review">
+                          {createReview.isPending ? "Submitting..." : "Submit Review"}
+                        </Button>
                       </div>
-                      <div>
-                        <Label>Review</Label>
-                        <Textarea value={reviewForm.content} onChange={e => setReviewForm(p => ({ ...p, content: e.target.value }))} placeholder="Share your experience..." rows={4} data-testid="textarea-review-content" />
-                      </div>
-                      <Button onClick={handleReview} disabled={createReview.isPending} className="w-full" data-testid="button-submit-review">
-                        {createReview.isPending ? "Submitting..." : "Submit Review"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <p className="text-xs text-muted-foreground max-w-[16rem] text-right" data-testid="text-review-eligibility">
+                    {t("reviewLink.eligibility")}
+                  </p>
+                )}
               </div>
 
               {approvedReviews.length === 0 ? (
@@ -337,7 +372,7 @@ export default function SchoolDetailPage() {
                 <div className="text-2xl font-bold mb-1">₹{school.priceFrom.toLocaleString()}<span className="text-base font-normal text-muted-foreground"> / course</span></div>
                 <Separator className="my-4" />
 
-                <Dialog open={inquiryOpen} onOpenChange={setInquiryOpen}>
+                <Dialog open={inquiryOpen} onOpenChange={openInquiry}>
                   <DialogTrigger asChild>
                     <Button className="w-full" size="lg" data-testid="button-send-inquiry">
                       <Send className="h-4 w-4 mr-2" /> Send Inquiry
@@ -346,6 +381,13 @@ export default function SchoolDetailPage() {
                   <DialogContent>
                     <DialogHeader><DialogTitle>Send Inquiry to {school.name}</DialogTitle></DialogHeader>
                     <div className="space-y-4 mt-2">
+                      {/* Honeypot: hidden from people and assistive tech; bots tend to fill it. */}
+                      <div aria-hidden="true" className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden">
+                        <label>
+                          Website
+                          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                        </label>
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Label>Your Name</Label>

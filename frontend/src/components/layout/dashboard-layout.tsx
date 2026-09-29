@@ -3,7 +3,7 @@ import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu,
-  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee,
+  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -26,6 +26,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/vehicles", label: t("schoolNav.vehicles"), icon: Car },
     { href: "/dashboard/payments", label: t("schoolNav.payments"), icon: IndianRupee },
     { href: "/dashboard/messages", label: t("schoolNav.messages"), icon: MessageSquare },
+    { href: "/dashboard/team", label: t("schoolNav.team"), icon: UsersRound },
     { href: "/dashboard/profile", label: t("schoolNav.profile"), icon: User },
     { href: "/dashboard/packages", label: t("schoolNav.packages"), icon: PkgIcon },
     { href: "/dashboard/reviews", label: t("schoolNav.reviews"), icon: Star },

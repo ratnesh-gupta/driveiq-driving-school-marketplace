@@ -16,6 +16,7 @@ class Review extends Model
         'school_id',
         'user_id',
         'inquiry_id',
+        'learner_id',
         'eligibility_source',
         'author_name',
         'rating',
