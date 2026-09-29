@@ -11,6 +11,7 @@ use App\Models\Learner;
 use App\Models\LearnerAssignmentHistory;
 use App\Models\LearnerDocument;
 use App\Models\Schedule;
+use App\Models\School;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\NotificationService;
@@ -18,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class LearnerController extends Controller
 {
@@ -51,7 +53,8 @@ class LearnerController extends Controller
             return $deny;
         }
 
-        $data = $this->validateLearner($request);
+        // createLearner() expects snake_case (same mapping as update()).
+        $data = $this->mapLearnerPayload($this->validateLearner($request));
         $learner = $this->createLearner($schoolId, $data, $request->user());
 
         return response()->json($this->serialize($learner->load(['instructor', 'vehicle', 'package']), full: true), 201);
@@ -377,25 +380,8 @@ class LearnerController extends Controller
 
     private function createLearner(int $schoolId, array $data, User $actor): Learner
     {
-        $userId = null;
-        if (! empty($data['create_login']) && ! empty($data['email'])) {
-            $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
-            if (! $user) {
-                $user = User::create([
-                    'name' => $data['name'],
-                    'email' => strtolower($data['email']),
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => 'learner',
-                    'school_id' => $schoolId,
-                ]);
-            } else {
-                $user->update([
-                    'role' => $user->isAdmin() ? $user->role : 'learner',
-                    'school_id' => $schoolId,
-                ]);
-            }
-            $userId = $user->id;
-        }
+        $user = $this->learnerAccountFor($schoolId, $data);
+        $userId = $user?->id;
 
         $learner = Learner::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
@@ -435,7 +421,72 @@ class LearnerController extends Controller
 
         AuditLog::log('create', 'Learner', $learner->id, [], ['name' => $learner->name]);
 
+        if ($user) {
+            $schoolName = School::whereKey($schoolId)->value('name');
+            $this->notifications->notify(
+                $user,
+                'learner_enrolled',
+                'You are enrolled',
+                "{$schoolName} has enrolled you. Your trainer, sessions and progress now appear in your portal.",
+                ['learnerId' => $learner->id],
+                $schoolId
+            );
+        }
+
         return $learner;
+    }
+
+    /**
+     * The login account to attach to a new learner record (DIQ-406), or null.
+     *
+     * - A self-registered learner with no school yet is linked automatically
+     *   (matched by email), e.g. when the school converts their inquiry.
+     * - With create_login, a new learner account is created (they set a
+     *   password via "forgot password").
+     * - Any other existing account (staff, instructor, admin, another school's
+     *   learner) is never modified; asking for a login for it is rejected.
+     */
+    private function learnerAccountFor(int $schoolId, array $data): ?User
+    {
+        if (empty($data['email'])) {
+            return null;
+        }
+
+        $email = strtolower($data['email']);
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if ($user) {
+            $linkable = $user->isLearner()
+                && ($user->school_id === null || (int) $user->school_id === $schoolId);
+
+            if ($linkable) {
+                if ($user->school_id === null) {
+                    $user->forceFill(['school_id' => $schoolId])->save();
+                }
+
+                return $user;
+            }
+
+            if (! empty($data['create_login'])) {
+                throw ValidationException::withMessages([
+                    'email' => 'This email already belongs to another DriveIQ account.',
+                ]);
+            }
+
+            return null;
+        }
+
+        if (empty($data['create_login'])) {
+            return null;
+        }
+
+        return User::create([
+            'name' => $data['name'],
+            'email' => $email,
+            'password' => Hash::make(Str::random(24)),
+            'role' => 'learner',
+            'school_id' => $schoolId,
+        ]);
     }
 
     private function validateLearner(Request $request, bool $partial = false): array
