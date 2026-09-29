@@ -162,4 +162,14 @@ class PlanGatingTest extends TestCase
 
         $this->getJson("/api/schools/{$this->school->id}/entitlements")->assertForbidden();
     }
+
+    /** Seeding runs without model events; seeded demo schools must still get their trial. */
+    public function test_seeded_schools_start_on_the_trial(): void
+    {
+        $this->seed();
+
+        $schools = School::query()->pluck('id');
+        $withTrial = Subscription::withoutGlobalScope('school')->where('status', 'trial')->distinct()->pluck('school_id');
+        $this->assertEqualsCanonicalizing($schools->all(), $withTrial->all());
+    }
 }
