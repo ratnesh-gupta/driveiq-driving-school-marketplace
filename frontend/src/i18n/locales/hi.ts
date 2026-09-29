@@ -199,6 +199,7 @@ const hi: TranslationTree = {
     reviews: "समीक्षाएँ",
     analytics: "विश्लेषण",
     settings: "सेटिंग्स",
+    billing: "प्लान और बिलिंग",
     title: "स्कूल डैशबोर्ड",
     brand: "DriveIQ पार्टनर",
   },

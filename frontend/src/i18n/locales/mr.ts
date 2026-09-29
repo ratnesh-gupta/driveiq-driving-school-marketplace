@@ -199,6 +199,7 @@ const mr: TranslationTree = {
     reviews: "समीक्षा",
     analytics: "विश्लेषण",
     settings: "सेटिंग्ज",
+    billing: "प्लॅन आणि बिलिंग",
     title: "शाळा डॅशबोर्ड",
     brand: "DriveIQ पार्टनर",
   },

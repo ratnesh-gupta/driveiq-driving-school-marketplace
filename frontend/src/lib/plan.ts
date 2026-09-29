@@ -54,3 +54,20 @@ export const FEATURE_PLAN: Record<PlanFeature, string> = {
   payments: "premium",
   analytics_advanced: "premium",
 };
+
+/** What each plan unlocks, for the comparison table (mirrors backend config/plans.php). */
+export const PLAN_MATRIX: { code: string; highlights: string[] }[] = [
+  { code: "basic", highlights: ["Marketplace listing", "Leads, reminders & reply-time tracking", "Reviews, messages, team"] },
+  { code: "featured", highlights: ["Everything in Basic", "Learners, documents & lead conversion", "Ranking boost + highlighted card"] },
+  { code: "premium", highlights: ["Everything in Featured", "Instructors, schedules, vehicles, payments", "Advanced analytics", "Top placement (Sponsored) + homepage"] },
+  { code: "enterprise", highlights: ["Everything in Premium", "Multi-branch & API access (coming)", "Priority support"] },
+];
+
+export function formatInr(amount: number): string {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
+}
+
+export function daysUntil(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
+}

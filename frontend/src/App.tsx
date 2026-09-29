@@ -30,6 +30,8 @@ import PackagesPage from "@/pages/dashboard/packages";
 import DashboardReviewsPage from "@/pages/dashboard/reviews";
 import AnalyticsPage from "@/pages/dashboard/analytics";
 import SchoolSettingsPage from "@/pages/dashboard/settings";
+import BillingPage from "@/pages/dashboard/billing";
+import InvoicePage from "@/pages/dashboard/invoice";
 import LearnersPage from "@/pages/dashboard/learners";
 import InstructorsPage from "@/pages/dashboard/instructors";
 import SchedulesPage from "@/pages/dashboard/schedules";
@@ -110,6 +112,8 @@ function Router() {
       <Route path="/dashboard/reviews">{() => schoolGuard(<DashboardReviewsPage />)}</Route>
       <Route path="/dashboard/analytics">{() => schoolGuard(<AnalyticsPage />)}</Route>
       <Route path="/dashboard/settings">{() => schoolGuard(<SchoolSettingsPage />)}</Route>
+      <Route path="/dashboard/billing">{() => schoolGuard(<BillingPage />)}</Route>
+      <Route path="/dashboard/billing/invoices/:id">{() => schoolGuard(<InvoicePage />)}</Route>
 
       <Route path="/admin">{() => <AuthGuard requireRole="admin"><AdminHomePage /></AuthGuard>}</Route>
       <Route path="/admin/schools">{() => <AuthGuard requireRole="admin"><AdminSchoolsPage /></AuthGuard>}</Route>

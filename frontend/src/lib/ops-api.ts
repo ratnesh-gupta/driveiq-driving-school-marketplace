@@ -577,3 +577,69 @@ export type Entitlements = {
 export function fetchEntitlements(schoolId: number) {
   return request<Entitlements>(`/api/schools/${schoolId}/entitlements`);
 }
+
+// ── Plans & platform billing (DIQ-803/804) ──
+
+export type PlanRow = {
+  id: number;
+  code: string;
+  name: string;
+  priceMonthly: number;
+  features: Record<string, boolean> | null;
+  rankingBoost: number;
+  isSponsored: boolean;
+  homepageFeatured: boolean;
+};
+
+export type PlatformInvoice = {
+  id: number;
+  invoiceNumber: string;
+  schoolId: number | null;
+  schoolName: string;
+  billedToGstin: string | null;
+  planCode: string;
+  months: number;
+  subtotal: number;
+  gstRate: number;
+  gstAmount: number;
+  total: number;
+  currency: string;
+  status: "issued" | "paid" | "void";
+  issuedAt: string;
+  dueAt: string;
+  paymentReference: string | null;
+  paidAt: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  seller: { name?: string; address?: string; gstin?: string | null; email?: string };
+  paymentInstructions?: {
+    upi_id?: string;
+    bank_name?: string;
+    account_name?: string;
+    account_number?: string;
+    ifsc?: string;
+  };
+};
+
+export function listPlans() {
+  return request<PlanRow[]>(`/api/plans`);
+}
+
+export function listSchoolInvoices(schoolId: number) {
+  return request<PlatformInvoice[]>(`/api/schools/${schoolId}/billing/invoices`);
+}
+
+export function fetchSchoolInvoice(schoolId: number, invoiceId: number) {
+  return request<PlatformInvoice>(`/api/schools/${schoolId}/billing/invoices/${invoiceId}`);
+}
+
+export function requestPlanInvoice(schoolId: number, body: { planCode: string; months: number; gstin?: string }) {
+  return request<PlatformInvoice>(`/api/schools/${schoolId}/billing/invoices`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function cancelPlanInvoice(schoolId: number, invoiceId: number) {
+  return request<PlatformInvoice>(`/api/schools/${schoolId}/billing/invoices/${invoiceId}/cancel`, { method: "POST" });
+}

@@ -202,6 +202,7 @@ const en = {
     reviews: "Reviews",
     analytics: "Analytics",
     settings: "Settings",
+    billing: "Plan & billing",
     title: "School Dashboard",
     brand: "DriveIQ Partner",
   },
