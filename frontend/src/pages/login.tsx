@@ -34,7 +34,10 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       const role = useAuthStore.getState().userRole ?? userRole;
-      setLocation(roleHomePath(role));
+      // Only same-origin paths (e.g. back to an invite link), never "//host".
+      const next = new URLSearchParams(window.location.search).get("next");
+      const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+      setLocation(safeNext ?? roleHomePath(role));
     } catch {
       // errors are in the store
     }

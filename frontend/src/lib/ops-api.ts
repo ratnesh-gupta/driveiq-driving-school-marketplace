@@ -215,3 +215,56 @@ export function reportReview(reviewId: number, body: { reason: string; details?:
     body: JSON.stringify(body),
   });
 }
+
+// ── Team (DIQ-403) ──────────────────────────────────────────────
+
+export type TeamMember = {
+  id: number;
+  userId: number | null;
+  name: string | null;
+  email: string | null;
+  role: "owner" | "manager";
+  status: "pending" | "active";
+  invitedAt: string | null;
+  acceptedAt: string | null;
+  inviteExpiresAt: string | null;
+};
+
+export function listTeam(schoolId: number) {
+  return request<TeamMember[]>(`/api/schools/${schoolId}/team`);
+}
+
+export function inviteManager(schoolId: number, email: string) {
+  return request<TeamMember>(`/api/schools/${schoolId}/team`, {
+    method: "POST",
+    body: JSON.stringify({ email, role: "manager" }),
+  });
+}
+
+export function removeTeamMember(schoolId: number, memberId: number) {
+  return request<void>(`/api/schools/${schoolId}/team/${memberId}`, { method: "DELETE" });
+}
+
+export type InvitationPreview = {
+  schoolName: string;
+  email: string;
+  role: "manager";
+  hasAccount: boolean;
+  expiresAt: string | null;
+};
+
+export function getInvitation(token: string) {
+  return request<InvitationPreview>(`/api/team/invitations/${encodeURIComponent(token)}`);
+}
+
+export function acceptInvitation(body: {
+  token: string;
+  name?: string;
+  password?: string;
+  password_confirmation?: string;
+}) {
+  return request<{ token: string | null; schoolId: number; schoolRole: "manager" }>(`/api/team/accept`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}

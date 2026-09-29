@@ -58,6 +58,11 @@ Route::post('/reviews', [ReviewController::class, 'store'])
 Route::post('/inquiries', [InquiryController::class, 'store'])
     ->middleware('throttle:10,1');
 
+// Manager invitations (DIQ-403): usable before the invitee has an account.
+Route::get('/team/invitations/{token}', [SchoolTeamController::class, 'showInvitation'])
+    ->middleware('throttle:20,1');
+Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware('throttle:10,1');
+
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
     ->middleware('throttle:5,1');
 

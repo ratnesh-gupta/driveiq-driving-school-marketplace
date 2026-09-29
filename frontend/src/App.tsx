@@ -34,6 +34,8 @@ import SchedulesPage from "@/pages/dashboard/schedules";
 import VehiclesPage from "@/pages/dashboard/vehicles";
 import SchoolMessagesPage from "@/pages/dashboard/messages";
 import PaymentsPage from "@/pages/dashboard/payments";
+import TeamPage from "@/pages/dashboard/team";
+import TeamAcceptPage from "@/pages/team-accept";
 
 import AdminHomePage from "@/pages/admin/index";
 import AdminSchoolsPage from "@/pages/admin/schools";
@@ -86,6 +88,7 @@ function Router() {
       <Route path="/auth/forgot-password" component={ForgotPasswordPage} />
       <Route path="/auth/reset-password" component={ResetPasswordPage} />
       <Route path="/compare" component={ComparePage} />
+      <Route path="/team/accept" component={TeamAcceptPage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>
       <Route path="/dashboard/leads">{() => schoolGuard(<LeadsPage />)}</Route>
@@ -95,6 +98,7 @@ function Router() {
       <Route path="/dashboard/vehicles">{() => schoolGuard(<VehiclesPage />)}</Route>
       <Route path="/dashboard/payments">{() => schoolGuard(<PaymentsPage />)}</Route>
       <Route path="/dashboard/messages">{() => schoolGuard(<SchoolMessagesPage />)}</Route>
+      <Route path="/dashboard/team">{() => schoolGuard(<TeamPage />)}</Route>
       <Route path="/dashboard/profile">{() => schoolGuard(<ProfilePage />)}</Route>
       <Route path="/dashboard/packages">{() => schoolGuard(<PackagesPage />)}</Route>
       <Route path="/dashboard/reviews">{() => schoolGuard(<DashboardReviewsPage />)}</Route>
