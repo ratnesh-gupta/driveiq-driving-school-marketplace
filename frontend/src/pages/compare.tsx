@@ -20,6 +20,7 @@ import {
   Send,
 } from "lucide-react";
 import { useComparisonSchools } from "@/features/comparison/hooks/use-comparison-schools";
+import type { ComparisonBadges } from "@/lib/ops-api";
 import { useComparisonFields } from "@/features/comparison/hooks/use-comparison-fields";
 import type { ComparisonField } from "@/features/comparison/types";
 import type { School } from "@/api-client/generated/api.schemas";
@@ -34,34 +35,6 @@ const categoryLabels: Record<string, string> = {
 
 const categoryOrder = ["basic", "pricing", "features", "logistics", "quality"];
 
-function getBestSchoolId(schools: School[]): number | null {
-  if (schools.length < 2) return null;
-  let best = schools[0];
-  for (const s of schools) {
-    const score =
-      s.rating * 2 +
-      (s.verified ? 1 : 0) +
-      (s.reviewCount > 10 ? 1 : 0) +
-      (s.profileCompleteness > 70 ? 0.5 : 0);
-    const bestScore =
-      best.rating * 2 +
-      (best.verified ? 1 : 0) +
-      (best.reviewCount > 10 ? 1 : 0) +
-      (best.profileCompleteness > 70 ? 0.5 : 0);
-    if (score > bestScore) best = s;
-  }
-  return best.id;
-}
-
-function getMostAffordableId(schools: School[]): number | null {
-  if (schools.length < 2) return null;
-  let cheapest = schools[0];
-  for (const s of schools) {
-    if (s.priceFrom < cheapest.priceFrom) cheapest = s;
-  }
-  return cheapest.id;
-}
-
 export default function ComparePage() {
   const searchString = useSearch();
   const [, navigate] = useLocation();
@@ -75,11 +48,9 @@ export default function ComparePage() {
       .filter((n) => n > 0);
   }, [searchString]);
 
-  const { schools, isLoading } = useComparisonSchools(schoolIds);
+  const { schools, badges, isLoading } = useComparisonSchools(schoolIds);
   const fields = useComparisonFields();
 
-  const bestId = useMemo(() => getBestSchoolId(schools), [schools]);
-  const cheapestId = useMemo(() => getMostAffordableId(schools), [schools]);
 
   const groupedFields = useMemo(() => {
     const groups: Record<string, typeof fields> = {};
@@ -157,8 +128,7 @@ export default function ComparePage() {
                   >
                     <SchoolHeaderCard
                       school={school}
-                      isBest={school.id === bestId}
-                      isCheapest={school.id === cheapestId}
+                      badges={badges}
                     />
                   </motion.div>
                 ))}
@@ -234,13 +204,13 @@ export default function ComparePage() {
 /* ── School Header Card ── */
 function SchoolHeaderCard({
   school,
-  isBest,
-  isCheapest,
+  badges,
 }: {
   school: School;
-  isBest: boolean;
-  isCheapest: boolean;
+  badges: ComparisonBadges;
 }) {
+  // Server-computed insight badges (School-Comparison-Engine.md "Quick Summary Badges").
+  const isBest = badges.bestRated === school.id;
   return (
     <Link href={`/school/${school.slug}`}>
       <Card
@@ -268,9 +238,24 @@ function SchoolHeaderCard({
                 <Trophy className="h-3 w-3" /> Best Rated
               </Badge>
             )}
-            {isCheapest && (
+            {badges.mostAffordable === school.id && (
               <Badge className="bg-green-500 text-white border-transparent text-xs">
                 Most Affordable
+              </Badge>
+            )}
+            {badges.bestValue === school.id && (
+              <Badge className="bg-amber-500 text-white border-transparent text-xs">
+                Best Value
+              </Badge>
+            )}
+            {badges.mostReviewed === school.id && (
+              <Badge className="bg-sky-600 text-white border-transparent text-xs">
+                Most Reviewed
+              </Badge>
+            )}
+            {badges.womenFriendly.includes(school.id) && (
+              <Badge className="bg-pink-600 text-white border-transparent text-xs">
+                Women Friendly
               </Badge>
             )}
           </div>

@@ -21,7 +21,6 @@ class StoreInquiryRequest extends BaseFormRequest
             'preferredTiming' => ['nullable', 'string', 'max:255'],
             'channel' => ['nullable', 'string', 'max:255'],
             'message' => ['nullable', 'string'],
-            'status' => ['nullable', 'string', 'in:pending,contacted,converted,closed'],
             // Anti-spam: a hidden field people never see (must stay empty) and
             // the time the form was rendered (ms since epoch).
             'website' => ['prohibited'],
@@ -55,11 +54,11 @@ class StoreInquiryRequest extends BaseFormRequest
             'preferredTiming' => 'preferred_timing',
             'channel' => 'channel',
             'message' => 'message',
-            'status' => 'status',
         ]);
 
         $data['channel'] ??= 'form';
-        $data['status'] ??= 'pending';
+        // New public leads always start as pending; only the school moves them on.
+        $data['status'] = 'pending';
 
         return $data;
     }

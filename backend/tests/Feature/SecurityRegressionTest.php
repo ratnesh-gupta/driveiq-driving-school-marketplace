@@ -247,4 +247,44 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame('school', $ownerB->role);
         $this->assertSame($schoolB->id, (int) $ownerB->school_id);
     }
+
+    // ── M2 leftovers fixed in M3 ──
+
+    public function test_public_enquiry_cannot_set_its_own_status(): void
+    {
+        [, $school] = $this->makeSchoolWithOwner('status-school');
+
+        $id = $this->postJson('/api/inquiries', [
+            'schoolId' => $school->id,
+            'name' => 'Lead',
+            'phone' => '9000000001',
+            'vehicleType' => 'car',
+            'status' => 'converted',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
+        ])->assertCreated()->json('id');
+
+        $this->assertDatabaseHas('inquiries', ['id' => $id, 'status' => 'pending']);
+    }
+
+    public function test_pending_reviews_visible_only_to_admin_and_the_school_itself(): void
+    {
+        [$ownerA, $schoolA] = $this->makeSchoolWithOwner('pending-a');
+        [$ownerB, $schoolB] = $this->makeSchoolWithOwner('pending-b');
+        Review::withoutGlobalScope('school')->create([
+            'school_id' => $schoolB->id, 'author_name' => 'P', 'rating' => 2, 'content' => 'Pending', 'approved' => false,
+        ]);
+        $url = "/api/reviews?schoolId={$schoolB->id}&includePending=1";
+
+        $this->getJson($url)->assertOk()->assertJsonCount(0);
+
+        Sanctum::actingAs($ownerA);
+        $this->getJson($url)->assertOk()->assertJsonCount(0);
+        $this->getJson('/api/reviews?includePending=1')->assertOk()->assertJsonCount(0);
+
+        Sanctum::actingAs($ownerB);
+        $this->getJson($url)->assertOk()->assertJsonCount(1);
+
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $this->getJson($url)->assertOk()->assertJsonCount(1);
+    }
 }

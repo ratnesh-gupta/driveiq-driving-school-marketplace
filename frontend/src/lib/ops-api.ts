@@ -285,3 +285,57 @@ export function getInquiryReview(token: string) {
 export function submitInquiryReview(body: { token: string; authorName: string; rating: number; content: string }) {
   return request<{ id: number }>(`/api/reviews/via-inquiry`, { method: "POST", body: JSON.stringify(body) });
 }
+
+// ── School comparison (DIQ-505) ─────────────────────────────────
+
+export type ComparisonBadges = {
+  bestRated: number | null;
+  mostAffordable: number | null;
+  bestValue: number | null;
+  mostReviewed: number | null;
+  womenFriendly: number[];
+};
+
+export type CompareResponse<TSchool> = {
+  schools: (TSchool & {
+    packageSummary: { count: number; minPrice: number | null; maxPrice: number | null };
+    reviewSummary: {
+      count: number;
+      average: number | null;
+      topReview: { authorName: string; rating: number; content: string } | null;
+    };
+  })[];
+  badges: ComparisonBadges;
+  missingIds: number[];
+};
+
+export function compareSchools<TSchool>(ids: number[]) {
+  return request<CompareResponse<TSchool>>(`/api/schools/compare?ids=${ids.join(",")}`);
+}
+
+// ── Admin school list with totals (DIQ-506) ─────────────────────
+
+/** Like GET /api/schools but also returns X-Total-Count for pagination. */
+export async function listSchoolsPage<TSchool>(params: { limit: number; offset: number }) {
+  const token = getStoredToken();
+  const res = await fetch(apiUrl(`/api/schools?limit=${params.limit}&offset=${params.offset}`), {
+    headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return {
+    schools: (await res.json()) as TSchool[],
+    total: Number(res.headers.get("X-Total-Count") ?? 0),
+  };
+}
+
+export type VerificationFlags = {
+  verified: boolean;
+  phoneVerified: boolean;
+  businessVerified: boolean;
+  locationVerified: boolean;
+  premiumVerified: boolean;
+};
+
+export function updateSchoolVerification(schoolId: number, flags: VerificationFlags) {
+  return request(`/api/schools/${schoolId}`, { method: "PATCH", body: JSON.stringify(flags) });
+}

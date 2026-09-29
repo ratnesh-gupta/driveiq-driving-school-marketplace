@@ -40,6 +40,7 @@ Route::prefix('auth')->group(function (): void {
 Route::prefix('schools')->group(function (): void {
     Route::get('/', [SchoolController::class, 'index']);
     Route::get('/featured', [SchoolController::class, 'featured']);
+    Route::get('/compare', [SchoolController::class, 'compare']);
     Route::get('/slug/{slug}', [SchoolController::class, 'showBySlug']);
     Route::get('/slug/{slug}/trainers', [InstructorController::class, 'publicTrainers']);
     Route::get('/{id}', [SchoolController::class, 'show'])->whereNumber('id');

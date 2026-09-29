@@ -34,12 +34,15 @@ class ReviewController extends Controller
             $query->where('school_id', $request->input('schoolId'));
         }
 
-        // Public default: only approved reviews unless school/admin asks for pending.
+        // Public default: only approved reviews. Pending (unmoderated) reviews
+        // are visible to admins, and to a school only for its own reviews.
         $user = $request->user('sanctum');
         $includePending = $request->boolean('includePending')
             && $user
-            && (method_exists($user, 'isAdmin') && $user->isAdmin()
-                || method_exists($user, 'isSchool') && $user->isSchool());
+            && ($user->isAdmin()
+                || ($user->isSchool()
+                    && $request->filled('schoolId')
+                    && (int) $request->input('schoolId') === (int) $user->school_id));
 
         if (! $includePending) {
             $query->where('approved', true);

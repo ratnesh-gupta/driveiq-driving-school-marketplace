@@ -135,4 +135,36 @@ class AuditAndPrivacyTest extends TestCase
         $this->postJson('/api/messages', ['receiverId' => $learnerB->id, 'body' => 'hi'])
             ->assertStatus(422);
     }
+
+    /** DIQ-506: the admin verification screen's PATCH payload is applied and audited. */
+    public function test_admin_verification_review_sets_flags_and_is_audited(): void
+    {
+        [$owner, $school] = $this->schoolWithOwner();
+        $flags = [
+            'verified' => true,
+            'phoneVerified' => true,
+            'businessVerified' => true,
+            'locationVerified' => false,
+            'premiumVerified' => false,
+        ];
+
+        // Schools cannot verify themselves.
+        Sanctum::actingAs($owner);
+        $this->patchJson("/api/schools/{$school->id}", $flags)->assertOk();
+        $this->assertFalse((bool) $school->fresh()->verified);
+
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $this->patchJson("/api/schools/{$school->id}", $flags)
+            ->assertOk()
+            ->assertJsonPath('verified', true)
+            ->assertJsonPath('phoneVerified', true)
+            ->assertJsonPath('businessVerified', true)
+            ->assertJsonPath('locationVerified', false);
+
+        $entry = AuditLog::where('school_id', $school->id)->where('model_type', 'School')->latest('id')->first();
+        $this->assertSame(
+            ['verified' => true, 'phone_verified' => true, 'business_verified' => true],
+            array_intersect_key($entry->new_values, array_flip(['verified', 'phone_verified', 'business_verified']))
+        );
+    }
 }
