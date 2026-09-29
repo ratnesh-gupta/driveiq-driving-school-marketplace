@@ -199,6 +199,14 @@ class ApiPhaseTwoModulesTest extends TestCase
             ->assertJsonPath('totalLocalities', 1)
             ->assertJsonPath('verifiedSchools', 1);
 
+        // Per-school stats are private (DIQ-306): anonymous and other schools are refused.
+        $this->getJson('/api/stats/school/'.$school->id)->assertUnauthorized();
+
+        Sanctum::actingAs($this->otherSchoolUser());
+        $this->getJson('/api/stats/school/'.$school->id)->assertForbidden();
+
+        $owner = User::factory()->create(['role' => 'school', 'school_id' => $school->id]);
+        Sanctum::actingAs($owner);
         $this->getJson('/api/stats/school/'.$school->id)
             ->assertOk()
             ->assertJsonPath('schoolId', $school->id)

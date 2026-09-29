@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\InquiryController;
@@ -62,10 +63,7 @@ Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
 Route::get('/training-skills', [ProgressController::class, 'skillsCatalog']);
 
-Route::prefix('stats')->group(function (): void {
-    Route::get('/overview', [StatsController::class, 'overview']);
-    Route::get('/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
-});
+Route::get('/stats/overview', [StatsController::class, 'overview']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
 
@@ -124,6 +122,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
             ->whereNumber('schoolId');
 
         Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
+        Route::get('/admin/audit-logs', [AuditLogController::class, 'index']);
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
@@ -141,6 +140,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/packages/{id}', [PackageController::class, 'delete'])->whereNumber('id');
 
         Route::get('/schools/{id}/dashboard', [SchoolDashboardController::class, 'show'])->whereNumber('id');
+        // A school's lead/review counts are private to that school and admins.
+        Route::get('/stats/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
         Route::get('/schools/{id}/audit-logs', [SchoolDashboardController::class, 'auditLogs'])->whereNumber('id');
         Route::get('/schools/{id}/settings', [SchoolSettingsController::class, 'show'])->whereNumber('id');
         Route::put('/schools/{id}/settings', [SchoolSettingsController::class, 'update'])->whereNumber('id');
