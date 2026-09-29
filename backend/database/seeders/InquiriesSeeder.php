@@ -23,7 +23,7 @@ class InquiriesSeeder extends Seeder
 
         foreach ($inquiries as $inquiry) {
             $schoolId = $schoolIds[$inquiry['school_slug']] ?? null;
-            if (!$schoolId) {
+            if (! $schoolId) {
                 continue;
             }
 

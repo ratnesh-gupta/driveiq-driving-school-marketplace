@@ -6,7 +6,6 @@ use App\Models\Instructor;
 use App\Models\Locality;
 use App\Models\School;
 use App\Models\User;
-use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;

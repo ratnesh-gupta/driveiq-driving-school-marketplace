@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DrivePackage;
 use App\Models\Inquiry;
 use App\Models\Locality;
 use App\Models\Review;
@@ -85,7 +86,7 @@ class ApiPhaseTwoModulesTest extends TestCase
             'transmission' => 'manual',
         ])->assertCreated();
 
-        $packageId = $package->json('id') ?? \App\Models\DrivePackage::withoutGlobalScope('school')->value('id');
+        $packageId = $package->json('id') ?? DrivePackage::withoutGlobalScope('school')->value('id');
         $this->patchJson('/api/packages/'.$packageId, ['active' => false])->assertOk()->assertJsonPath('active', false);
 
         // Eligibility: learner must have an enquiry with matching email

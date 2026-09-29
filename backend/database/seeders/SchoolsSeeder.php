@@ -255,7 +255,7 @@ class SchoolsSeeder extends Seeder
 
         foreach ($schools as $school) {
             $localityId = $localityIds[$school['locality_slug']] ?? null;
-            if (!$localityId) {
+            if (! $localityId) {
                 continue;
             }
 

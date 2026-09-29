@@ -7,9 +7,7 @@ use App\Services\NotificationService;
 
 class SendInquiryCreatedNotification
 {
-    public function __construct(private NotificationService $notifications)
-    {
-    }
+    public function __construct(private NotificationService $notifications) {}
 
     public function handle(InquiryCreated $event): void
     {

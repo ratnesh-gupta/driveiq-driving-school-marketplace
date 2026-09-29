@@ -50,7 +50,7 @@ class UpdateSchoolRequest extends BaseFormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'slug' => ['sometimes', 'string', 'max:255', 'unique:schools,slug,' . $this->route('id')],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:schools,slug,'.$this->route('id')],
             'localityId' => ['sometimes', 'integer', 'exists:localities,id'],
             'address' => ['sometimes', 'string'],
             'latitude' => ['sometimes', 'numeric', 'between:-90,90'],
