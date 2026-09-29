@@ -312,3 +312,30 @@ export type CompareResponse<TSchool> = {
 export function compareSchools<TSchool>(ids: number[]) {
   return request<CompareResponse<TSchool>>(`/api/schools/compare?ids=${ids.join(",")}`);
 }
+
+// ── Admin school list with totals (DIQ-506) ─────────────────────
+
+/** Like GET /api/schools but also returns X-Total-Count for pagination. */
+export async function listSchoolsPage<TSchool>(params: { limit: number; offset: number }) {
+  const token = getStoredToken();
+  const res = await fetch(apiUrl(`/api/schools?limit=${params.limit}&offset=${params.offset}`), {
+    headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return {
+    schools: (await res.json()) as TSchool[],
+    total: Number(res.headers.get("X-Total-Count") ?? 0),
+  };
+}
+
+export type VerificationFlags = {
+  verified: boolean;
+  phoneVerified: boolean;
+  businessVerified: boolean;
+  locationVerified: boolean;
+  premiumVerified: boolean;
+};
+
+export function updateSchoolVerification(schoolId: number, flags: VerificationFlags) {
+  return request(`/api/schools/${schoolId}`, { method: "PATCH", body: JSON.stringify(flags) });
+}

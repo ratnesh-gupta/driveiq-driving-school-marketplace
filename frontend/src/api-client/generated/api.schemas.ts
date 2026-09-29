@@ -36,6 +36,12 @@ export interface School {
   rating: number;
   reviewCount: number;
   verified: boolean;
+  /** Verification flags — added manually, include in next OpenAPI spec regen */
+  phoneVerified?: boolean;
+  businessVerified?: boolean;
+  locationVerified?: boolean;
+  premiumVerified?: boolean;
+  planCode?: string;
   hasPickup: boolean;
   womenInstructor: boolean;
   weekendClasses: boolean;
