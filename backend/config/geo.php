@@ -14,6 +14,11 @@ return [
     'default_radius_km' => 5.0,
     'max_radius_km' => 50.0,
 
+    // Plans that get top placement in the default (rank) sort: their schools
+    // are listed first within the radius, ordered by rankingScore among
+    // themselves (PROJECT-PLAN §4.2). Other paid tiers only get weight_premium.
+    'top_placement_plans' => ['premium', 'enterprise'],
+
     'ranking' => [
         'weight_distance' => 0.40,
         'weight_rating' => 0.25,

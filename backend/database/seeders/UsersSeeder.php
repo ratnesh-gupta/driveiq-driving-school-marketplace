@@ -10,9 +10,9 @@ class UsersSeeder extends Seeder
     public function run(): void
     {
         $users = [
-            ['name' => 'Rahul Sharma', 'email' => 'rahul@gmail.com', 'password' => 'password123', 'role' => 'user'],
+            ['name' => 'Rahul Sharma', 'email' => 'rahul@gmail.com', 'password' => 'password123', 'role' => 'learner'],
             ['name' => 'Skyline Driving Academy', 'email' => 'info@skylinedrive.in', 'password' => 'password123', 'role' => 'school'],
-            ['name' => 'Priya Deshpande', 'email' => 'priya@gmail.com', 'password' => 'password123', 'role' => 'user'],
+            ['name' => 'Priya Deshpande', 'email' => 'priya@gmail.com', 'password' => 'password123', 'role' => 'learner'],
             ['name' => 'Admin User', 'email' => 'admin@driveiq.in', 'password' => 'password123', 'role' => 'admin'],
         ];
 

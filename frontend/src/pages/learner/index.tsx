@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { LearnerLayout } from "@/components/layout/learner-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchLearnerMe } from "@/lib/ops-api";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 import { GraduationCap } from "lucide-react";
 
 export default function LearnerHomePage() {
@@ -25,7 +27,11 @@ export default function LearnerHomePage() {
       ) : !learner ? (
         <div className="py-16 text-center text-muted-foreground">
           <GraduationCap className="h-10 w-10 mx-auto mb-2 opacity-30" />
-          Learner profile not found.
+          <p>You're not enrolled with a driving school yet.</p>
+          <p className="text-xs mt-1">Once a school enrols you, your trainer, sessions and progress appear here.</p>
+          <Button asChild className="mt-4" size="sm">
+            <Link href="/search">Find a school</Link>
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">

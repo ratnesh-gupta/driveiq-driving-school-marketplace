@@ -206,3 +206,11 @@ export function markPaymentFailed(paymentId: number, notes?: string) {
     body: JSON.stringify({ notes }),
   });
 }
+
+/** Schools cannot moderate reviews; they report them to platform admins. */
+export function reportReview(reviewId: number, body: { reason: string; details?: string }) {
+  return request<{ message: string; id: number }>(`/api/reviews/${reviewId}/report`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}

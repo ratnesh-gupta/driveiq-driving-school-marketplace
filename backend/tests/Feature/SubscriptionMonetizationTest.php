@@ -64,7 +64,7 @@ class SubscriptionMonetizationTest extends TestCase
     {
         $school = $this->school();
         $owner = User::factory()->create(['role' => 'school', 'school_id' => $school->id]);
-        $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
+        $other = $this->otherSchoolUser();
 
         app(SubscriptionService::class)->assign($school->id, 'featured', 1);
 

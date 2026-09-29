@@ -63,6 +63,9 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Lint (Pint)
+        run: vendor/bin/pint --test
+
       - name: Prepare env
         run: |
           cp .env.example .env
@@ -87,7 +90,7 @@ jobs:
         run: php artisan migrate --force
 
       - name: PHPUnit
-        run: php artisan test --parallel=0
+        run: php artisan test
 
   frontend:
     name: Frontend typecheck & build
@@ -105,7 +108,7 @@ jobs:
           node-version: "22"
 
       - name: Enable pnpm
-        run: corepack enable && corepack prepare pnpm@latest --activate
+        run: corepack enable
 
       - name: Cache pnpm
         uses: actions/cache@v4
