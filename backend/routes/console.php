@@ -43,3 +43,6 @@ Artisan::command('driveiq:create-admin {email} {--name=Platform Admin}', functio
 
 // Remove API tokens that expired more than a day ago (config sanctum.expiration).
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+// DPDP retention (DIQ-606): reports daily; deletes only when RETENTION_EXECUTE=true.
+Schedule::command('driveiq:retention')->dailyAt('02:30')->withoutOverlapping();
