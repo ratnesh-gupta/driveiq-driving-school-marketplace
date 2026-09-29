@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { InstructorLayout } from "@/components/layout/instructor-layout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentsPanel } from "@/components/documents-panel";
 import { fetchInstructorMe } from "@/lib/ops-api";
 import { User } from "lucide-react";
 
@@ -35,6 +36,14 @@ export default function InstructorHomePage() {
             <div><span className="text-muted-foreground">Experience:</span> {String(instructor.yearsExperience ?? instructor.experienceYears ?? "—")} yrs</div>
             <div><span className="text-muted-foreground">Learners trained:</span> {String(instructor.totalLearnersTrained ?? 0)}</div>
           </div>
+        </div>
+      )}
+
+      {typeof instructor?.id === "number" && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-1">My documents</h2>
+          <p className="text-sm text-muted-foreground mb-4">Licence, ID and certificates for your school to verify.</p>
+          <DocumentsPanel kind="instructor" ownerId={instructor.id} />
         </div>
       )}
     </InstructorLayout>

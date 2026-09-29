@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentsDialog } from "@/components/documents-panel";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { createLearner, listLearners } from "@/lib/ops-api";
 import { GraduationCap, Plus } from "lucide-react";
@@ -86,7 +87,10 @@ export default function LearnersPage() {
                   {[l.mobile, l.instructorName, l.packageName].filter(Boolean).join(" · ") || "—"}
                 </div>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{l.status}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{l.status}</span>
+                <DocumentsDialog kind="learner" ownerId={l.id} canReview title={`Documents · ${l.name}`} />
+              </div>
             </div>
           ))}
         </div>

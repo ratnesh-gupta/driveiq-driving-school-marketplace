@@ -15,6 +15,7 @@ use App\Models\School;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\NotificationService;
+use App\Support\DocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -257,7 +258,7 @@ class LearnerController extends Controller
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->learner($request, $learner, allowSelf: true)) {
             return $deny;
         }
 
@@ -270,7 +271,7 @@ class LearnerController extends Controller
         return response()->json($docs);
     }
 
-    public function addDocument(Request $request, int $id): JsonResponse
+    public function addDocument(Request $request, int $id, DocumentStorage $storage): JsonResponse
     {
         $learner = Learner::withoutGlobalScope('school')->find($id);
         if (! $learner) {
@@ -282,27 +283,33 @@ class LearnerController extends Controller
 
         $data = $request->validate([
             'type' => ['required', 'string', 'in:aadhaar,pan,photo,learner_license,medical,other'],
-            'filePath' => ['nullable', 'string', 'max:2048'],
-            'fileName' => ['nullable', 'string', 'max:255'],
+            'file' => ['nullable', ...DocumentStorage::FILE_RULE],
             'expiryDate' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $file = $request->file('file');
+        $schoolId = (int) $learner->school_id;
+
         $doc = LearnerDocument::withoutGlobalScope('school')->create([
             'learner_id' => $learner->id,
-            'school_id' => $learner->school_id,
+            'school_id' => $schoolId,
             'type' => $data['type'],
-            'file_path' => $data['filePath'] ?? null,
-            'file_name' => $data['fileName'] ?? null,
+            'file_path' => $file ? $storage->store($file, $schoolId, 'learners', $learner->id) : null,
+            'file_name' => $file ? DocumentStorage::displayName($file) : null,
             'expiry_date' => $data['expiryDate'] ?? null,
-            'status' => ! empty($data['filePath']) ? 'uploaded' : 'pending',
+            'status' => $file ? 'uploaded' : 'pending',
             'notes' => $data['notes'] ?? null,
         ]);
 
         return response()->json($this->serializeDoc($doc), 201);
     }
 
-    public function updateDocument(Request $request, int $id, int $docId): JsonResponse
+    /**
+     * School staff review a document (verify / reject) and may attach or
+     * replace its file. Send as multipart POST with _method=PATCH to upload.
+     */
+    public function updateDocument(Request $request, int $id, int $docId, DocumentStorage $storage): JsonResponse
     {
         $learner = Learner::withoutGlobalScope('school')->find($id);
         if (! $learner) {
@@ -322,22 +329,27 @@ class LearnerController extends Controller
         }
 
         $data = $request->validate([
-            'status' => ['required', 'string', 'in:pending,uploaded,verified,rejected'],
+            'status' => ['required_without:file', 'string', 'in:pending,uploaded,verified,rejected'],
             'notes' => ['nullable', 'string', 'max:500'],
-            'filePath' => ['nullable', 'string', 'max:2048'],
-            'fileName' => ['nullable', 'string', 'max:255'],
+            'file' => ['nullable', ...DocumentStorage::FILE_RULE],
             'expiryDate' => ['nullable', 'date'],
         ]);
 
+        if ($file = $request->file('file')) {
+            $old = $doc->file_path;
+            $doc->file_path = $storage->store($file, (int) $doc->school_id, 'learners', $learner->id);
+            $doc->file_name = DocumentStorage::displayName($file);
+            $doc->status = 'uploaded';
+            $storage->delete($old, (int) $doc->school_id);
+        }
+
         $doc->fill([
-            'status' => $data['status'],
+            'status' => $data['status'] ?? $doc->status,
             'notes' => $data['notes'] ?? $doc->notes,
-            'file_path' => $data['filePath'] ?? $doc->file_path,
-            'file_name' => $data['fileName'] ?? $doc->file_name,
             'expiry_date' => $data['expiryDate'] ?? $doc->expiry_date,
         ]);
 
-        if (in_array($data['status'], ['verified', 'rejected'], true)) {
+        if (in_array($data['status'] ?? null, ['verified', 'rejected'], true)) {
             $doc->verified_by = $request->user()->id;
             $doc->verified_at = now();
         }
@@ -599,12 +611,14 @@ class LearnerController extends Controller
         return [
             'id' => $d->id,
             'type' => $d->type,
-            'filePath' => $d->file_path,
+            'learnerId' => $d->learner_id,
+            'hasFile' => $d->file_path !== null,
             'fileName' => $d->file_name,
             'status' => $d->status,
             'expiryDate' => $d->expiry_date?->toDateString(),
             'verifiedAt' => $d->verified_at?->toISOString(),
             'notes' => $d->notes,
+            'createdAt' => $d->created_at?->toISOString(),
         ];
     }
 }

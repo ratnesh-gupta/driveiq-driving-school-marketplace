@@ -54,6 +54,7 @@ import LearnerHomePage from "@/pages/learner/index";
 import LearnerProgressPage from "@/pages/learner/progress";
 import LearnerSessionsPage from "@/pages/learner/sessions";
 import LearnerMessagesPage from "@/pages/learner/messages";
+import LearnerDocumentsPage from "@/pages/learner/documents";
 
 import ComparePage from "@/pages/compare";
 import NotFound from "@/pages/not-found";
@@ -122,7 +123,7 @@ function Router() {
       <Route path="/learner">{() => <AuthGuard requireRole="learner"><LearnerHomePage /></AuthGuard>}</Route>
       <Route path="/learner/progress">{() => <AuthGuard requireRole="learner"><LearnerProgressPage /></AuthGuard>}</Route>
       <Route path="/learner/sessions">{() => <AuthGuard requireRole="learner"><LearnerSessionsPage /></AuthGuard>}</Route>
-      <Route path="/learner/documents">{() => <AuthGuard requireRole="learner"><LearnerHomePage /></AuthGuard>}</Route>
+      <Route path="/learner/documents">{() => <AuthGuard requireRole="learner"><LearnerDocumentsPage /></AuthGuard>}</Route>
       <Route path="/learner/messages">{() => <AuthGuard requireRole="learner"><LearnerMessagesPage /></AuthGuard>}</Route>
 
       <Route component={NotFound} />

@@ -7,6 +7,8 @@ use App\Models\Locality;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -102,6 +104,7 @@ class InstructorManagementTest extends TestCase
         ['owner' => $owner, 'school' => $school] = $this->seedSchool();
 
         Sanctum::actingAs($owner);
+        Storage::fake('local');
 
         $created = $this->postJson('/api/schools/'.$school->id.'/instructors', [
             'name' => 'Doc Trainer',
@@ -111,8 +114,7 @@ class InstructorManagementTest extends TestCase
 
         $doc = $this->postJson('/api/instructors/'.$id.'/documents', [
             'type' => 'driving_license',
-            'filePath' => '/uploads/dl.pdf',
-            'fileName' => 'dl.pdf',
+            'file' => UploadedFile::fake()->create('dl.pdf', 100, 'application/pdf'),
         ])->assertCreated()
             ->assertJsonPath('status', 'uploaded');
 

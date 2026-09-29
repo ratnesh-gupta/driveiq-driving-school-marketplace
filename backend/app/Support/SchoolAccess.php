@@ -98,6 +98,30 @@ class SchoolAccess
         return $this->forbidden();
     }
 
+    /**
+     * Access to one instructor's own records (documents): admin, staff of the
+     * instructor's school, or (with $allowSelf) that instructor. Other
+     * instructors of the same school are refused.
+     */
+    public function instructor(Request $request, Instructor $instructor, bool $allowSelf = false): ?JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->isAdmin()) {
+            return null;
+        }
+
+        if ($user->isSchool() && (int) $user->school_id === (int) $instructor->school_id) {
+            return null;
+        }
+
+        if ($allowSelf && $user->isInstructor() && (int) $instructor->user_id === (int) $user->id) {
+            return null;
+        }
+
+        return $this->forbidden();
+    }
+
     /** PBAC "Assigned": the learner's assigned instructor, or one with a session for them. */
     public function instructorTeaches(User $user, Learner $learner): bool
     {

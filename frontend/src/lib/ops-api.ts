@@ -16,7 +16,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...(init.headers as Record<string, string> | undefined),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (init.body && !headers["Content-Type"]) {
+  // FormData sets its own multipart boundary header.
+  if (init.body && !(init.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -338,4 +339,59 @@ export type VerificationFlags = {
 
 export function updateSchoolVerification(schoolId: number, flags: VerificationFlags) {
   return request(`/api/schools/${schoolId}`, { method: "PATCH", body: JSON.stringify(flags) });
+}
+
+// ── Documents (DIQ-601): private uploads, opened through short-lived signed links ──
+
+export type DocumentOwnerKind = "learner" | "instructor" | "vehicle";
+
+export type DocumentRow = {
+  id: number;
+  type: string;
+  hasFile: boolean;
+  fileName: string | null;
+  status: string;
+  expiryDate?: string | null;
+  notes?: string | null;
+  verifiedAt?: string | null;
+  createdAt?: string | null;
+};
+
+const DOCUMENT_BASE: Record<DocumentOwnerKind, string> = {
+  learner: "/api/learners",
+  instructor: "/api/instructors",
+  vehicle: "/api/vehicles",
+};
+
+export function listDocuments(kind: DocumentOwnerKind, ownerId: number) {
+  return request<DocumentRow[]>(`${DOCUMENT_BASE[kind]}/${ownerId}/documents`);
+}
+
+export function uploadDocument(
+  kind: DocumentOwnerKind,
+  ownerId: number,
+  body: { type: string; file: File; expiryDate?: string }
+) {
+  const form = new FormData();
+  form.append("type", body.type);
+  form.append("file", body.file);
+  if (body.expiryDate) form.append("expiryDate", body.expiryDate);
+  return request<DocumentRow>(`${DOCUMENT_BASE[kind]}/${ownerId}/documents`, { method: "POST", body: form });
+}
+
+/** Staff review (learner and instructor documents only). */
+export function reviewDocument(
+  kind: Exclude<DocumentOwnerKind, "vehicle">,
+  ownerId: number,
+  docId: number,
+  status: "verified" | "rejected"
+) {
+  return request<DocumentRow>(`${DOCUMENT_BASE[kind]}/${ownerId}/documents/${docId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function getDocumentLink(kind: DocumentOwnerKind, docId: number) {
+  return request<{ url: string; expiresAt: string }>(`/api/documents/${kind}/${docId}/link`);
 }
