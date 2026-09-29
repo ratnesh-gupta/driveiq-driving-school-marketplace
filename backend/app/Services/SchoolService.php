@@ -76,6 +76,115 @@ class SchoolService
         return $this->withPlanMeta(School::query()->with('locality'))->where('schools.slug', $slug)->first();
     }
 
+    /**
+     * Side-by-side comparison (DIQ-505, School-Comparison-Engine.md §13):
+     * schools in the requested order, with package pricing, review summary
+     * and the spec's insight badges. Constant number of queries.
+     *
+     * @param  int[]  $ids
+     * @return array{schools: Collection<int, School>, packages: array, reviews: array, badges: array}
+     */
+    public function compare(array $ids): array
+    {
+        $schools = $this->withPlanMeta(School::query()->with('locality'))
+            ->whereIn('schools.id', $ids)
+            ->get()
+            ->sortBy(fn (School $s) => array_search($s->id, $ids, true))
+            ->values();
+
+        $found = $schools->pluck('id')->all();
+
+        $packages = DB::table('packages')
+            ->whereIn('school_id', $found)
+            ->where('active', true)
+            ->groupBy('school_id')
+            ->selectRaw('school_id, COUNT(*) AS count, MIN(price) AS min_price, MAX(price) AS max_price')
+            ->get()
+            ->keyBy('school_id');
+
+        $reviewStats = DB::table('reviews')
+            ->whereIn('school_id', $found)
+            ->where('approved', true)
+            ->groupBy('school_id')
+            ->selectRaw('school_id, COUNT(*) AS count, AVG(rating) AS average')
+            ->get()
+            ->keyBy('school_id');
+
+        $topReviews = DB::table('reviews')
+            ->whereIn('school_id', $found)
+            ->where('approved', true)
+            ->selectRaw('DISTINCT ON (school_id) school_id, author_name, rating, content')
+            ->orderBy('school_id')
+            ->orderByDesc('rating')
+            ->orderByDesc('created_at')
+            ->get()
+            ->keyBy('school_id');
+
+        $packageSummary = [];
+        $reviewSummary = [];
+        foreach ($found as $id) {
+            $p = $packages->get($id);
+            $packageSummary[$id] = [
+                'count' => (int) ($p->count ?? 0),
+                'minPrice' => $p ? (float) $p->min_price : null,
+                'maxPrice' => $p ? (float) $p->max_price : null,
+            ];
+            $r = $reviewStats->get($id);
+            $top = $topReviews->get($id);
+            $reviewSummary[$id] = [
+                'count' => (int) ($r->count ?? 0),
+                'average' => $r ? round((float) $r->average, 2) : null,
+                'topReview' => $top ? [
+                    'authorName' => $top->author_name,
+                    'rating' => (int) $top->rating,
+                    'content' => $top->content,
+                ] : null,
+            ];
+        }
+
+        return [
+            'schools' => $schools,
+            'packages' => $packageSummary,
+            'reviews' => $reviewSummary,
+            'badges' => $this->comparisonBadges($schools),
+        ];
+    }
+
+    /**
+     * Insight badges from the comparison spec. Only meaningful with 2+ schools;
+     * ties go to more reviews, then the lower id, so results are deterministic.
+     */
+    private function comparisonBadges(Collection $schools): array
+    {
+        $none = ['bestRated' => null, 'mostAffordable' => null, 'bestValue' => null, 'mostReviewed' => null, 'womenFriendly' => []];
+        if ($schools->count() < 2) {
+            return $none;
+        }
+
+        $pick = fn (Collection $c, callable $score) => $c
+            ->sortBy([
+                fn ($a, $b) => $score($b) <=> $score($a),
+                fn ($a, $b) => $b->review_count <=> $a->review_count,
+                fn ($a, $b) => $a->id <=> $b->id,
+            ])
+            ->first()?->id;
+
+        $priced = $schools->filter(fn (School $s) => (float) $s->price_from > 0);
+
+        return [
+            'bestRated' => $pick($schools, fn (School $s) => (float) $s->rating),
+            'mostAffordable' => $pick($priced, fn (School $s) => -(float) $s->price_from),
+            // Rating per rupee of starting price.
+            'bestValue' => $pick($priced, fn (School $s) => (float) $s->rating / (float) $s->price_from),
+            'mostReviewed' => $pick($schools, fn (School $s) => (int) $s->review_count),
+            'womenFriendly' => $schools
+                ->filter(fn (School $s) => $s->women_instructor && (float) $s->rating >= 4.0)
+                ->pluck('id')
+                ->values()
+                ->all(),
+        ];
+    }
+
     public function create(array $data): School
     {
         $school = School::create($data);

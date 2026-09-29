@@ -10,6 +10,7 @@ use App\Http\Resources\SchoolResource;
 use App\Models\School;
 use App\Services\SchoolService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SchoolController extends Controller
 {
@@ -24,6 +25,35 @@ class SchoolController extends Controller
         // Body stays a plain array (existing clients); the total is a header.
         return response()->json(SchoolResource::collection($schools))
             ->header('X-Total-Count', (string) $total);
+    }
+
+    /** GET /schools/compare?ids=1,2,3 (2 to 4 schools). */
+    public function compare(Request $request): JsonResponse
+    {
+        $request->validate(['ids' => ['required', 'string', 'regex:/^\d+(,\d+)*$/']]);
+
+        $ids = array_values(array_unique(array_map('intval', explode(',', $request->input('ids')))));
+
+        if (count($ids) < 2 || count($ids) > 4) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['ids' => ['Compare between 2 and 4 schools.']],
+            ], 422);
+        }
+
+        $result = $this->schoolService->compare($ids);
+
+        return response()->json([
+            'schools' => $result['schools']->map(fn ($school) => array_merge(
+                (new SchoolResource($school))->resolve($request),
+                [
+                    'packageSummary' => $result['packages'][$school->id],
+                    'reviewSummary' => $result['reviews'][$school->id],
+                ],
+            ))->values(),
+            'badges' => $result['badges'],
+            'missingIds' => array_values(array_diff($ids, $result['schools']->pluck('id')->all())),
+        ]);
     }
 
     public function featured(): JsonResponse

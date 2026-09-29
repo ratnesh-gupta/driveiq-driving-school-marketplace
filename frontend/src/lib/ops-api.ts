@@ -285,3 +285,30 @@ export function getInquiryReview(token: string) {
 export function submitInquiryReview(body: { token: string; authorName: string; rating: number; content: string }) {
   return request<{ id: number }>(`/api/reviews/via-inquiry`, { method: "POST", body: JSON.stringify(body) });
 }
+
+// ── School comparison (DIQ-505) ─────────────────────────────────
+
+export type ComparisonBadges = {
+  bestRated: number | null;
+  mostAffordable: number | null;
+  bestValue: number | null;
+  mostReviewed: number | null;
+  womenFriendly: number[];
+};
+
+export type CompareResponse<TSchool> = {
+  schools: (TSchool & {
+    packageSummary: { count: number; minPrice: number | null; maxPrice: number | null };
+    reviewSummary: {
+      count: number;
+      average: number | null;
+      topReview: { authorName: string; rating: number; content: string } | null;
+    };
+  })[];
+  badges: ComparisonBadges;
+  missingIds: number[];
+};
+
+export function compareSchools<TSchool>(ids: number[]) {
+  return request<CompareResponse<TSchool>>(`/api/schools/compare?ids=${ids.join(",")}`);
+}
