@@ -211,4 +211,40 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(2, (int) $school->review_count);
         $this->assertEquals(4.0, (float) $school->rating);
     }
+
+    // ── Found during DIQ-406: createLogin must not repurpose other accounts ──
+
+    public function test_school_cannot_turn_another_schools_owner_into_its_instructor(): void
+    {
+        [$ownerA, $schoolA] = $this->makeSchoolWithOwner('takeover-a');
+        [$ownerB, $schoolB] = $this->makeSchoolWithOwner('takeover-b');
+
+        Sanctum::actingAs($ownerA);
+        $this->postJson("/api/schools/{$schoolA->id}/instructors", [
+            'name' => 'Not really an instructor',
+            'email' => $ownerB->email,
+            'createLogin' => true,
+        ])->assertUnprocessable()->assertJsonValidationErrors('email');
+
+        $ownerB->refresh();
+        $this->assertSame('school', $ownerB->role);
+        $this->assertSame($schoolB->id, (int) $ownerB->school_id);
+    }
+
+    public function test_school_cannot_turn_another_schools_owner_into_its_learner(): void
+    {
+        [$ownerA, $schoolA] = $this->makeSchoolWithOwner('takeover-c');
+        [$ownerB, $schoolB] = $this->makeSchoolWithOwner('takeover-d');
+
+        Sanctum::actingAs($ownerA);
+        $this->postJson("/api/schools/{$schoolA->id}/learners", [
+            'name' => 'Not really a learner',
+            'email' => $ownerB->email,
+            'createLogin' => true,
+        ])->assertUnprocessable()->assertJsonValidationErrors('email');
+
+        $ownerB->refresh();
+        $this->assertSame('school', $ownerB->role);
+        $this->assertSame($schoolB->id, (int) $ownerB->school_id);
+    }
 }

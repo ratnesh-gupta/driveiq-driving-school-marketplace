@@ -78,10 +78,19 @@ class InstructorController extends Controller
                     'school_id' => $schoolId,
                 ]);
             } else {
-                $user->update([
-                    'role' => $user->isAdmin() ? $user->role : 'instructor',
-                    'school_id' => $schoolId,
-                ]);
+                // Never repurpose someone else's account (another school's
+                // owner, a learner, an admin...). Only an instructor login of
+                // this school that has no profile yet can be attached.
+                $attachable = $user->isInstructor()
+                    && (int) $user->school_id === $schoolId
+                    && ! Instructor::withoutGlobalScope('school')->where('user_id', $user->id)->exists();
+
+                if (! $attachable) {
+                    return response()->json([
+                        'message' => 'Validation failed',
+                        'errors' => ['email' => ['This email already belongs to another DriveIQ account.']],
+                    ], 422);
+                }
             }
             $userId = $user->id;
         }
