@@ -15,6 +15,7 @@ class SchoolResource extends JsonResource
             'slug' => $this->slug,
             'localityId' => $this->locality_id,
             'localityName' => $this->whenLoaded('locality', fn () => $this->locality->name),
+            'localitySlug' => $this->whenLoaded('locality', fn () => $this->locality?->slug),
             'address' => $this->address,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,

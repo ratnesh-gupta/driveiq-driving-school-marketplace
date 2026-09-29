@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/store";
+import { JsonLd, SITE_ORIGIN, breadcrumbList } from "@/components/seo/json-ld";
+import { SchoolMap } from "@/components/maps/school-map";
 import type { InquiryInput } from "@/api-client/generated/api.schemas";
 import { useT } from "@/i18n/use-locale";
 import {
@@ -177,8 +179,57 @@ export default function SchoolDetailPage() {
 
   const approvedReviews = (reviews || []).filter(r => r.approved);
 
+  // One source for the visible FAQ and its FAQPage structured data.
+  const faqs = [
+    { q: "How many sessions does a standard course include?", a: "Standard courses typically include 15–30 sessions depending on the package you choose. Check the pricing packages above for specific details." },
+    { q: "Do you offer pickup and drop service?", a: school.hasPickup ? "Yes! This school offers pickup and drop services. Contact them to know the coverage areas." : "This school currently does not offer pickup/drop services. You'll need to visit their centre directly." },
+    { q: "Is the driving test included?", a: "Most packages include assistance with booking your RTO driving test. Please confirm with the school during your inquiry." },
+    { q: "What documents are required for enrollment?", a: "You'll typically need your Aadhaar card, passport-size photos, and a learner's licence (the school can help you obtain one)." },
+  ];
+
+  // DIQ-504: schema.org DrivingSchool (also a LocalBusiness for local search).
+  const schoolLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": ["DrivingSchool", "LocalBusiness"],
+    name: school.name,
+    url: `${SITE_ORIGIN}/school/${school.slug}`,
+    ...(school.description ? { description: school.description } : {}),
+    ...(school.imageUrl ? { image: school.imageUrl } : {}),
+    ...(school.phone ? { telephone: school.phone } : {}),
+    ...(school.email ? { email: school.email } : {}),
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: school.address,
+      addressLocality: school.localityName ?? "Pune",
+      addressRegion: "Maharashtra",
+      addressCountry: "IN",
+    },
+    ...(school.latitude != null && school.longitude != null
+      ? { geo: { "@type": "GeoCoordinates", latitude: school.latitude, longitude: school.longitude } }
+      : {}),
+    ...(school.priceFrom > 0 ? { priceRange: `₹${school.priceFrom}${school.priceTo > school.priceFrom ? `–₹${school.priceTo}` : ""}` } : {}),
+    // Only real, moderated reviews count (never self-declared ratings).
+    ...(school.reviewCount > 0
+      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: school.rating, reviewCount: school.reviewCount, bestRating: 5 } }
+      : {}),
+  };
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  };
+  const crumbs = [
+    { name: "Home", path: "/" },
+    { name: "Driving schools", path: "/search" },
+    ...(school.localityName && school.localitySlug ? [{ name: school.localityName, path: `/locality/${school.localitySlug}` }] : []),
+    { name: school.name, path: `/school/${school.slug}` },
+  ];
+
   return (
     <PublicLayout>
+      <JsonLd data={schoolLd} />
+      <JsonLd data={faqLd} />
+      <JsonLd data={breadcrumbList(crumbs)} />
       {/* Hero banner */}
       <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary/80 to-[hsl(258,60%,35%)] overflow-hidden">
         {school.imageUrl && (
@@ -338,16 +389,18 @@ export default function SchoolDetailPage() {
               )}
             </motion.div>
 
+            {/* Location (DIQ-503) */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.22 } }} className="rounded-xl border bg-card p-6">
+              <h2 className="font-bold text-lg mb-1">Location</h2>
+              <p className="text-sm text-muted-foreground mb-4">{school.address}</p>
+              <SchoolMap name={school.name} address={school.address} latitude={school.latitude} longitude={school.longitude} />
+            </motion.div>
+
             {/* FAQ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.25 } }} className="rounded-xl border bg-card p-6">
               <h2 className="font-bold text-lg mb-4">Frequently Asked Questions</h2>
               <Accordion type="single" collapsible>
-                {[
-                  { q: "How many sessions does a standard course include?", a: "Standard courses typically include 15–30 sessions depending on the package you choose. Check the pricing packages above for specific details." },
-                  { q: "Do you offer pickup and drop service?", a: school.hasPickup ? "Yes! This school offers pickup and drop services. Contact them to know the coverage areas." : "This school currently does not offer pickup/drop services. You'll need to visit their centre directly." },
-                  { q: "Is the driving test included?", a: "Most packages include assistance with booking your RTO driving test. Please confirm with the school during your inquiry." },
-                  { q: "What documents are required for enrollment?", a: "You'll typically need your Aadhaar card, passport-size photos, and a learner's licence (the school can help you obtain one)." },
-                ].map((faq, i) => (
+                {faqs.map((faq, i) => (
                   <AccordionItem key={i} value={`faq-${i}`}>
                     <AccordionTrigger className="text-sm font-medium text-left">{faq.q}</AccordionTrigger>
                     <AccordionContent className="text-sm text-muted-foreground">{faq.a}</AccordionContent>

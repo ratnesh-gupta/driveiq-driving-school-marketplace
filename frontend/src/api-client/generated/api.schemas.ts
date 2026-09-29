@@ -16,7 +16,14 @@ export interface School {
   localityId: number;
   /** @nullable */
   localityName?: string | null;
+  /** @nullable — added manually, include in next OpenAPI spec regen */
+  localitySlug?: string | null;
   address: string;
+  /** Map / geo fields — added manually, include in next OpenAPI spec regen */
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
   phone: string;
   /** @nullable */
   whatsapp?: string | null;

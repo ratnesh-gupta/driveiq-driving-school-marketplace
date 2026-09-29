@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useListSchools, useListLocalities } from "@/api-client";
+import { SchoolsMap, hasMapsKey } from "@/components/maps/schools-map";
 import type { ListSchoolsParams } from "@/api-client/generated/api.schemas";
 import { Search, SlidersHorizontal, X, MapPin, Car } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -43,6 +44,7 @@ export default function SearchPage() {
   const [radiusKm, setRadiusKm] = useState<number>(5);
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [locationPrompt, setLocationPrompt] = useState(false);
+  const [view, setView] = useState<"list" | "map">("list");
 
   const { data: localities } = useListLocalities();
 
@@ -363,7 +365,29 @@ export default function SearchPage() {
                   </p>
                 )}
               </div>
+              {hasMapsKey && (
+                <div className="flex rounded-lg border p-0.5 text-sm" role="group" aria-label="Results view">
+                  {(["list", "map"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      aria-pressed={view === v}
+                      onClick={() => setView(v)}
+                      className={`px-3 py-1 rounded-md capitalize ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                      data-testid={`button-view-${v}`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {view === "map" && !isLoading && !!schools?.length && (
+              <div className="mb-6">
+                <SchoolsMap schools={schools} origin={nearMe ? geo : null} />
+              </div>
+            )}
 
             {isLoading ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
