@@ -465,3 +465,31 @@ export function updateContactMessage(id: number, status: ContactMessageRow["stat
     body: JSON.stringify({ status }),
   });
 }
+
+// ── Consent records (DIQ-604) ──
+
+export type ConsentPurpose = "terms" | "privacy" | "processing" | "role_portal" | "cookies_optional";
+
+export type ConsentRow = {
+  id: number;
+  purpose: ConsentPurpose;
+  role: string | null;
+  version: string;
+  grantedAt: string;
+  withdrawnAt: string | null;
+};
+
+export function postConsents(consents: { purpose: ConsentPurpose; version: string }[], deviceId?: string) {
+  return request<ConsentRow[]>(`/api/consents`, {
+    method: "POST",
+    body: JSON.stringify({ consents, deviceId }),
+  });
+}
+
+export function fetchMyConsents() {
+  return request<ConsentRow[]>(`/api/consents`);
+}
+
+export function withdrawConsent(purpose: ConsentPurpose) {
+  return request<void>(`/api/consents/${purpose}`, { method: "DELETE" });
+}

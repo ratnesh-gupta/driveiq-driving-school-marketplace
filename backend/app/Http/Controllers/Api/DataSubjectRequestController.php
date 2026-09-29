@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Consent;
 use App\Models\DataSubjectRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -57,22 +58,32 @@ class DataSubjectRequestController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $items = DataSubjectRequest::query()
+        $rows = DataSubjectRequest::query()
             ->orderByDesc('id')
             ->limit(100)
+            ->get();
+
+        // Consent history of the matching account, for access / deletion requests (DIQ-604).
+        $consents = Consent::query()
+            ->whereIn('user_id', $rows->pluck('user_id')->filter()->unique())
+            ->orderBy('id')
             ->get()
-            ->map(fn (DataSubjectRequest $r) => [
-                'id' => $r->id,
-                'name' => $r->name,
-                'email' => $r->email,
-                'requestType' => $r->request_type,
-                'details' => $r->details,
-                'nomineeName' => $r->nominee_name,
-                'nomineeEmail' => $r->nominee_email,
-                'nomineeRelation' => $r->nominee_relation,
-                'status' => $r->status,
-                'createdAt' => $r->created_at?->toISOString(),
-            ]);
+            ->groupBy('user_id');
+
+        $items = $rows->map(fn (DataSubjectRequest $r) => [
+            'id' => $r->id,
+            'name' => $r->name,
+            'email' => $r->email,
+            'requestType' => $r->request_type,
+            'details' => $r->details,
+            'nomineeName' => $r->nominee_name,
+            'nomineeEmail' => $r->nominee_email,
+            'nomineeRelation' => $r->nominee_relation,
+            'status' => $r->status,
+            'userId' => $r->user_id,
+            'consents' => ($consents[$r->user_id] ?? collect())->map(fn (Consent $c) => $c->toApi())->values(),
+            'createdAt' => $r->created_at?->toISOString(),
+        ]);
 
         return response()->json($items);
     }

@@ -55,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
         // Other public writes: data-subject requests, review links, invite acceptance.
         RateLimiter::for('public-forms', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
 
+        // Consent records: a few per page view at most (register, portal gate, cookie banner).
+        RateLimiter::for('consents', fn (Request $request) => Limit::perMinute(20)->by($request->ip()));
+
         // Public token lookups (invite / review link previews).
         RateLimiter::for('public-lookups', fn (Request $request) => Limit::perMinute(20)->by($request->ip()));
     }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ConsentController;
 use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\DocumentController;
@@ -75,6 +76,10 @@ Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
 
 Route::post('/contact', [ContactMessageController::class, 'store'])->middleware('throttle:public-forms');
 
+// Consent records (DIQ-604). Optional auth: anonymous calls may only record
+// the cookie banner choice.
+Route::post('/consents', [ConsentController::class, 'store'])->middleware('throttle:consents');
+
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
 Route::get('/training-skills', [ProgressController::class, 'skillsCatalog']);
@@ -97,6 +102,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+
+    Route::get('/consents', [ConsentController::class, 'index']);
+    Route::delete('/consents/{purpose}', [ConsentController::class, 'destroy']);
 
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])
         ->whereNumber('id')

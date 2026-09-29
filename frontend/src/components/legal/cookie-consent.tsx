@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { deviceId } from "@/lib/consent";
+import { postConsents } from "@/lib/ops-api";
 
 const STORAGE_KEY = "driveiq_cookie_consent";
+const COOKIE_NOTICE_VERSION = "1";
 
 export type ConsentValue = "accepted" | "essential";
 
@@ -42,6 +45,12 @@ export function CookieConsent() {
   const choose = (value: ConsentValue) => {
     setCookieConsent(value);
     setVisible(false);
+    // Only an opt-in is a consent; "essential only" needs none (DIQ-604).
+    if (value === "accepted") {
+      void postConsents([{ purpose: "cookies_optional", version: COOKIE_NOTICE_VERSION }], deviceId()).catch(() => {
+        /* the local choice still applies; no optional storage is in use today */
+      });
+    }
   };
 
   return (

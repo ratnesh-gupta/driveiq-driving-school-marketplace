@@ -5,10 +5,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthStore } from "@/lib/store";
 import {
   type AppRole,
+  ROLE_CONSENT_VERSION,
+  clearRoleConsent,
+  flushPendingConsents,
   hasRoleConsent,
+  hasServerRoleConsent,
   roleProcessingPurposes,
   setRoleConsent,
 } from "@/lib/consent";
+import { postConsents } from "@/lib/ops-api";
 
 const ROLE_LABEL: Record<AppRole, string> = {
   school: "School partner",
@@ -32,12 +37,53 @@ export function RoleConsentGate({
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
   const [ack, setAck] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    const ok = hasRoleConsent(role, user?.id);
-    setOpen(!ok);
-    setReady(true);
+    let cancelled = false;
+    // The browser cache lets a returning user in without a flash...
+    const cached = hasRoleConsent(role, user?.id);
+    setOpen(!cached);
+    setReady(cached);
+    if (!user) {
+      setReady(true);
+      return;
+    }
+
+    // ...but the server record decides (DIQ-604).
+    (async () => {
+      await flushPendingConsents();
+      try {
+        const recorded = await hasServerRoleConsent(role);
+        if (cancelled) return;
+        if (!recorded) clearRoleConsent(role, user.id);
+        setOpen(!recorded);
+      } catch {
+        // API unreachable: fall back to the cached answer rather than lock the portal.
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [role, user?.id]);
+
+  async function accept() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await postConsents([{ purpose: "role_portal", version: String(ROLE_CONSENT_VERSION) }]);
+      setRoleConsent(role, user?.id);
+      setOpen(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Could not save your consent. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (!ready) return null;
 
@@ -87,15 +133,11 @@ export function RoleConsentGate({
             </span>
           </label>
 
+          {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+
           <div className="flex justify-end gap-2 pt-1">
-            <Button
-              disabled={!ack}
-              onClick={() => {
-                setRoleConsent(role, user?.id);
-                setOpen(false);
-              }}
-            >
-              Continue to portal
+            <Button disabled={!ack || saving} onClick={accept}>
+              {saving ? "Saving…" : "Continue to portal"}
             </Button>
           </div>
         </div>

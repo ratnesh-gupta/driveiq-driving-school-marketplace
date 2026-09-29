@@ -18,6 +18,8 @@ type Row = {
   details?: string | null;
   status: string;
   nomineeName?: string | null;
+  userId?: number | null;
+  consents?: { id: number; purpose: string; role: string | null; version: string; grantedAt: string; withdrawnAt: string | null }[];
   createdAt?: string | null;
 };
 
@@ -83,6 +85,28 @@ export default function AdminDataRequestsPage() {
                   {r.nomineeName ? ` · nominee: ${r.nomineeName}` : ""}
                 </div>
                 {r.details && <p className="text-xs mt-1 text-muted-foreground">{r.details}</p>}
+                {r.userId ? (
+                  <details className="mt-2 text-xs">
+                    <summary className="cursor-pointer text-primary">
+                      Consent history ({r.consents?.length ?? 0})
+                    </summary>
+                    {r.consents?.length ? (
+                      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                        {r.consents.map((c) => (
+                          <li key={c.id}>
+                            {c.purpose}
+                            {c.role ? ` (${c.role})` : ""} v{c.version} · granted {c.grantedAt.slice(0, 10)}
+                            {c.withdrawnAt ? ` · withdrawn ${c.withdrawnAt.slice(0, 10)}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-muted-foreground">No consent records for this account.</p>
+                    )}
+                  </details>
+                ) : (
+                  <p className="text-xs mt-1 text-muted-foreground">No matching account.</p>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {["in_progress", "completed", "rejected"].map((s) => (
