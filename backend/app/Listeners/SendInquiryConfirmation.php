@@ -5,10 +5,11 @@ namespace App\Listeners;
 use App\Events\InquiryCreated;
 use App\Notifications\InquiryConfirmation;
 use App\Services\ReviewEligibilityService;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 
 /** Emails the enquirer a confirmation with their one-time review link (DIQ-407). */
-class SendInquiryConfirmation
+class SendInquiryConfirmation implements ShouldQueue
 {
     public function __construct(private ReviewEligibilityService $eligibility) {}
 

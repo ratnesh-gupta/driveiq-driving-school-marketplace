@@ -88,6 +88,30 @@ services:
       sh -lc "composer install --no-dev --optimize-autoloader --no-interaction
       && php artisan queue:work redis --sleep=1 --tries=3 --max-time=3600"
 
+  # Runs routes/console.php: token pruning, retention report, lead reminders.
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-driveiq}
+      DB_USERNAME: ${POSTGRES_USER:-driveiq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+    command: >
+      sh -lc "composer install --no-dev --optimize-autoloader --no-interaction
+      && php artisan schedule:work"
+
   frontend:
     build:
       context: ./frontend

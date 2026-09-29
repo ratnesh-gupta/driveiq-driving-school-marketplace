@@ -27,6 +27,14 @@ class SchoolSetting extends Model
         return $this->belongsTo(School::class);
     }
 
+    /** A school's settings merged over the defaults. */
+    public static function forSchool(int $schoolId): array
+    {
+        $saved = static::withoutGlobalScope('school')->where('school_id', $schoolId)->value('settings');
+
+        return array_replace_recursive(static::defaults(), is_array($saved) ? $saved : (json_decode((string) $saved, true) ?: []));
+    }
+
     public static function defaults(): array
     {
         return [
@@ -36,6 +44,8 @@ class SchoolSetting extends Model
                 'in_app' => true,
                 'new_inquiry' => true,
                 'new_review' => true,
+                // Remind staff about a lead still unanswered after this many minutes; 0 = off (DIQ-705).
+                'reminder_after_minutes' => 60,
             ],
             'timezone' => 'Asia/Kolkata',
             'locale' => 'en-IN',
