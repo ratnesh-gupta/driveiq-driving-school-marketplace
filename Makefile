@@ -17,7 +17,7 @@ PROD_BACKEND  := $(DC_PROD) exec -T backend
 	up-infra \
 	migrate migrate-fresh seed migrate-seed fresh \
 	artisan tinker shell \
-	test test-filter frontend-check \
+	test-db test test-filter frontend-check \
 	prod-up prod-down prod-logs prod-migrate prod-seed
 
 help:
@@ -107,10 +107,15 @@ shell:
 
 # ── Tests ───────────────────────────────────────────────────
 
-test:
+# PHPUnit uses a separate PostGIS database (driveiq_test, see backend/phpunit.xml).
+test-db:
+	@$(DC) exec -T postgres psql -U driveiq -d driveiq -tAc "SELECT 1 FROM pg_database WHERE datname='driveiq_test'" | grep -q 1 \
+		|| $(DC) exec -T postgres createdb -U driveiq driveiq_test
+
+test: test-db
 	$(BACKEND) php artisan test
 
-test-filter:
+test-filter: test-db
 	@test -n "$(FILTER)" || (echo 'Usage: make test-filter FILTER=PaymentTest' && exit 1)
 	$(BACKEND) php artisan test --filter=$(FILTER)
 
