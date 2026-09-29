@@ -87,48 +87,38 @@ Learner Management (Training Lifecycle)
 
 ## 2. Current State
 
+_Updated 2026-09-29 after remediation milestones M1–M4 (PRs #23, #24, #25 and the M4 PR)._
+
 ### What's Implemented
 
-**Backend (Laravel 13.8 + PostgreSQL):**
-- 6 Models: School, User, Inquiry, Review, DrivePackage, Locality
-- 7 Controllers: School, Inquiry, Review, Package, Locality, Auth, Stats
-- Sanctum token auth (basic registration/login)
-- Haversine geo-distance calculation
-- Role middleware (role field on users table)
-- 15 database migrations
+**Backend (Laravel 13 + PostgreSQL 16/PostGIS), 34 models, 26 API controllers, 40 migrations:**
+- Registration is **School (owner) or Learner** only; admins via `php artisan driveiq:create-admin`. School managers are invite-only (owner invites, invitee accepts). Instructors get logins from their school.
+- Sanctum tokens expire (`SANCTUM_EXPIRATION`, default 7 days); logout, password reset, and admin **deactivation** (revokes tokens, blocks login).
+- Authorization through one `SchoolAccess` service: school isolation (`BelongsToSchool` fails closed), owner vs manager, instructors limited to their assigned learners and their own documents.
+- Append-only `audit_logs` (model guard + PostgreSQL trigger); school profile diffs, admin actions, deactivations are logged.
+- Anti-spam: named rate limiters, honeypot + minimum fill time on the inquiry and contact forms.
+- Geo search on PostGIS (`geography` column, `ST_DWithin`/`ST_Distance`), ranking in SQL with SQL-level pagination (`X-Total-Count`), compare API.
+- Review eligibility enforced server-side (enrolled learner, or a one-time link from the inquiry confirmation); abuse reports auto-hide a review at 3 reports; admin-only moderation recomputes ratings.
+- Operations modules: learners, instructors, vehicles, schedules/attendance, progress and driving tests, payments, subscriptions, messaging, notifications, analytics.
+- Private document uploads (learner / instructor / vehicle) on `DOCUMENTS_DISK`, opened only through 5-minute signed links.
+- DPDP: server-side consent records, data-subject requests with consent history, contact inbox, `driveiq:retention` job (dry run unless enabled).
+- PHPUnit on PostgreSQL/PostGIS in CI (150+ tests) and Pint lint.
 
-**Frontend (React 19 + Vite + Tailwind 4):**
-- 22 page components (home, search, school-detail, compare, dashboard/*, admin/*)
-- ShadCN + Radix UI component library
-- Zustand stores (location, regulations)
-- TanStack Query for data fetching
-- Framer Motion animations
-- Zod validation with generated schemas
+**Frontend (React 19 + Vite + Tailwind 4), 47 pages:**
+- Public: home, search (radius, distance badges, verified filter), school detail (lazy Google Map, JSON-LD), locality pages (FAQ/Breadcrumb JSON-LD), compare, driving rules, contact, privacy/terms/data requests, review-by-link, invite acceptance, password reset.
+- Portals for school (overview, leads, learners, instructors, vehicles, schedules, packages, payments, reviews, team, analytics, messages), instructor, learner (training, progress, sessions, documents, messages) and admin (schools + verification, reviews, localities, users, analytics, data requests, messages).
+- i18n (English, Hindi, Marathi) on public pages and navigation.
 
-**Working Features:**
-- Homepage with school listing
-- School search with basic filters
-- School detail pages
-- Locality detail pages
-- Inquiry submission (form + WhatsApp deeplinks)
-- Reviews (create/list, with `auth:sanctum` + throttle on POST)
-- School dashboard: overview, leads, profile, packages, reviews, analytics
-- Admin panel: overview, schools, reviews, localities, users (placeholder)
-- Auth routes: login, register
-- Comparison page skeleton
-- Driving rules page
+### Still Open
 
-### Critical Gaps (Must Fix Before Launch)
-
-| Gap | Risk | Phase |
-|-----|------|-------|
-| NO `BelongsToSchool` trait — queries not auto-scoped | **DATA LEAK** | 0 |
-| NO server-side authorization in controllers | **DATA LEAK** | 0 |
-| Users table missing `school_id` foreign key | **BROKEN ISOLATION** | 0 |
-| No rate limiting on most endpoints | **ABUSE** | 0 |
-| Review eligibility not enforced server-side | **SPAM** | 2 |
-| No audit logging | **COMPLIANCE** | 0 |
-| 25+ domain models missing (Learner, Instructor, Vehicle, Schedule, etc.) | **INCOMPLETE** | 5-8 |
+| Gap | Phase |
+|-----|-------|
+| Admin review moderation has no bulk actions | 2 |
+| "Near me" entry point on the homepage (search page has it) | 1 |
+| Email/SMS notification delivery beyond in-app + mail driver config | Lead engine |
+| Training-record and account erasure automation (retention job covers leads, messages, contact, closed requests) | DPDP |
+| OpenAPI spec regeneration (several client types were added by hand) | Tooling |
+| Portal pages outside navigation are English-only | i18n |
 
 ---
 
@@ -256,34 +246,34 @@ $allData = Model::withoutGlobalScope('school')->get();
 **Goal:** Make backend production-safe  
 **Timeline:** 2-4 weeks  
 **Priority:** CRITICAL — must complete before any external testing  
-**Status:** In Progress (partial auth + review throttle done)
+**Status:** Done (M1/M2, 2026-09)
 
 ### Scope
 
 #### 0.1 Authorization Enforcement (Week 1)
-- [ ] Add `school_id` to users table (migration)
-- [ ] Create `BelongsToSchool` trait with Global Scope
-- [ ] Apply trait to: Inquiry, Review, DrivePackage, School (where applicable)
-- [ ] Update all controllers to enforce school ownership on mutations
-- [ ] Write isolation tests (user from school A cannot see school B data)
+- [x] Add `school_id` to users table (migration)
+- [x] Create `BelongsToSchool` trait with Global Scope
+- [x] Apply trait to: Inquiry, Review, DrivePackage, School (where applicable)
+- [x] Update all controllers to enforce school ownership on mutations
+- [x] Write isolation tests (user from school A cannot see school B data)
 
 #### 0.2 Authentication Hardening (Week 2)
-- [ ] Harden Sanctum token lifecycle (expiry, refresh)
-- [ ] Implement role-based middleware enforcement on all protected routes
-- [ ] Add `school_id` assignment during registration/admin-invite flow
-- [ ] Protect admin-only routes (school approval, user management, review moderation)
+- [x] Harden Sanctum token lifecycle (expiry, refresh)
+- [x] Implement role-based middleware enforcement on all protected routes
+- [x] Add `school_id` assignment during registration/admin-invite flow
+- [x] Protect admin-only routes (school approval, user management, review moderation)
 
 #### 0.3 Rate Limiting & Anti-Spam (Week 2-3)
 - [x] Rate limit on `POST /reviews` (10 per minute) — DONE
 - [x] Rate limit on auth endpoints — DONE
-- [ ] Rate limit on `POST /inquiries` (5 per minute per IP)
-- [ ] Rate limit on `POST /schools` (admin only)
-- [ ] CAPTCHA or honeypot on public inquiry form
+- [x] Rate limit on `POST /inquiries` (5 per minute per IP)
+- [x] Rate limit on `POST /schools` (admin only)
+- [x] CAPTCHA or honeypot on public inquiry form
 
 #### 0.4 Audit & Event Logging (Week 3-4)
-- [ ] Create `audit_logs` table (actor, action, resource, old_value, new_value, timestamp)
-- [ ] Log: lead status changes, review moderation, admin actions, school profile updates
-- [ ] Immutable audit log (no deletes)
+- [x] Create `audit_logs` table (actor, action, resource, old_value, new_value, timestamp)
+- [x] Log: lead status changes, review moderation, admin actions, school profile updates
+- [x] Immutable audit log (no deletes)
 
 ### Acceptance Criteria
 - No unauthenticated user can mutate data
@@ -305,27 +295,27 @@ Protected APIs require valid auth; abuse controls active; school isolation enfor
 ### Scope
 
 #### 1.1 PostGIS Setup & Schema
-- [ ] Enable PostGIS extension on PostgreSQL
-- [ ] Add `geography` column to schools table (or use existing lat/lng with ST_DWithin)
-- [ ] Create spatial index on school locations
+- [x] Enable PostGIS extension on PostgreSQL
+- [x] Add `geography` column to schools table (or use existing lat/lng with ST_DWithin)
+- [x] Create spatial index on school locations
 - [ ] Seed Pune school locations with accurate coordinates
 
 #### 1.2 Radius Search API
-- [ ] `GET /api/schools?lat=X&lng=Y&radius=2` (2km, 5km, 10km options)
-- [ ] ST_DWithin queries replacing current Haversine (more accurate, index-friendly)
+- [x] `GET /api/schools?lat=X&lng=Y&radius=2` (2km, 5km, 10km options)
+- [x] ST_DWithin queries replacing current Haversine (more accurate, index-friendly)
 - [ ] Fallback to text-based locality search when geo unavailable
 
 #### 1.3 Geo Ranking v1
-- [ ] Ranking formula: `distance_score + rating_score + review_count_score + verified_bonus + premium_bonus`
-- [ ] Weights documented and tunable
-- [ ] Deterministic results (same input = same output)
+- [x] Ranking formula: `distance_score + rating_score + review_count_score + verified_bonus + premium_bonus`
+- [x] Weights documented and tunable
+- [x] Deterministic results (same input = same output)
 
 #### 1.4 Frontend Geo Integration
-- [ ] Browser geolocation consent flow ("Allow location for nearby schools")
+- [x] Browser geolocation consent flow ("Allow location for nearby schools")
 - [ ] "Near Me" entry point on homepage
-- [ ] Radius selector on search page (2km / 5km / 10km toggle)
-- [ ] Google Maps embed on school detail pages
-- [ ] Distance badge on school cards ("1.2 km away")
+- [x] Radius selector on search page (2km / 5km / 10km toggle)
+- [x] Google Maps embed on school detail pages
+- [x] Distance badge on school cards ("1.2 km away")
 
 #### 1.5 Locality Landing Pages
 - [ ] Programmatic SEO templates for Pune localities
@@ -354,25 +344,25 @@ See `docs/Features/Geo-Aware.md` for the full geo-aware driving rules & governme
 ### Scope
 
 #### 2.1 Verification Model
-- [ ] Verification fields on schools: `phone_verified`, `business_verified`, `location_verified`, `premium_verified`
+- [x] Verification fields on schools: `phone_verified`, `business_verified`, `location_verified`, `premium_verified`
 - [ ] Verification workflow: school submits docs → admin reviews → badge granted
-- [ ] Verification badges displayed on search results, school detail, comparison
+- [x] Verification badges displayed on search results, school detail, comparison
 
 #### 2.2 Review Eligibility Enforcement
-- [ ] Server-side check: reviewer must have submitted inquiry OR be enrolled learner
-- [ ] Block ineligible reviews at API level (not just frontend)
-- [ ] Eligible reason stored: `inquiry_id` or `learner_id`
+- [x] Server-side check: reviewer must have submitted inquiry OR be enrolled learner
+- [x] Block ineligible reviews at API level (not just frontend)
+- [x] Eligible reason stored: `inquiry_id` or `learner_id`
 
 #### 2.3 Abuse Reporting & Moderation
-- [ ] `POST /api/reviews/{id}/report` — abuse report endpoint
-- [ ] Moderation queue for admin (pending/approved/rejected reviews)
-- [ ] Auto-flag reviews with high report count
+- [x] `POST /api/reviews/{id}/report` — abuse report endpoint
+- [x] Moderation queue for admin (pending/approved/rejected reviews)
+- [x] Auto-flag reviews with high report count
 - [ ] Admin moderation dashboard with bulk actions
 
 #### 2.4 Trust Signals in UI
-- [ ] Verification badges on school cards (search results)
+- [x] Verification badges on school cards (search results)
 - [ ] Trust score or verification level on school detail
-- [ ] "Verified" filter on search page
+- [x] "Verified" filter on search page
 - [ ] Review count and recency displayed prominently
 
 ### Acceptance Criteria

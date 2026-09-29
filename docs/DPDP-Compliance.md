@@ -51,10 +51,17 @@ Erase when purpose is served or consent withdrawn, unless law requires retention
 3. Notify **Data Protection Board** and affected principals as Rules require (often discussed as without delay + detail within **72 hours**).
 4. Log incident; post-mortem; improve controls.
 
+## Implemented (2026-09, M4)
+
+- **Consent records server-side** (`consents` table, `POST/GET /api/consents`, `DELETE /api/consents/{purpose}`): register (terms, privacy, processing), role portal notice, and the cookie opt-in (anonymous, random device id). Grants are new rows; withdrawal stamps `withdrawn_at`. localStorage is only a cache. Admins see the consent history on `/admin/data-requests`.
+- **Retention job** `php artisan driveiq:retention` (daily; report-only unless `RETENTION_EXECUTE=true` or `--execute`): inquiries 24 months after last activity, messages 24 months, closed contact messages 24 months, closed data-subject requests 36 months. `RETENTION_LEGAL_HOLD_SCHOOLS` excludes schools under legal hold. Audit logs, payments and training records are never deleted by it.
+- **Private documents** (ID, licence, medical) stored off the public web root, served only through 5-minute signed links after an access check.
+- **Account deactivation** by admins revokes all tokens and blocks login.
+
 ## Still open / counsel-led
 
-- Server-side storage of consent artifacts (beyond localStorage)
-- Automated data export package and hard erase job with legal holds
+- A self-service "withdraw consent" screen (the API exists; today withdrawal is by data request)
+- Automated data export package, and erasure of accounts / training records (48-hour notice where Rules apply)
 - Multilingual notices (Eighth Schedule languages)
 - Processor contracts (DPAs)
 - Verifiable parental consent if minors ever onboard
@@ -63,4 +70,5 @@ Erase when purpose is served or consent withdrawn, unless law requires retention
 
 - `frontend/src/lib/consent.ts`
 - `frontend/src/components/legal/*`
-- `backend` `data_subject_requests` table + API
+- `backend` `data_subject_requests` and `consents` tables + APIs
+- `backend/app/Console/Commands/RetentionCommand.php`, `backend/config/retention.php`

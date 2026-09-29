@@ -2,8 +2,8 @@
 
 **Status:** MVP Development in Progress  
 **Target Market:** Pune, India (Initial Phase)  
-**Current Phase:** Phase 0 — Auth & Security Foundation  
-**Last Updated:** 2026-06-09  
+**Current Phase:** Remediation M1–M4 done (security, RBAC, geo search, uploads, DPDP); next: lead engine & notifications  
+**Last Updated:** 2026-09-29  
 **Master Plan:** `docs/PROJECT-PLAN.md` — single source of truth for scope, phasing, and requirements
 
 ---
@@ -288,11 +288,11 @@ Created → Verified → Active → Assigned Learners → Performance Tracking
 | **Homepage** | ✅ Route exists | Auto geo-detect + featured schools + quick search |
 | **School Search** | ✅ Partial | Location filters exist; geo-ranking not fully implemented |
 | **School Listing** | ✅ API built | School profiles, ratings, reviews, course packages visible |
-| **Geo-Aware Discovery** | 🟡 In Progress | PostGIS schema + radius queries being implemented |
+| **Geo-Aware Discovery** | ✅ Built | PostGIS `ST_DWithin` radius search, ranking + pagination in SQL |
 | **Locality Pages** | ✅ Route exists | SEO landing pages for Pune areas (Baner, Wakad, etc.) |
 | **School Detail View** | ✅ API built | Photos, timing, vehicle types, instructor info, contact buttons |
 | **Inquiry System** | ✅ API built | Form submission, WhatsApp deeplinks; channel attribution needs work |
-| **Reviews & Ratings** | ✅ API built | Create/list reviews; eligibility enforcement needs server-side validation |
+| **Reviews & Ratings** | ✅ Built | Eligibility enforced server-side (enrolled learner or one-time inquiry link) |
 | **Geo Rules & Government Info** | 🟡 Planned | Geo-aware driving rules, license process, RTO guidance (Geo-Aware.md spec) |
 
 ### 4.2 School Dashboard Features
@@ -304,7 +304,7 @@ Created → Verified → Active → Assigned Learners → Performance Tracking
 | **Package Management** | ✅ API built | Create/update courses and pricing |
 | **Reviews Management** | ✅ API built | View reviews, respond (moderation needed) |
 | **Analytics Dashboard** | 🟡 Partial | View count, inquiry count; CTR/locality breakdowns missing |
-| **Photo Upload** | 🟡 Planned | Media pipeline not fully defined |
+| **Photo Upload** | 🟡 Partial | Private document uploads built (DIQ-601); public school photos not yet |
 | **WhatsApp Integration** | 🟡 Partial | Click-to-chat deeplinks work; automation/API integration future |
 
 ### 4.3 Admin Panel Features
@@ -312,8 +312,8 @@ Created → Verified → Active → Assigned Learners → Performance Tracking
 | Feature | Status | Notes |
 |---------|--------|-------|
 | **School Approval** | ✅ Route exists | Verification workflow partially defined |
-| **User Management** | 🟡 Placeholder | Admin users page exists but needs full CRUD |
-| **Review Moderation** | 🟡 Planned | Report-abuse workflow not yet implemented |
+| **User Management** | ✅ Built | List/search/filter, deactivate/reactivate (revokes tokens) |
+| **Review Moderation** | ✅ Built | Admin-only moderation, abuse reports auto-hide at 3; no bulk actions yet |
 | **Featured Listing Controls** | 🟡 Not started | Monetization-aware ranking TBD |
 | **Analytics Dashboard** | 🟡 Partial | Platform-level insights (inquiry volume, top schools) |
 | **Locality SEO Management** | 🟡 Planned | Admin controls for SEO page content |
@@ -340,11 +340,11 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 **Goal:** Make the platform production-safe for Pune pilot launch.
 
 **Must-Have:**
-- [ ] Backend authentication + session management (OTP or JWT)
-- [ ] Server-side role-based access control (RBAC)
-- [ ] API rate limiting + spam protection for inquiries
-- [ ] Expand inquiry schema: add `area` and `preferredTiming` fields
-- [ ] Event logging for audit trail (leads, reviews, admin actions)
+- [x] Backend authentication + session management (OTP or JWT)
+- [x] Server-side role-based access control (RBAC)
+- [x] API rate limiting + spam protection for inquiries
+- [x] Expand inquiry schema: add `area` and `preferredTiming` fields
+- [x] Event logging for audit trail (leads, reviews, admin actions)
 
 **Exit Criteria:** APIs are secured, inquiry throttling active, core CRUD flows work with auth.
 
@@ -352,11 +352,11 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 **Goal:** Deliver the core marketplace differentiator.
 
 **Must-Have:**
-- [ ] Add latitude/longitude columns to schools table
-- [ ] PostGIS extension setup + ST_DWithin radius queries
-- [ ] Implement ranking v1: distance + rating + review_count + verified + premium weight
+- [x] Add latitude/longitude columns to schools table
+- [x] PostGIS extension setup + ST_DWithin radius queries
+- [x] Implement ranking v1: distance + rating + review_count + verified + premium weight
 - [ ] Geolocation consent flow + "near me" entry point on homepage
-- [ ] Google Maps integration on school profiles
+- [x] Google Maps integration on school profiles
 - [ ] Test with seeded Pune locality data
 
 **Exit Criteria:** Near-me and radius searches work deterministically with proper ranking.
@@ -365,11 +365,11 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 **Goal:** Build conversion-driving trust signals.
 
 **Must-Have:**
-- [ ] Expand verification model: phone/business/location/premium flags
-- [ ] Enforce review eligibility (only post-inquiry/enrollment)
-- [ ] Implement abuse report workflow + moderation queue
-- [ ] Surface verification badges in search results and rankings
-- [ ] Admin moderation dashboard
+- [x] Expand verification model: phone/business/location/premium flags
+- [x] Enforce review eligibility (only post-inquiry/enrollment)
+- [x] Implement abuse report workflow + moderation queue
+- [x] Surface verification badges in search results and rankings
+- [x] Admin moderation dashboard
 
 **Exit Criteria:** Ineligible reviews are blocked server-side; abuse reports are actionable.
 
@@ -377,10 +377,10 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 **Goal:** Improve conversion quality and school response.
 
 **Must-Have:**
-- [ ] Attach channel metadata to inquiries (WhatsApp/callback/call/form)
+- [x] Attach channel metadata to inquiries (WhatsApp/callback/call/form)
 - [ ] Notification pipeline (start with email + click-to-chat; queue architecture ready for SMS)
 - [ ] Response-time tracking for schools
-- [ ] Lead status workflow (new → contacted → converted → lost)
+- [x] Lead status workflow (new → contacted → converted → lost)
 
 **Exit Criteria:** Schools get near-real-time lead notifications; every lead has channel/status metadata.
 
@@ -389,7 +389,7 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 
 **Must-Have:**
 - [ ] Programmatic SEO templates for Pune localities + use-cases
-- [ ] Metadata/canonical strategy + structured data (FAQ, breadcrumb, local business schema)
+- [x] Metadata/canonical strategy + structured data (FAQ, breadcrumb, local business schema)
 - [ ] Admin tooling for SEO page content management
 - [ ] Guide/comparison page templates
 
@@ -400,9 +400,9 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 
 **Must-Have:**
 - [ ] Listing tiers: basic (free) / featured (Rs 999-2999/mo) / premium (Rs 4999/mo)
-- [ ] Premium ranking logic and sponsored placement inventory
+- [ ] Premium ranking logic and sponsored placement inventory (premium rank boost done; sponsored inventory not yet)
 - [ ] Admin control plane for featured slots and campaign windows
-- [ ] School-side subscription status visibility
+- [x] School-side subscription status visibility
 
 **Exit Criteria:** Marketplace can run free and paid listings; premium visibility is configurable and auditable.
 
@@ -715,26 +715,25 @@ Current single-branch design naturally extends to this model.
 ## 8. Current Implementation Status
 
 ### What's Working
-✅ Frontend routes: home, search, school detail, locality detail, about, contact, auth  
-✅ School dashboard routes: overview, leads, profile, packages, reviews, analytics  
-✅ Admin routes: overview, schools, reviews, localities, users (placeholder)  
-✅ REST API endpoints for all core modules (health, schools, localities, reviews, inquiries, packages, stats)  
-✅ Database entities and schema in PostgreSQL  
-✅ Zod validation pattern with generated schemas from OpenAPI  
-✅ TailwindCSS + ShadCN component library + Framer Motion animations  
+✅ Real auth: Sanctum tokens with expiry, password reset, deactivation; registration is School (owner) or Learner; managers invite-only  
+✅ Server-side RBAC via `App\Support\SchoolAccess` (school isolation, owner vs manager, instructor scope) with fail-closed `BelongsToSchool`  
+✅ Append-only audit log (model guard + PostgreSQL trigger)  
+✅ PostGIS geo search with SQL ranking/pagination, compare API, Google Maps (lazy), JSON-LD  
+✅ Review eligibility, abuse reports, admin moderation and school verification workflow  
+✅ School, instructor, learner and admin portals backed by the API (no mock pages)  
+✅ Private document uploads with 5-minute signed download links (`DOCUMENTS_DISK`)  
+✅ DPDP: server-side consent records, data-subject requests, contact inbox, `driveiq:retention` (dry run by default)  
+✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build in CI  
 
 ### Demo/Non-Production Behaviors
-⚠️ Frontend-only auth via Zustand role switching (no real backend sessions)  
-⚠️ API endpoints are not protected by server-side auth/RBAC  
-⚠️ Demo school context in dashboard (fixed assumptions)  
-⚠️ Review eligibility not enforced server-side  
-⚠️ Geo-ranking logic not implemented  
-⚠️ Notification pipeline not built  
-⚠️ Rate limiting and spam controls absent  
+⚠️ Mail defaults to the `log` driver; configure `MAIL_*` before launch (password reset, invites, review links)  
+⚠️ Notifications are in-app only (no SMS/WhatsApp automation)  
+⚠️ Some API client types were added by hand; regenerate from an OpenAPI spec  
+⚠️ Demo accounts from `make seed` use `password123`; never seed production  
 
 ### Tech Stack Reality vs PRD
 **PRD proposed:** Next.js + Laravel + Sanctum + Redis queue  
-**Current implementation:** React + Vite + Laravel + Drizzle/Postgres  
+**Current implementation:** React + Vite + Laravel + PostgreSQL/PostGIS  
 **Recommendation:** Continue current stack for MVP speed (replatforming to Next.js would add 2-3x timeline).
 
 ---
@@ -994,7 +993,7 @@ public function test_user_can_only_see_own_schools_learners()
 
 **Project Owner:** Ratnesh (ratnesh.k.gupta@icloud.com)  
 **Repository:** `/Volumes/RatneshED/Projects/Agies/driveiq-driving-school-marketplace/`  
-**Current Phase:** Phase 0 — Auth & Security Foundation  
+**Current Phase:** Remediation M1–M4 done; next: lead engine & notifications  
 **Target Launch:** Marketplace MVP Week 12, Operations MVP Week 18 (see PROJECT-PLAN.md)
 
 ---

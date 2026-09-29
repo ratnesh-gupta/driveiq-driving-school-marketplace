@@ -8,7 +8,7 @@ Learners discover and compare schools; school owners manage leads, packages, ins
 
 | Layer | Tech |
 |-------|------|
-| Backend API | Laravel 11, PHP 8.3, Sanctum |
+| Backend API | Laravel 13, PHP 8.3, Sanctum |
 | Database | PostgreSQL 16 + PostGIS |
 | Cache / queue | Redis 7 |
 | Frontend | React 19, TypeScript, Vite, pnpm, shadcn/ui |
@@ -152,13 +152,31 @@ pnpm install && pnpm dev
 
 ## Roles & portals
 
-| Role | Path | Focus |
-|------|------|--------|
-| Platform admin | `/admin` | Schools, reviews, platform analytics |
-| School owner/manager | `/dashboard` | Leads, learners, instructors, schedules, payments, packages |
-| Instructor | `/instructor` | Sessions, attendance, messages |
-| Learner | `/learner` | Progress, sessions, messages |
-| Public | `/`, `/search` | Discover & compare schools |
+| Role | Path | How the account is created | Focus |
+|------|------|----------------------------|-------|
+| Platform admin | `/admin` | `make artisan CMD="driveiq:create-admin you@example.com"` (no self-registration) | Schools & verification, reviews, users, data requests, contact messages, analytics |
+| School owner | `/dashboard` | Registers as "School" | Everything for their school, incl. inviting/removing managers and deleting packages/instructors |
+| School manager | `/dashboard` | Invited by the owner (optional), accepts via email link | Leads, learners, instructors, schedules, vehicles, payments (not team management or deletes above) |
+| Instructor | `/instructor` | Login created by their school | Assigned sessions, attendance, progress of assigned learners, own documents |
+| Learner | `/learner` | Registers as "Learner"; linked when a school enrols them | Progress, sessions, documents, messages, review their school |
+| Public | `/`, `/search` | — | Discover & compare schools, enquire, review via inquiry link |
+
+## Configuration
+
+Key settings beyond the database (see `backend/.env.example` and `frontend/.env.example`):
+
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `FRONTEND_URL` | backend | Base URL used in password-reset, invite and review links |
+| `SANCTUM_EXPIRATION` | backend | API token lifetime in minutes (default 10080 = 7 days) |
+| `MAIL_MAILER`, `MAIL_*` | backend | Defaults to `log`; set a real mailer before launch (reset, invite and review emails) |
+| `DOCUMENTS_DISK` | backend | Disk for private learner/instructor/vehicle documents (`local` = `storage/app/private`; use an S3/Spaces disk in production) |
+| `RETENTION_EXECUTE` | backend | `true` lets the daily `driveiq:retention` job delete expired data; otherwise it only reports |
+| `RETENTION_LEGAL_HOLD_SCHOOLS` | backend | Comma-separated school ids excluded from retention deletes |
+| `VITE_API_BASE_URL` | frontend | API origin, with or without `/api` |
+| `VITE_GOOGLE_MAPS_API_KEY` | frontend | Enables maps on school pages and the search map view; without it only a link to Google Maps is shown |
+
+The scheduler (`php artisan schedule:work`, or cron running `schedule:run`) runs token pruning and the retention report daily.
 
 ## Documentation
 
