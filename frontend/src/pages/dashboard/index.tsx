@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetSchoolStats, useListInquiries } from "@/api-client";
+import { useGetSchoolStats, useListInquiries, getGetSchoolStatsQueryKey, getListInquiriesQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { TrendingUp, Users, Star, MessageCircle, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -26,8 +26,8 @@ function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.Elemen
 
 export default function DashboardHomePage() {
   const schoolId = useSchoolId();
-  const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId } });
-  const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId } });
+  const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId, queryKey: getGetSchoolStatsQueryKey(schoolId!) } });
+  const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) } });
 
   const recentInquiries = (inquiries || []).slice(0, 5);
 

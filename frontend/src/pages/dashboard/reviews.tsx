@@ -21,7 +21,7 @@ export default function DashboardReviewsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const schoolId = useSchoolId();
-  const { data: reviews, isLoading } = useListReviews({ schoolId: schoolId! }, { query: { enabled: !!schoolId } });
+  const { data: reviews, isLoading } = useListReviews({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey({ schoolId: schoolId! }) } });
   const updateReview = useUpdateReview();
   const deleteReview = useDeleteReview();
 

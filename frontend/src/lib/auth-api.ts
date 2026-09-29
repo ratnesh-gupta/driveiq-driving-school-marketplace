@@ -89,7 +89,8 @@ export async function registerApi(payload: {
 
   if (!res.ok) await handleError(res, "Registration failed");
   const text = await res.text();
-  return text ? JSON.parse(text) : {};
+  if (!text) throw new Error("Empty response from server");
+  return JSON.parse(text) as AuthResponse;
 }
 
 export async function loginApi(payload: { email: string; password: string }): Promise<AuthResponse> {
@@ -101,7 +102,8 @@ export async function loginApi(payload: { email: string; password: string }): Pr
 
   if (!res.ok) await handleError(res, "Invalid credentials");
   const text = await res.text();
-  return text ? JSON.parse(text) : {};
+  if (!text) throw new Error("Empty response from server");
+  return JSON.parse(text) as AuthResponse;
 }
 
 export async function meApi(token: string): Promise<{ user: AuthUser; schoolId: number | null }> {

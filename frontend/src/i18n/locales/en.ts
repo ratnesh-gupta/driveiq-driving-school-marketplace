@@ -184,4 +184,7 @@ const en = {
 } as const;
 
 export default en;
-export type TranslationTree = typeof en;
+/** Same key shape as `en`, but any string value (other locales translate the leaves). */
+type Widen<T> = { readonly [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };
+
+export type TranslationTree = Widen<typeof en>;
