@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
-use App\Models\School;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +13,7 @@ class VehicleController extends Controller
 {
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -29,7 +28,7 @@ class VehicleController extends Controller
 
     public function store(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -67,7 +66,7 @@ class VehicleController extends Controller
         if (! $vehicle) {
             return response()->json(['message' => 'Vehicle not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $vehicle->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $vehicle->school_id)) {
             return $deny;
         }
 
@@ -111,7 +110,7 @@ class VehicleController extends Controller
         if (! $vehicle) {
             return response()->json(['message' => 'Vehicle not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $vehicle->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $vehicle->school_id)) {
             return $deny;
         }
 
@@ -156,18 +155,5 @@ class VehicleController extends Controller
             'year' => $v->year,
             'notes' => $v->notes,
         ];
-    }
-
-    private function authSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-        $user = $request->user();
-        if ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === $schoolId)) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

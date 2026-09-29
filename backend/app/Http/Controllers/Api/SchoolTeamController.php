@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
-use App\Models\School;
 use App\Models\SchoolAdmin;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +15,7 @@ class SchoolTeamController extends Controller
 {
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchoolAccess($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -42,7 +41,7 @@ class SchoolTeamController extends Controller
 
     public function invite(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchoolAccess($request, $schoolId, ownerOnly: true)) {
+        if ($deny = $this->access()->school($request, $schoolId, ownerOnly: true)) {
             return $deny;
         }
 
@@ -123,7 +122,7 @@ class SchoolTeamController extends Controller
 
     public function remove(Request $request, int $schoolId, int $memberId): JsonResponse
     {
-        if ($deny = $this->authorizeSchoolAccess($request, $schoolId, ownerOnly: true)) {
+        if ($deny = $this->access()->school($request, $schoolId, ownerOnly: true)) {
             return $deny;
         }
 
@@ -155,40 +154,5 @@ class SchoolTeamController extends Controller
         AuditLog::log('remove_team', 'SchoolAdmin', $member->id, ['status' => 'active'], ['status' => 'revoked']);
 
         return response()->json(null, 204);
-    }
-
-    private function authorizeSchoolAccess(Request $request, int $schoolId, bool $ownerOnly = false): ?JsonResponse
-    {
-        $user = $request->user();
-
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        if ($user->isAdmin()) {
-            return null;
-        }
-
-        if ((int) $user->school_id !== $schoolId) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        if ($ownerOnly) {
-            $isOwner = SchoolAdmin::withoutGlobalScope('school')
-                ->where('school_id', $schoolId)
-                ->where('user_id', $user->id)
-                ->where('role', 'owner')
-                ->where('status', 'active')
-                ->exists();
-
-            // Fallback: school.user_id is the legacy owner
-            $legacyOwner = School::where('id', $schoolId)->where('user_id', $user->id)->exists();
-
-            if (! $isOwner && ! $legacyOwner) {
-                return response()->json(['message' => 'Only school owners can manage the team'], 403);
-            }
-        }
-
-        return null;
     }
 }

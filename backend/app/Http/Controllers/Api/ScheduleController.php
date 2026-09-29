@@ -8,7 +8,6 @@ use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\LeaveRequest;
 use App\Models\Schedule;
-use App\Models\School;
 use App\Services\ScheduleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +18,7 @@ class ScheduleController extends Controller
 
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -68,7 +67,7 @@ class ScheduleController extends Controller
 
     public function store(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -115,7 +114,7 @@ class ScheduleController extends Controller
         if (! $schedule) {
             return response()->json(['message' => 'Schedule not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $schedule->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $schedule->school_id)) {
             return $deny;
         }
 
@@ -164,7 +163,7 @@ class ScheduleController extends Controller
         if (! $schedule) {
             return response()->json(['message' => 'Schedule not found'], 404);
         }
-        if ($deny = $this->authSchoolOrInstructor($request, $schedule)) {
+        if ($deny = $this->access()->schedule($request, $schedule)) {
             return $deny;
         }
 
@@ -210,7 +209,7 @@ class ScheduleController extends Controller
 
     public function listLeave(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -235,7 +234,7 @@ class ScheduleController extends Controller
 
     public function requestLeave(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -278,7 +277,7 @@ class ScheduleController extends Controller
         if (! $leave) {
             return response()->json(['message' => 'Leave request not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $leave->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $leave->school_id)) {
             return $deny;
         }
 
@@ -322,40 +321,5 @@ class ScheduleController extends Controller
                 'markedAt' => $s->attendance->marked_at?->toISOString(),
             ] : null,
         ];
-    }
-
-    private function authSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-        $user = $request->user();
-        if ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === $schoolId)) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
-    }
-
-    private function authSchoolOrInstructor(Request $request, Schedule $schedule): ?JsonResponse
-    {
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-        if ($user->isSchool() && (int) $user->school_id === (int) $schedule->school_id) {
-            return null;
-        }
-        if ($user->isInstructor()) {
-            $owns = Instructor::withoutGlobalScope('school')
-                ->where('user_id', $user->id)
-                ->where('id', $schedule->instructor_id)
-                ->exists();
-            if ($owns) {
-                return null;
-            }
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

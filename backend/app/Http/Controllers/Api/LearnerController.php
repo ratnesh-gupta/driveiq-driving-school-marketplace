@@ -11,7 +11,6 @@ use App\Models\Learner;
 use App\Models\LearnerAssignmentHistory;
 use App\Models\LearnerDocument;
 use App\Models\Schedule;
-use App\Models\School;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\NotificationService;
@@ -28,7 +27,7 @@ class LearnerController extends Controller
 
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -48,7 +47,7 @@ class LearnerController extends Controller
 
     public function store(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -66,7 +65,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Inquiry not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $inquiry->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $inquiry->school_id)) {
             return $deny;
         }
 
@@ -131,7 +130,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -146,7 +145,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -169,7 +168,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -253,7 +252,7 @@ class LearnerController extends Controller
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -272,7 +271,7 @@ class LearnerController extends Controller
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchoolOrLearner($request, $learner)) {
+        if ($deny = $this->access()->learner($request, $learner, allowSelf: true)) {
             return $deny;
         }
 
@@ -304,7 +303,7 @@ class LearnerController extends Controller
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -562,34 +561,5 @@ class LearnerController extends Controller
             'verifiedAt' => $d->verified_at?->toISOString(),
             'notes' => $d->notes,
         ];
-    }
-
-    private function authSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-        $user = $request->user();
-        if ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === $schoolId)) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
-    }
-
-    private function authSchoolOrLearner(Request $request, Learner $learner): ?JsonResponse
-    {
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-        if ($user->isSchool() && (int) $user->school_id === (int) $learner->school_id) {
-            return null;
-        }
-        if ($user->role === 'learner' && (int) $user->id === (int) $learner->user_id) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

@@ -17,7 +17,7 @@ class InstructorController extends Controller
 {
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId, allowInstructor: true)) {
             return $deny;
         }
 
@@ -38,7 +38,7 @@ class InstructorController extends Controller
 
     public function store(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId, allowInstructor: true)) {
             return $deny;
         }
 
@@ -129,7 +129,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->authorizeSchool($request, (int) $instructor->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
             return $deny;
         }
 
@@ -144,7 +144,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->authorizeSchool($request, (int) $instructor->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
             return $deny;
         }
 
@@ -221,7 +221,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->authorizeSchool($request, (int) $instructor->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
             return $deny;
         }
 
@@ -283,7 +283,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->authorizeSchool($request, (int) $instructor->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
             return $deny;
         }
 
@@ -304,7 +304,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->authorizeSchool($request, (int) $instructor->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
             return $deny;
         }
 
@@ -336,7 +336,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->authorizeSchool($request, (int) $instructor->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
             return $deny;
         }
 
@@ -442,28 +442,5 @@ class InstructorController extends Controller
             'notes' => $d->notes,
             'createdAt' => $d->created_at?->toISOString(),
         ];
-    }
-
-    private function authorizeSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            return null;
-        }
-
-        if ($user->role === 'instructor' && (int) $user->school_id === $schoolId) {
-            return null;
-        }
-
-        if ($user->isSchool() && (int) $user->school_id === $schoolId) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

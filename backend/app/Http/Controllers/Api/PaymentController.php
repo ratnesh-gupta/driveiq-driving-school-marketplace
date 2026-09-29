@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Payment;
-use App\Models\School;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +17,7 @@ class PaymentController extends Controller
 
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -35,7 +34,7 @@ class PaymentController extends Controller
 
     public function purchasePackage(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -79,7 +78,7 @@ class PaymentController extends Controller
         if (! $payment) {
             return response()->json(['message' => 'Payment not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $payment->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $payment->school_id)) {
             return $deny;
         }
 
@@ -102,7 +101,7 @@ class PaymentController extends Controller
         if (! $payment) {
             return response()->json(['message' => 'Payment not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $payment->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $payment->school_id)) {
             return $deny;
         }
 
@@ -138,18 +137,5 @@ class PaymentController extends Controller
             'createdAt' => $p->created_at?->toISOString(),
             'notes' => $p->notes,
         ];
-    }
-
-    private function authSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-        $user = $request->user();
-        if ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === $schoolId)) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

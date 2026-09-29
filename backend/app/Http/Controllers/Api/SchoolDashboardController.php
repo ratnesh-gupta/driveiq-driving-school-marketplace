@@ -14,7 +14,7 @@ class SchoolDashboardController extends Controller
 {
     public function show(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -118,7 +118,7 @@ class SchoolDashboardController extends Controller
 
     public function auditLogs(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -139,23 +139,5 @@ class SchoolDashboardController extends Controller
             ]);
 
         return response()->json($logs);
-    }
-
-    private function authorizeSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-
-        if ((int) $user->school_id !== $schoolId) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        return null;
     }
 }
