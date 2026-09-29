@@ -35,7 +35,13 @@ class SchoolResource extends JsonResource
             'locationVerified' => (bool) ($this->location_verified ?? false),
             'premiumVerified' => (bool) ($this->premium_verified ?? false),
             'planCode' => $this->plan_code ?? 'basic',
-            'isSponsored' => (bool) ($this->is_sponsored ?? false),
+            // Listing tier (DIQ-805). Paid placement is always labelled:
+            // "Sponsored" for top-placement plans and campaigns, "Featured"
+            // for the Featured plan's boost and highlight.
+            'listingTier' => $this->plan_code ?? 'basic',
+            'isSponsored' => (bool) ($this->top_placement ?? false),
+            'isFeatured' => ($this->plan_code ?? 'basic') === 'featured',
+            'isPinned' => $this->when(isset($this->is_pinned), fn () => (bool) $this->is_pinned),
             'hasPickup' => (bool) $this->has_pickup,
             'womenInstructor' => (bool) $this->women_instructor,
             'weekendClasses' => (bool) $this->weekend_classes,

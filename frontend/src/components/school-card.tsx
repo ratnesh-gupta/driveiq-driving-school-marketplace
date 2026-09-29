@@ -33,7 +33,11 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
   return (
     <div className="flex flex-col h-full">
       <Link href={`/school/${school.slug}`} className="flex-1 min-h-0">
-        <Card className="group cursor-pointer overflow-hidden transition-all hover:shadow-md h-full flex flex-col">
+        <Card
+          className={`group cursor-pointer overflow-hidden transition-all hover:shadow-md h-full flex flex-col ${
+            school.isSponsored ? "ring-2 ring-amber-400/70" : school.isFeatured ? "ring-2 ring-primary/40" : ""
+          }`}
+        >
           <div className="aspect-[4/3] w-full relative bg-muted overflow-hidden">
             {school.imageUrl ? (
               <img
@@ -44,6 +48,17 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground">
                 <Car className="h-12 w-12 opacity-20" />
+              </div>
+            )}
+            {/* Paid placement is always disclosed (DIQ-805). */}
+            {(school.isSponsored || school.isFeatured) && (
+              <div className="absolute top-2 left-2">
+                <Badge
+                  className={school.isSponsored ? "bg-amber-500 text-white border-transparent" : "bg-primary text-primary-foreground border-transparent"}
+                  data-testid={`badge-tier-${school.id}`}
+                >
+                  {school.isSponsored ? "Sponsored" : "Featured"}
+                </Badge>
               </div>
             )}
             <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
