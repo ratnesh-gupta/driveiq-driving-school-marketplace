@@ -183,8 +183,29 @@ Two background processes are required outside tests (both are services in `docke
   - unanswered-lead reminders (`driveiq:lead-reminders`), every 15 minutes
   - public reply-time badges (`driveiq:response-badges`), hourly
   - token pruning and the retention report, daily
+  - plan lifecycle (`driveiq:subscriptions`): trial/plan ending reminders and expiry, daily
 
 Schools choose who is alerted about new leads, and when to be reminded, at `/dashboard/settings`.
+
+## Plans & billing
+
+| | Basic (free) | Featured Rs 1,999/mo | Premium Rs 4,999/mo | Enterprise Rs 14,999/mo |
+|---|---|---|---|---|
+| Listing, leads, lead engine, reviews, messages, team, settings | ✅ | ✅ | ✅ | ✅ |
+| Learners, learner documents, lead → learner conversion | read-only | ✅ | ✅ | ✅ |
+| Instructors, schedules, vehicles, payments, advanced analytics | read-only | read-only | ✅ | ✅ |
+| Search visibility | standard | ranking boost, "Featured" card | "Sponsored" top slots (capped), homepage | as Premium |
+
+- Every school gets a 30-day trial of Premium **features** (not paid visibility). When it ends, locked modules become read-only; no data is deleted.
+- The owner requests an invoice at `/dashboard/billing` (GST added, optional GSTIN) and pays by UPI or bank transfer. An admin records the payment (UTR) in `/admin/billing`, which activates or extends the plan.
+- Admins manage sponsored slot counts and campaign windows (top of search, homepage, one locality) in `/admin/billing`.
+- Configuration (`backend/.env`):
+  - `PLANS_ENFORCE`: `false` turns gating off.
+  - `PLAN_TRIAL_DAYS`.
+  - `BILLING_GST_RATE`, `BILLING_DUE_DAYS`.
+  - `BILLING_SELLER_NAME`, `BILLING_SELLER_ADDRESS`, `BILLING_GSTIN`, `BILLING_EMAIL`.
+  - `BILLING_UPI_ID`, `BILLING_BANK_NAME`, `BILLING_BANK_ACCOUNT_NAME`, `BILLING_BANK_ACCOUNT_NUMBER`, `BILLING_BANK_IFSC`.
+- The tier matrix itself lives in `backend/config/plans.php`.
 
 ## Documentation
 

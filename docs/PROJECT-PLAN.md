@@ -102,6 +102,7 @@ _Updated 2026-09-29 after remediation milestones M1–M4 (PRs #23, #24, #25 and 
 - Operations modules: learners, instructors, vehicles, schedules/attendance, progress and driving tests, payments, subscriptions, messaging, notifications, analytics.
 - Private document uploads (learner / instructor / vehicle) on `DOCUMENTS_DISK`, opened only through 5-minute signed links.
 - DPDP: server-side consent records, data-subject requests with consent history, contact inbox, `driveiq:retention` job (dry run unless enabled).
+- Monetization (M6): tier matrix in `config/plans.php` (Basic free: listing + leads; Featured: + learners/documents; Premium/Enterprise: + instructors, schedules, vehicles, payments, advanced analytics); locked modules are read-only (402 on writes); 30-day Premium-feature trial for every school; manual GST invoices paid by UPI/bank and settled by an admin; capped, always-labelled sponsored slots and admin campaign windows; admin console with MRR/ARR, churn, trials and slot use; daily plan reminders/expiry.
 - Lead engine (M5): one lifecycle (New → Contacted → Follow-up → Interested → Converted / Lost), queued email to owner + managers on each new lead (per-school settings), one reminder for unanswered leads, first-response tracking with median / within-1h metrics, notes with follow-up dates and a lead timeline, public "usually replies within" badge.
 - PHPUnit on PostgreSQL/PostGIS in CI (150+ tests) and Pint lint.
 
@@ -118,6 +119,7 @@ _Updated 2026-09-29 after remediation milestones M1–M4 (PRs #23, #24, #25 and 
 | "Near me" entry point on the homepage (search page has it) | 1 |
 | SMS / WhatsApp API delivery (email + in-app done; `NewLeadNotification::via()` is the hook) | Lead engine |
 | Lead auto-assignment to a specific manager | Lead engine |
+| Online plan payments (Razorpay checkout + webhook); GST e-invoicing (IRN) | Monetization |
 | Training-record and account erasure automation (retention job covers leads, messages, contact, closed requests) | DPDP |
 | OpenAPI spec regeneration (several client types were added by hand) | Tooling |
 | Portal pages outside navigation are English-only | i18n |
@@ -495,8 +497,8 @@ Schools can manage profile, settings, and admin team end-to-end. Training bookin
 ### Scope
 
 #### 4.1 Subscription Tiers
-- [ ] `subscriptions` table: school_id, plan, status, starts_at, expires_at, auto_renew
-- [ ] `plans` table: name, price, features (JSON), limits
+- [x] `subscriptions` table: school_id, plan, status, starts_at, expires_at, auto_renew
+- [x] `plans` table: name, price, features (JSON), limits
 
 | Tier | Price/month | Features |
 |------|------------|----------|
@@ -506,20 +508,20 @@ Schools can manage profile, settings, and admin team end-to-end. Training bookin
 | Enterprise | Rs 14,999+ | Multi-branch, fleet management, advanced reporting, API access |
 
 #### 4.2 Listing Tier Logic
-- [ ] Free listings: appear in search with standard ranking
-- [ ] Featured listings: ranking boost, highlighted card in search
-- [ ] Premium listings: top placement, sponsored badge, homepage featured section
+- [x] Free listings: appear in search with standard ranking
+- [x] Featured listings: ranking boost, highlighted card in search
+- [x] Premium listings: top placement, sponsored badge, homepage featured section
 
 #### 4.3 Premium Ranking Controls
-- [ ] Admin control plane for featured inventory (how many sponsored slots per page)
-- [ ] Campaign windows (featured placement for X days)
-- [ ] School-side subscription status visibility + renewal reminders
+- [x] Admin control plane for featured inventory (how many sponsored slots per page)
+- [x] Campaign windows (featured placement for X days)
+- [x] School-side subscription status visibility + renewal reminders
 
 #### 4.4 Admin Monetization Dashboard
-- [ ] Active subscriptions by tier
-- [ ] Revenue tracking (MRR, churn)
-- [ ] Expiring subscriptions alerts
-- [ ] Featured slot utilization
+- [x] Active subscriptions by tier
+- [x] Revenue tracking (MRR, churn)
+- [x] Expiring subscriptions alerts
+- [x] Featured slot utilization
 
 ### Exit Criteria
 Premium visibility logic operational; free + paid listing states both work; admin can manage inventory.
