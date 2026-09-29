@@ -49,6 +49,7 @@ class AuthorizationTest extends TestCase
             'name' => 'Lead One',
             'phone' => '9111111111',
             'status' => 'pending',
+            'vehicle_type' => 'car',
         ]);
 
         $inquiry2 = Inquiry::withoutGlobalScope('school')->create([
@@ -56,6 +57,7 @@ class AuthorizationTest extends TestCase
             'name' => 'Lead Two',
             'phone' => '9222222222',
             'status' => 'pending',
+            'vehicle_type' => 'car',
         ]);
 
         Sanctum::actingAs($user1);
@@ -76,6 +78,7 @@ class AuthorizationTest extends TestCase
             'name' => 'Other Lead',
             'phone' => '9333333333',
             'status' => 'pending',
+            'vehicle_type' => 'car',
         ]);
 
         Sanctum::actingAs($user1);
@@ -127,7 +130,7 @@ class AuthorizationTest extends TestCase
         $response = $this->postJson('/api/auth/register', [
             'name' => 'New Driving School',
             'email' => 'newschool@example.com',
-            'password' => 'password123',
+            'password' => 'Password123',
             'role' => 'school',
         ])->assertCreated();
 

@@ -82,7 +82,7 @@ class LearnerProgressTest extends TestCase
     public function test_other_school_cannot_view_progress(): void
     {
         ['learner' => $learner] = $this->seedFixtures();
-        $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
+        $other = $this->otherSchoolUser();
 
         Sanctum::actingAs($other);
 

@@ -82,7 +82,9 @@ class School extends Model
 
         foreach ($fields as $field) {
             $value = $this->getAttribute($field);
-            if (! is_null($value) && $value !== '' && $value !== []) {
+            // Numeric 0 is a column default (e.g. price_from), not a filled-in answer.
+            $isZero = (is_int($value) || is_float($value)) && $value == 0;
+            if (! is_null($value) && $value !== '' && $value !== [] && ! $isZero) {
                 $filled++;
             }
         }

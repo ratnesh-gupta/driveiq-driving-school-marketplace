@@ -96,7 +96,7 @@ class PaymentTest extends TestCase
     public function test_other_school_forbidden(): void
     {
         ['school' => $school] = $this->seedFixtures();
-        $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
+        $other = $this->otherSchoolUser();
         Sanctum::actingAs($other);
 
         $this->getJson('/api/schools/'.$school->id.'/payments')->assertForbidden();

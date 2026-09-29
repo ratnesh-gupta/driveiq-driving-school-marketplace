@@ -39,10 +39,7 @@ class MessagingTest extends TestCase
             'name' => 'Learner User',
         ]);
 
-        $otherSchoolUser = User::factory()->create([
-            'role' => 'school',
-            'school_id' => 999,
-        ]);
+        $otherSchoolUser = $this->otherSchoolUser();
 
         return compact('owner', 'school', 'instructor', 'learner', 'otherSchoolUser');
     }

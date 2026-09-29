@@ -36,12 +36,14 @@ class AnalyticsTest extends TestCase
             'name' => 'Lead One',
             'phone' => '9000000001',
             'status' => 'pending',
+            'vehicle_type' => 'car',
         ]);
         Inquiry::withoutGlobalScope('school')->create([
             'school_id' => $school->id,
             'name' => 'Lead Two',
             'phone' => '9000000002',
             'status' => 'converted',
+            'vehicle_type' => 'car',
         ]);
 
         Instructor::withoutGlobalScope('school')->create([
@@ -109,7 +111,7 @@ class AnalyticsTest extends TestCase
     public function test_other_school_forbidden(): void
     {
         ['school' => $school] = $this->seedFixtures();
-        $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
+        $other = $this->otherSchoolUser();
 
         Sanctum::actingAs($other);
         $this->getJson('/api/schools/'.$school->id.'/analytics')->assertForbidden();
