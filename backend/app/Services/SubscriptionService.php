@@ -80,6 +80,23 @@ class SubscriptionService
     }
 
     /**
+     * Paid renewal: the same plan still running is extended from its current
+     * end date; anything else starts the new plan now (DIQ-803).
+     */
+    public function extendOrAssign(int $schoolId, string $planCode, int $months, ?int $createdBy = null): Subscription
+    {
+        $current = $this->activeForSchool($schoolId);
+
+        if ($current && $current->plan?->code === $planCode && $current->expires_at) {
+            $current->update(['expires_at' => $current->expires_at->copy()->addMonths($months)]);
+
+            return $current->fresh('plan');
+        }
+
+        return $this->assign($schoolId, $planCode, $months, $createdBy);
+    }
+
+    /**
      * Start a school's feature trial (DIQ-802), once: a school that already
      * had a trial or a paid plan does not get another.
      */

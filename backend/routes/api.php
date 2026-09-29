@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ConsentController;
 use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
@@ -163,6 +164,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
 
         Route::get('/admin/subscriptions/overview', [SubscriptionController::class, 'overview']);
+        Route::get('/admin/billing/invoices', [BillingController::class, 'adminIndex']);
+        Route::post('/admin/billing/invoices/{id}/record-payment', [BillingController::class, 'recordPayment'])->whereNumber('id');
+        Route::post('/admin/billing/invoices/{id}/void', [BillingController::class, 'void'])->whereNumber('id');
         Route::post('/admin/subscriptions', [SubscriptionController::class, 'assign']);
         Route::post('/admin/subscriptions/{schoolId}/cancel', [SubscriptionController::class, 'cancel'])
             ->whereNumber('schoolId');
@@ -205,6 +209,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
             ->whereNumber(['id', 'memberId']);
 
         Route::get('/schools/{id}/entitlements', [SubscriptionController::class, 'entitlements'])->whereNumber('id');
+        Route::get('/schools/{id}/billing/invoices', [BillingController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/billing/invoices', [BillingController::class, 'store'])->whereNumber('id');
+        Route::get('/schools/{id}/billing/invoices/{invoiceId}', [BillingController::class, 'show'])
+            ->whereNumber(['id', 'invoiceId']);
+        Route::post('/schools/{id}/billing/invoices/{invoiceId}/cancel', [BillingController::class, 'cancel'])
+            ->whereNumber(['id', 'invoiceId']);
         Route::get('/schools/{id}/subscription', [SubscriptionController::class, 'showForSchool'])
             ->whereNumber('id');
 
