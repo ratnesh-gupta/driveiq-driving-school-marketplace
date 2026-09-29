@@ -9,14 +9,7 @@ import { useListInquiries, useUpdateInquiry, getListInquiriesQueryKey } from "@/
 import { useSchoolId } from "@/hooks/use-school-id";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Phone, Mail } from "lucide-react";
-const STATUS_OPTIONS = ["pending", "contacted", "enrolled", "closed"];
-
-function statusColor(status: string) {
-  if (status === "pending") return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-  if (status === "contacted") return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-  if (status === "enrolled") return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-  return "bg-muted text-muted-foreground";
-}
+import { LEAD_STATUSES, leadStatusColor, leadStatusLabel } from "@/lib/lead-status";
 
 export default function LeadsPage() {
   const { toast } = useToast();
@@ -29,8 +22,14 @@ export default function LeadsPage() {
   const updateInquiry = useUpdateInquiry();
 
   const handleStatusChange = (id: number, status: string) => {
+    let lostReason: string | undefined;
+    if (status === "lost") {
+      const reason = window.prompt("Why was this lead lost? (optional)");
+      if (reason === null) return; // cancelled
+      lostReason = reason.trim() || undefined;
+    }
     updateInquiry.mutate(
-      { id, data: { status } },
+      { id, data: { status, ...(lostReason ? { lostReason } : {}) } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) });
@@ -54,7 +53,7 @@ export default function LeadsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+            {LEAD_STATUSES.map(s => <SelectItem key={s} value={s}>{leadStatusLabel(s)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -95,9 +94,12 @@ export default function LeadsPage() {
                   </td>
                   <td className="px-4 py-3 max-w-48 truncate text-muted-foreground">{inq.message || "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColor(inq.status)}`}>
-                      {inq.status}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${leadStatusColor(inq.status)}`}>
+                      {leadStatusLabel(inq.status)}
                     </span>
+                    {inq.status === "lost" && inq.lostReason && (
+                      <div className="text-xs text-muted-foreground mt-1 max-w-40 truncate" title={inq.lostReason}>{inq.lostReason}</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(inq.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
@@ -109,8 +111,8 @@ export default function LeadsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {STATUS_OPTIONS.map(s => (
-                          <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
+                        {LEAD_STATUSES.map(s => (
+                          <SelectItem key={s} value={s} className="text-xs">{leadStatusLabel(s)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

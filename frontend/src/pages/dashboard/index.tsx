@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { leadStatusColor, leadStatusLabel } from "@/lib/lead-status";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetSchoolStats, useListInquiries, getGetSchoolStatsQueryKey, getListInquiriesQueryKey } from "@/api-client";
@@ -70,12 +71,9 @@ export default function DashboardHomePage() {
                   <div className="text-xs text-muted-foreground">{inq.vehicleType} • {inq.phone}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    inq.status === "pending" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                    inq.status === "contacted" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-                    inq.status === "enrolled" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                    "bg-muted text-muted-foreground"
-                  }`}>{inq.status}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${leadStatusColor(inq.status)}`}>
+                    {leadStatusLabel(inq.status)}
+                  </span>
                   <span className="text-xs text-muted-foreground">{new Date(inq.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>

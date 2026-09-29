@@ -22,6 +22,7 @@ class InquiryResource extends JsonResource
             'channel' => $this->channel,
             'message' => $this->message,
             'status' => $this->status,
+            'lostReason' => $this->lost_reason,
             'createdAt' => $this->created_at?->toISOString(),
         ];
     }

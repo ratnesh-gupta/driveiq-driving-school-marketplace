@@ -12,6 +12,7 @@ use App\Models\Inquiry;
 use App\Models\LeadStatusHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class InquiryController extends Controller
 {
@@ -19,7 +20,7 @@ class InquiryController extends Controller
     {
         $request->validate([
             'schoolId' => ['nullable', 'integer'],
-            'status' => ['nullable', 'string', 'in:pending,contacted,converted,closed'],
+            'status' => ['nullable', 'string', Rule::in(Inquiry::STATUSES)],
         ]);
 
         // BelongsToSchool global scope auto-filters for school users.
@@ -66,10 +67,14 @@ class InquiryController extends Controller
             return response()->json(['message' => 'Inquiry not found'], 404);
         }
 
-        $oldValues = $inquiry->only(['status', 'message', 'channel']);
+        $oldValues = $inquiry->only(['status', 'lost_reason', 'message', 'channel']);
         $previousStatus = $inquiry->status;
 
         $inquiry->fill($request->toSnakeCase());
+        // A reason only belongs to a lost lead.
+        if ($inquiry->status !== 'lost') {
+            $inquiry->lost_reason = null;
+        }
         $inquiry->save();
         $inquiry->load('school');
 
@@ -88,7 +93,7 @@ class InquiryController extends Controller
             'Inquiry',
             $inquiry->id,
             $oldValues,
-            $inquiry->only(['status', 'message', 'channel'])
+            $inquiry->only(['status', 'lost_reason', 'message', 'channel'])
         );
 
         return response()->json(new InquiryResource($inquiry));

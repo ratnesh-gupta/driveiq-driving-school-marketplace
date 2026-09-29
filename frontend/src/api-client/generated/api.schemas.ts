@@ -179,6 +179,11 @@ export interface Inquiry {
   vehicleType: string;
   /** @nullable */
   message?: string | null;
+  /** added manually, include in next OpenAPI spec regen */
+  area?: string | null;
+  preferredTiming?: string | null;
+  channel?: string | null;
+  lostReason?: string | null;
   status: string;
   createdAt: string;
 }
@@ -194,6 +199,8 @@ export interface InquiryInput {
 
 export interface InquiryUpdate {
   status?: string;
+  /** added manually, include in next OpenAPI spec regen */
+  lostReason?: string | null;
 }
 
 export interface Package {

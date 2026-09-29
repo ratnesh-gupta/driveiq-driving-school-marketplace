@@ -1,10 +1,11 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { LEAD_STATUSES, leadStatusLabel } from "@/lib/lead-status";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetSchoolStats, useListInquiries, useListReviews, getGetSchoolStatsQueryKey, getListInquiriesQueryKey, getListReviewsQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Users, Star, CheckCircle2 } from "lucide-react";
-const COLORS = ["hsl(221,83%,53%)", "hsl(258,60%,55%)", "hsl(142,71%,45%)", "hsl(38,92%,50%)"];
+const COLORS = ["hsl(38,92%,50%)", "hsl(221,83%,53%)", "hsl(239,60%,60%)", "hsl(258,60%,55%)", "hsl(142,71%,45%)", "hsl(215,14%,60%)"];
 
 export default function AnalyticsPage() {
   const schoolId = useSchoolId();
@@ -27,12 +28,10 @@ export default function AnalyticsPage() {
     { rating: "1 star", count: (reviews || []).filter(r => r.rating === 1).length },
   ];
 
-  const statusData = [
-    { name: "Pending", value: (inquiries || []).filter(i => i.status === "pending").length },
-    { name: "Contacted", value: (inquiries || []).filter(i => i.status === "contacted").length },
-    { name: "Enrolled", value: (inquiries || []).filter(i => i.status === "enrolled").length },
-    { name: "Closed", value: (inquiries || []).filter(i => i.status === "closed").length },
-  ].filter(d => d.value > 0);
+  const statusData = LEAD_STATUSES.map((s) => ({
+    name: leadStatusLabel(s),
+    value: (inquiries || []).filter(i => i.status === s).length,
+  })).filter(d => d.value > 0);
 
   return (
     <DashboardLayout>

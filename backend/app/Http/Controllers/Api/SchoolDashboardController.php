@@ -46,7 +46,7 @@ class SchoolDashboardController extends Controller
 
         $contactedOrBeyond = Inquiry::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
-            ->whereIn('status', ['contacted', 'converted', 'enrolled'])
+            ->whereIn('status', Inquiry::RESPONDED_STATUSES)
             ->count();
 
         $responseRate = $totalInquiries > 0
@@ -55,7 +55,7 @@ class SchoolDashboardController extends Controller
 
         $converted = Inquiry::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
-            ->whereIn('status', ['converted', 'enrolled'])
+            ->where('status', 'converted')
             ->count();
 
         $conversionRate = $totalInquiries > 0
