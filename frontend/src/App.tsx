@@ -16,6 +16,8 @@ import DrivingRulesPage from "@/pages/driving-rules";
 import ContactPage from "@/pages/contact";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import DataRequestPage from "@/pages/data-request";
@@ -81,6 +83,8 @@ function Router() {
       <Route path="/privacy/data-request" component={DataRequestPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
+      <Route path="/auth/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/auth/reset-password" component={ResetPasswordPage} />
       <Route path="/compare" component={ComparePage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>

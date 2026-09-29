@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/store";
 import { roleHomePath } from "@/lib/auth-api";
+import { useT } from "@/i18n/use-locale";
 import { Car, ShieldCheck, Star } from "lucide-react";
 
 function FieldError({ errors }: { errors?: string[] }) {
@@ -24,6 +25,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const { login, authError, fieldErrors, clearAuthErrors, isAuthLoading, userRole } = useAuthStore();
   const [, setLocation] = useLocation();
+  const t = useT();
+  const sessionExpired = new URLSearchParams(window.location.search).has("expired");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +72,12 @@ export default function LoginPage() {
             <p className="text-muted-foreground text-sm mt-1">Don't have an account? <Link href="/auth/register" className="text-primary hover:underline">Sign up</Link></p>
           </div>
 
+          {sessionExpired && (
+            <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-200" data-testid="text-session-expired">
+              {t("auth.sessionExpired")}
+            </p>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <Label>Email</Label>
@@ -76,7 +85,12 @@ export default function LoginPage() {
               <FieldError errors={fieldErrors.email} />
             </div>
             <div>
-              <Label>Password</Label>
+              <div className="flex items-center justify-between">
+                <Label>Password</Label>
+                <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline" data-testid="link-forgot-password">
+                  {t("auth.forgotPassword")}
+                </Link>
+              </div>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required data-testid="input-login-password" />
               <FieldError errors={fieldErrors.password} />
             </div>

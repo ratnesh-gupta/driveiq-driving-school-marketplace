@@ -55,6 +55,21 @@ export function setStoredToken(token: string | null): void {
   localStorage.setItem("driveiq_auth_token", token);
 }
 
+const PORTAL_PREFIXES = ["/dashboard", "/admin", "/instructor", "/learner"];
+
+/**
+ * A signed-in request came back 401: the token expired or was revoked.
+ * Drop it and, inside a portal, send the user to login.
+ */
+export function handleUnauthorized(): void {
+  if (!getStoredToken()) return;
+  setStoredToken(null);
+  const path = window.location.pathname;
+  if (PORTAL_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))) {
+    window.location.assign("/auth/login?expired=1");
+  }
+}
+
 async function handleError(res: Response, fallbackMessage: string): Promise<never> {
   let message = fallbackMessage;
   let fieldErrors: FieldErrors | undefined;
@@ -148,4 +163,27 @@ export function roleHomePath(role: UserRole | null | undefined): string {
     default:
       return "/search";
   }
+}
+
+export async function forgotPasswordApi(email: string): Promise<void> {
+  const res = await fetch(apiUrl("/api/auth/forgot-password"), {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) await handleError(res, "Could not send reset link");
+}
+
+export async function resetPasswordApi(payload: {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  const res = await fetch(apiUrl("/api/auth/reset-password"), {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) await handleError(res, "This reset link is invalid or has expired.");
 }

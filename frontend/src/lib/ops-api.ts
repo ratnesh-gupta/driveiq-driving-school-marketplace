@@ -1,4 +1,4 @@
-import { getStoredToken } from "@/lib/auth-api";
+import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)
@@ -21,6 +21,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   const res = await fetch(apiUrl(path), { ...init, headers });
+  if (res.status === 401 && token) handleUnauthorized();
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     try {
