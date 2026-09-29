@@ -68,7 +68,8 @@ class SchoolAccess
      * Access to one learner's record.
      *
      * @param  bool  $allowSelf  the learner themself
-     * @param  bool  $allowInstructor  instructors of the learner's school
+     * @param  bool  $allowInstructor  an instructor the learner is assigned to
+     *                                 (or who has a session with them)
      */
     public function learner(
         Request $request,
@@ -90,11 +91,27 @@ class SchoolAccess
             return null;
         }
 
-        if ($allowInstructor && $user->isInstructor() && (int) $user->school_id === (int) $learner->school_id) {
+        if ($allowInstructor && $user->isInstructor() && $this->instructorTeaches($user, $learner)) {
             return null;
         }
 
         return $this->forbidden();
+    }
+
+    /** PBAC "Assigned": the learner's assigned instructor, or one with a session for them. */
+    public function instructorTeaches(User $user, Learner $learner): bool
+    {
+        $instructorId = $this->instructorIdFor($user);
+
+        if ($instructorId === null || (int) $user->school_id !== (int) $learner->school_id) {
+            return false;
+        }
+
+        return (int) $learner->assigned_instructor_id === $instructorId
+            || Schedule::withoutGlobalScope('school')
+                ->where('learner_id', $learner->id)
+                ->where('instructor_id', $instructorId)
+                ->exists();
     }
 
     /** School staff, or the instructor the session is assigned to. */
