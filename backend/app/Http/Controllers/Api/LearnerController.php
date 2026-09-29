@@ -103,6 +103,8 @@ class LearnerController extends Controller
             'converted_from_inquiry_id' => $inquiry->id,
             'status' => 'active',
             'create_login' => (bool) ($extra['createLogin'] ?? false),
+            // Only the account that submitted this enquiry itself may be linked.
+            'link_user_id' => $inquiry->user_id,
         ], $request->user());
 
         $previous = $inquiry->status;
@@ -439,45 +441,37 @@ class LearnerController extends Controller
     /**
      * The login account to attach to a new learner record (DIQ-406), or null.
      *
-     * - A self-registered learner with no school yet is linked automatically
-     *   (matched by email), e.g. when the school converts their inquiry.
-     * - With create_login, a new learner account is created (they set a
-     *   password via "forgot password").
-     * - Any other existing account (staff, instructor, admin, another school's
-     *   learner) is never modified; asking for a login for it is rejected.
+     * - Consent: an existing learner account is linked only when that learner
+     *   submitted the converted enquiry while signed in (link_user_id), and
+     *   has no school yet. Knowing someone's email is never enough.
+     * - With create_login and no existing account, a new learner account is
+     *   created (they set a password via "forgot password").
+     * - Existing accounts are otherwise never modified; asking to create a
+     *   login for an email that already has an account is rejected.
      */
     private function learnerAccountFor(int $schoolId, array $data): ?User
     {
-        if (empty($data['email'])) {
-            return null;
-        }
-
-        $email = strtolower($data['email']);
-        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
-
-        if ($user) {
-            $linkable = $user->isLearner()
-                && ($user->school_id === null || (int) $user->school_id === $schoolId);
-
-            if ($linkable) {
+        if (! empty($data['link_user_id'])) {
+            $user = User::find($data['link_user_id']);
+            if ($user?->isLearner() && ($user->school_id === null || (int) $user->school_id === $schoolId)) {
                 if ($user->school_id === null) {
                     $user->forceFill(['school_id' => $schoolId])->save();
                 }
 
                 return $user;
             }
+        }
 
-            if (! empty($data['create_login'])) {
-                throw ValidationException::withMessages([
-                    'email' => 'This email already belongs to another DriveIQ account.',
-                ]);
-            }
-
+        if (empty($data['email']) || empty($data['create_login'])) {
             return null;
         }
 
-        if (empty($data['create_login'])) {
-            return null;
+        $email = strtolower($data['email']);
+
+        if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => 'This email already belongs to another DriveIQ account.',
+            ]);
         }
 
         return User::create([

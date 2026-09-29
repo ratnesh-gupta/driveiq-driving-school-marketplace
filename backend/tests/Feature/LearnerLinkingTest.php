@@ -39,16 +39,26 @@ class LearnerLinkingTest extends TestCase
         ]);
     }
 
-    public function test_self_registered_learner_is_linked_on_conversion_and_sees_school(): void
+    public function test_learner_who_enquired_while_signed_in_is_linked_on_conversion(): void
     {
         $registered = $this->postJson('/api/auth/register', [
             'name' => 'Asha', 'email' => 'Asha@Example.com', 'password' => 'Passw0rdX', 'role' => 'learner',
         ])->assertCreated();
         $learnerUser = User::find($registered->json('user.id'));
-        $inquiry = $this->inquiryFrom('asha@example.com');
+
+        $inquiryId = $this->withToken($registered->json('token'))->postJson('/api/inquiries', [
+            'schoolId' => $this->school->id,
+            'name' => 'Asha',
+            'phone' => '9000000123',
+            'email' => 'asha@example.com',
+            'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
+        ])->assertCreated()->json('id');
+        $this->assertDatabaseHas('inquiries', ['id' => $inquiryId, 'user_id' => $learnerUser->id]);
+        $this->app['auth']->forgetGuards();
 
         Sanctum::actingAs($this->owner);
-        $this->postJson("/api/inquiries/{$inquiry->id}/convert")->assertCreated();
+        $this->postJson("/api/inquiries/{$inquiryId}/convert")->assertCreated();
 
         $learnerUser->refresh();
         $this->assertSame($this->school->id, (int) $learnerUser->school_id);
@@ -58,6 +68,25 @@ class LearnerLinkingTest extends TestCase
 
         Sanctum::actingAs($learnerUser);
         $this->getJson('/api/learner/me')->assertOk()->assertJsonPath('learner.name', 'Asha');
+    }
+
+    public function test_knowing_a_learners_email_is_not_enough_to_link_them(): void
+    {
+        $learnerUser = User::factory()->create(['role' => 'learner', 'email' => 'unaware@example.com', 'school_id' => null]);
+
+        Sanctum::actingAs($this->owner);
+
+        // An anonymous enquiry naming their email (anyone can submit one)...
+        $inquiry = $this->inquiryFrom('unaware@example.com');
+        $this->postJson("/api/inquiries/{$inquiry->id}/convert")->assertCreated();
+
+        // ...or a learner record typed in with their email.
+        $this->postJson("/api/schools/{$this->school->id}/learners", [
+            'name' => 'Unaware', 'email' => 'unaware@example.com',
+        ])->assertCreated();
+
+        $this->assertNull($learnerUser->fresh()->school_id);
+        $this->assertSame(0, Learner::withoutGlobalScope('school')->where('user_id', $learnerUser->id)->count());
     }
 
     public function test_other_accounts_are_never_modified(): void

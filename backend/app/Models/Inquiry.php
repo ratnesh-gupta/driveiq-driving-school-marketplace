@@ -13,7 +13,7 @@ class Inquiry extends Model
     use BelongsToSchool, HasFactory;
 
     protected $fillable = [
-        'school_id', 'name', 'phone', 'email', 'vehicle_type', 'area',
+        'school_id', 'user_id', 'name', 'phone', 'email', 'vehicle_type', 'area',
         'preferred_timing', 'channel', 'message', 'status',
         'review_token_hash', 'review_token_expires_at',
     ];
