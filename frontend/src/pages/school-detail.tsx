@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { replyBadge } from "@/lib/response-time";
 import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
@@ -29,7 +30,7 @@ import {
 } from "@/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Star, MapPin, Phone, Mail, ShieldCheck, Car, CheckCircle2,
+  Star, MapPin, Phone, Mail, ShieldCheck, Car, CheckCircle2, Zap,
   Clock, MessageCircle, Users, ArrowLeft, Send, BookOpen, ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -246,6 +247,11 @@ export default function SchoolDetailPage() {
                 {school.verified && (
                   <Badge className="bg-green-500 text-white border-0">
                     <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                  </Badge>
+                )}
+                {replyBadge(school.typicalResponseMinutes) && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0" data-testid="badge-replies">
+                    <Zap className="h-3 w-3 mr-1" /> {replyBadge(school.typicalResponseMinutes)}
                   </Badge>
                 )}
                 {school.hasPickup && <Badge variant="secondary" className="bg-white/20 text-white border-0">Pickup Available</Badge>}

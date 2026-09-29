@@ -2,7 +2,8 @@ import { School } from "@/api-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Car, ShieldCheck, Columns3, Check, Navigation } from "lucide-react";
+import { Star, MapPin, Car, ShieldCheck, Columns3, Check, Navigation, Zap } from "lucide-react";
+import { replyBadge } from "@/lib/response-time";
 import { Link } from "wouter";
 import { useComparisonStore } from "@/features/comparison/stores/comparison-store";
 
@@ -49,6 +50,11 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
               {school.verified && (
                 <Badge className="bg-green-500 hover:bg-green-600 text-white border-transparent">
                   <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                </Badge>
+              )}
+              {replyBadge(school.typicalResponseMinutes) && (
+                <Badge variant="secondary" className="bg-background/90 backdrop-blur text-foreground border" data-testid={`badge-replies-${school.id}`}>
+                  <Zap className="h-3 w-3 mr-1 text-amber-500" /> {replyBadge(school.typicalResponseMinutes)}
                 </Badge>
               )}
               {distanceKm !== null && (

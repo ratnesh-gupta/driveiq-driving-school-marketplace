@@ -102,6 +102,7 @@ _Updated 2026-09-29 after remediation milestones M1–M4 (PRs #23, #24, #25 and 
 - Operations modules: learners, instructors, vehicles, schedules/attendance, progress and driving tests, payments, subscriptions, messaging, notifications, analytics.
 - Private document uploads (learner / instructor / vehicle) on `DOCUMENTS_DISK`, opened only through 5-minute signed links.
 - DPDP: server-side consent records, data-subject requests with consent history, contact inbox, `driveiq:retention` job (dry run unless enabled).
+- Lead engine (M5): one lifecycle (New → Contacted → Follow-up → Interested → Converted / Lost), queued email to owner + managers on each new lead (per-school settings), one reminder for unanswered leads, first-response tracking with median / within-1h metrics, notes with follow-up dates and a lead timeline, public "usually replies within" badge.
 - PHPUnit on PostgreSQL/PostGIS in CI (150+ tests) and Pint lint.
 
 **Frontend (React 19 + Vite + Tailwind 4), 47 pages:**
@@ -115,7 +116,8 @@ _Updated 2026-09-29 after remediation milestones M1–M4 (PRs #23, #24, #25 and 
 |-----|-------|
 | Admin review moderation has no bulk actions | 2 |
 | "Near me" entry point on the homepage (search page has it) | 1 |
-| Email/SMS notification delivery beyond in-app + mail driver config | Lead engine |
+| SMS / WhatsApp API delivery (email + in-app done; `NewLeadNotification::via()` is the hook) | Lead engine |
+| Lead auto-assignment to a specific manager | Lead engine |
 | Training-record and account erasure automation (retention job covers leads, messages, contact, closed requests) | DPDP |
 | OpenAPI spec regeneration (several client types were added by hand) | Tooling |
 | Portal pages outside navigation are English-only | i18n |
@@ -423,16 +425,16 @@ Review eligibility blocking server-side; abuse reports actionable; verification 
 - [ ] Permission enforcement per school role
 
 #### 3.3 School Settings & Configuration
-- [ ] `school_settings` table (JSON key-value per school)
-- [ ] Notification preferences (email, SMS, in-app toggles)
+- [x] `school_settings` table (JSON key-value per school)
+- [x] Notification preferences (email, in-app toggles, reminder threshold; SMS not yet delivered)
 - [ ] Lead auto-assignment rules (future)
 - [ ] Integration settings placeholder (Google Business API keys, etc.)
-- [ ] Timezone and locale settings
+- [x] Timezone and locale settings
 
 #### 3.4 School Operations Dashboard
-- [ ] Key metrics cards: total leads, inquiries this month, response rate, conversion rate
+- [x] Key metrics cards: total leads, inquiries this month, response rate, conversion rate (+ median reply time)
 - [ ] Recent activity log (new inquiries, reviews, profile views)
-- [ ] Pending tasks/actions (unresponded leads, pending reviews)
+- [x] Pending tasks/actions (unresponded leads, pending reviews)
 - [ ] Quick stats: this month vs. last month comparison
 - [ ] Profile completeness bar with "complete your profile" CTA
 
@@ -702,9 +704,9 @@ Schedules prevent conflicts; leave management operational; session history track
 ### Scope
 
 #### 7.1 Lead Conversion
-- [ ] "Convert to Learner" one-click on inquiry record
-- [ ] Auto-populate learner record from inquiry data
-- [ ] Lead status: new → contacted → interested → enrolled → converted
+- [x] "Convert to Learner" one-click on inquiry record
+- [x] Auto-populate learner record from inquiry data
+- [x] Lead status: new → contacted → follow-up → interested → converted / lost
 
 #### 7.2 Learner Profiles
 - [ ] `learners` table: school_id, name, mobile, email, gender, dob, address, emergency_contact

@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Inquiry;
 use App\Models\Review;
 use App\Models\School;
+use App\Services\LeadResponseStats;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -46,7 +47,7 @@ class SchoolDashboardController extends Controller
 
         $contactedOrBeyond = Inquiry::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
-            ->whereIn('status', ['contacted', 'converted', 'enrolled'])
+            ->whereIn('status', Inquiry::RESPONDED_STATUSES)
             ->count();
 
         $responseRate = $totalInquiries > 0
@@ -55,7 +56,7 @@ class SchoolDashboardController extends Controller
 
         $converted = Inquiry::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
-            ->whereIn('status', ['converted', 'enrolled'])
+            ->where('status', 'converted')
             ->count();
 
         $conversionRate = $totalInquiries > 0
@@ -91,6 +92,7 @@ class SchoolDashboardController extends Controller
                 'inquiriesLastMonth' => $inquiriesLastMonth,
                 'responseRate' => $responseRate,
                 'conversionRate' => $conversionRate,
+                'responseTime' => app(LeadResponseStats::class)->summary($schoolId),
                 'pendingReviews' => $pendingReviews,
                 'rating' => (float) ($school->rating ?? 0),
                 'reviewCount' => (int) ($school->review_count ?? 0),

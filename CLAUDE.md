@@ -2,7 +2,7 @@
 
 **Status:** MVP Development in Progress  
 **Target Market:** Pune, India (Initial Phase)  
-**Current Phase:** Remediation M1–M4 done (security, RBAC, geo search, uploads, DPDP); next: lead engine & notifications  
+**Current Phase:** M1–M5 done (security, RBAC, geo search, uploads, DPDP, lead engine); next: pilot launch readiness / monetization  
 **Last Updated:** 2026-09-29  
 **Master Plan:** `docs/PROJECT-PLAN.md` — single source of truth for scope, phasing, and requirements
 
@@ -300,7 +300,7 @@ Created → Verified → Active → Assigned Learners → Performance Tracking
 | Feature | Status | Notes |
 |---------|--------|-------|
 | **Profile Management** | ✅ API built | Update school info, service areas, timings |
-| **Inquiry Management** | ✅ API built | View/update inquiry status; full lead workflow TBD |
+| **Inquiry Management** | ✅ Built | Lifecycle New→Contacted→Follow-up→Interested→Converted/Lost, notes + follow-ups, timeline, response time |
 | **Package Management** | ✅ API built | Create/update courses and pricing |
 | **Reviews Management** | ✅ API built | View reviews, respond (moderation needed) |
 | **Analytics Dashboard** | 🟡 Partial | View count, inquiry count; CTR/locality breakdowns missing |
@@ -378,8 +378,8 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 
 **Must-Have:**
 - [x] Attach channel metadata to inquiries (WhatsApp/callback/call/form)
-- [ ] Notification pipeline (start with email + click-to-chat; queue architecture ready for SMS)
-- [ ] Response-time tracking for schools
+- [x] Notification pipeline (start with email + click-to-chat; queue architecture ready for SMS)
+- [x] Response-time tracking for schools
 - [x] Lead status workflow (new → contacted → converted → lost)
 
 **Exit Criteria:** Schools get near-real-time lead notifications; every lead has channel/status metadata.
@@ -723,11 +723,12 @@ Current single-branch design naturally extends to this model.
 ✅ School, instructor, learner and admin portals backed by the API (no mock pages)  
 ✅ Private document uploads with 5-minute signed download links (`DOCUMENTS_DISK`)  
 ✅ DPDP: server-side consent records, data-subject requests, contact inbox, `driveiq:retention` (dry run by default)  
+✅ Lead engine: queued new-lead emails to owner + managers, unanswered-lead reminders, response-time metrics and badges, lead notes/follow-ups/timeline  
 ✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build in CI  
 
 ### Demo/Non-Production Behaviors
 ⚠️ Mail defaults to the `log` driver; configure `MAIL_*` before launch (password reset, invites, review links)  
-⚠️ Notifications are in-app only (no SMS/WhatsApp automation)  
+⚠️ Lead alerts are email + in-app only (no SMS/WhatsApp API); emails need a queue worker and a real mailer  
 ⚠️ Some API client types were added by hand; regenerate from an OpenAPI spec  
 ⚠️ Demo accounts from `make seed` use `password123`; never seed production  
 
@@ -993,7 +994,7 @@ public function test_user_can_only_see_own_schools_learners()
 
 **Project Owner:** Ratnesh (ratnesh.k.gupta@icloud.com)  
 **Repository:** `/Volumes/RatneshED/Projects/Agies/driveiq-driving-school-marketplace/`  
-**Current Phase:** Remediation M1–M4 done; next: lead engine & notifications  
+**Current Phase:** M1–M5 done; next: pilot launch readiness / monetization  
 **Target Launch:** Marketplace MVP Week 12, Operations MVP Week 18 (see PROJECT-PLAN.md)
 
 ---

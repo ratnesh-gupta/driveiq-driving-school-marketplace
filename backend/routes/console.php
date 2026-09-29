@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\LeadResponseStats;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -46,3 +47,10 @@ Schedule::command('sanctum:prune-expired --hours=24')->daily();
 
 // DPDP retention (DIQ-606): reports daily; deletes only when RETENTION_EXECUTE=true.
 Schedule::command('driveiq:retention')->dailyAt('02:30')->withoutOverlapping();
+
+// Remind schools about leads still waiting for a first reply (DIQ-705).
+Schedule::command('driveiq:lead-reminders')->everyFifteenMinutes()->withoutOverlapping();
+
+// Public "usually replies within" badges (DIQ-708).
+Schedule::call(fn () => app(LeadResponseStats::class)->refreshSchoolBadges())
+    ->name('driveiq:response-badges')->hourly()->withoutOverlapping();

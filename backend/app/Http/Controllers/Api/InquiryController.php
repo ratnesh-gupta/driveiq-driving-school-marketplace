@@ -12,6 +12,7 @@ use App\Models\Inquiry;
 use App\Models\LeadStatusHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class InquiryController extends Controller
 {
@@ -19,12 +20,26 @@ class InquiryController extends Controller
     {
         $request->validate([
             'schoolId' => ['nullable', 'integer'],
-            'status' => ['nullable', 'string', 'in:pending,contacted,converted,closed'],
+            'status' => ['nullable', 'string', Rule::in(Inquiry::STATUSES)],
+            'followUpDue' => ['nullable', 'boolean'],
+            'sort' => ['nullable', 'string', 'in:newest,oldest_waiting'],
         ]);
 
         // BelongsToSchool global scope auto-filters for school users.
-        $query = Inquiry::with('school')
-            ->orderByDesc('created_at');
+        $query = Inquiry::with('school');
+
+        // Oldest unanswered first, so the longest-waiting leads are on top.
+        if ($request->input('sort') === 'oldest_waiting') {
+            $query->orderByRaw('first_responded_at IS NOT NULL')->orderBy('created_at');
+        } else {
+            $query->orderByDesc('created_at');
+        }
+
+        if ($request->boolean('followUpDue')) {
+            $query->whereIn('status', Inquiry::OPEN_STATUSES)
+                ->whereNotNull('next_follow_up_at')
+                ->where('next_follow_up_at', '<=', now());
+        }
 
         // Admins may still filter by schoolId explicitly.
         if ($request->filled('schoolId') && $request->user()?->isAdmin()) {
@@ -66,11 +81,21 @@ class InquiryController extends Controller
             return response()->json(['message' => 'Inquiry not found'], 404);
         }
 
-        $oldValues = $inquiry->only(['status', 'message', 'channel']);
+        $oldValues = $inquiry->only(['status', 'lost_reason', 'message', 'channel']);
         $previousStatus = $inquiry->status;
 
         $inquiry->fill($request->toSnakeCase());
+        // A reason only belongs to a lost lead; a closed lead needs no follow-up.
+        if ($inquiry->status !== 'lost') {
+            $inquiry->lost_reason = null;
+        }
+        if (! in_array($inquiry->status, Inquiry::OPEN_STATUSES, true)) {
+            $inquiry->next_follow_up_at = null;
+        }
         $inquiry->save();
+        if (in_array($inquiry->status, Inquiry::RESPONDED_STATUSES, true)) {
+            $inquiry->markResponded();
+        }
         $inquiry->load('school');
 
         if (array_key_exists('status', $request->toSnakeCase())
@@ -88,7 +113,7 @@ class InquiryController extends Controller
             'Inquiry',
             $inquiry->id,
             $oldValues,
-            $inquiry->only(['status', 'message', 'channel'])
+            $inquiry->only(['status', 'lost_reason', 'message', 'channel'])
         );
 
         return response()->json(new InquiryResource($inquiry));

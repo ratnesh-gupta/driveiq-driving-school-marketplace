@@ -36,6 +36,8 @@ export interface School {
   rating: number;
   reviewCount: number;
   verified: boolean;
+  /** added manually, include in next OpenAPI spec regen */
+  typicalResponseMinutes?: number | null;
   /** Verification flags — added manually, include in next OpenAPI spec regen */
   phoneVerified?: boolean;
   businessVerified?: boolean;
@@ -179,6 +181,14 @@ export interface Inquiry {
   vehicleType: string;
   /** @nullable */
   message?: string | null;
+  /** added manually, include in next OpenAPI spec regen */
+  area?: string | null;
+  preferredTiming?: string | null;
+  channel?: string | null;
+  lostReason?: string | null;
+  firstRespondedAt?: string | null;
+  responseSeconds?: number | null;
+  nextFollowUpAt?: string | null;
   status: string;
   createdAt: string;
 }
@@ -194,6 +204,8 @@ export interface InquiryInput {
 
 export interface InquiryUpdate {
   status?: string;
+  /** added manually, include in next OpenAPI spec regen */
+  lostReason?: string | null;
 }
 
 export interface Package {
@@ -275,6 +287,9 @@ schoolId?: number;
 export type ListInquiriesParams = {
 schoolId?: number;
 status?: string;
+/** added manually, include in next OpenAPI spec regen */
+followUpDue?: number;
+sort?: "newest" | "oldest_waiting";
 };
 
 export type ListPackagesParams = {

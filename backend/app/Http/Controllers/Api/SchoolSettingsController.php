@@ -37,8 +37,20 @@ class SchoolSettingsController extends Controller
             return $deny;
         }
 
+        // Only known keys, with typed values (DIQ-707): this JSON drives who gets
+        // notified and when, so arbitrary input is rejected.
         $data = $request->validate([
-            'settings' => ['required', 'array'],
+            'settings' => ['required', 'array:notifications,timezone,locale,lead_auto_assign'],
+            'settings.notifications' => ['sometimes', 'array:email,sms,in_app,new_inquiry,new_review,reminder_after_minutes'],
+            'settings.notifications.email' => ['sometimes', 'boolean'],
+            'settings.notifications.sms' => ['sometimes', 'boolean'],
+            'settings.notifications.in_app' => ['sometimes', 'boolean'],
+            'settings.notifications.new_inquiry' => ['sometimes', 'boolean'],
+            'settings.notifications.new_review' => ['sometimes', 'boolean'],
+            'settings.notifications.reminder_after_minutes' => ['sometimes', 'integer', 'in:0,30,60,120,240'],
+            'settings.timezone' => ['sometimes', 'timezone'],
+            'settings.locale' => ['sometimes', 'string', 'in:en-IN,hi-IN,mr-IN'],
+            'settings.lead_auto_assign' => ['sometimes', 'boolean'],
         ]);
 
         $row = SchoolSetting::withoutGlobalScope('school')

@@ -91,6 +91,7 @@ class AnalyticsService
                 'converted' => $converted,
                 'conversionRate' => $conversionRate,
                 'trend' => $trend,
+                'responseTime' => app(LeadResponseStats::class)->summary($schoolId),
             ],
             'learners' => [
                 'active' => $activeLearners,
@@ -212,7 +213,8 @@ class AnalyticsService
         $totalInquiries = Inquiry::withoutGlobalScope('school')->count();
         $converted = Inquiry::withoutGlobalScope('school')->where('status', 'converted')->count();
         $pending = Inquiry::withoutGlobalScope('school')->where('status', 'pending')->count();
-        $contacted = Inquiry::withoutGlobalScope('school')->where('status', 'contacted')->count();
+        $contacted = Inquiry::withoutGlobalScope('school')->whereIn('status', ['contacted', 'follow_up', 'interested'])->count();
+        $lost = Inquiry::withoutGlobalScope('school')->where('status', 'lost')->count();
 
         $totalLearners = Learner::withoutGlobalScope('school')->count();
         $activeLearners = Learner::withoutGlobalScope('school')->where('status', 'active')->count();
@@ -274,7 +276,12 @@ class AnalyticsService
                 'pending' => $pending,
                 'contacted' => $contacted,
                 'converted' => $converted,
+                'lost' => $lost,
                 'conversionRate' => $totalInquiries > 0 ? round($converted / $totalInquiries, 4) : 0.0,
+            ],
+            'responseTime' => [
+                'overall' => app(LeadResponseStats::class)->summary(),
+                'slowestSchools' => app(LeadResponseStats::class)->bySchool(),
             ],
             'learners' => [
                 'total' => $totalLearners,

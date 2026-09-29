@@ -198,6 +198,7 @@ const mr: TranslationTree = {
     packages: "पॅकेजेस",
     reviews: "समीक्षा",
     analytics: "विश्लेषण",
+    settings: "सेटिंग्ज",
     title: "शाळा डॅशबोर्ड",
     brand: "DriveIQ पार्टनर",
   },

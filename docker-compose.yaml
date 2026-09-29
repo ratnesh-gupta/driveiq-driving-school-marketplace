@@ -48,6 +48,39 @@ services:
     command: >
       sh -lc "composer install --no-interaction --prefer-dist && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
 
+  # Processes queued jobs (lead emails, confirmations). Started after backend
+  # has installed vendor/ into the shared volume.
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: driveiq-worker
+    depends_on:
+      - backend
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/var/www/html
+    restart: unless-stopped
+    command: >
+      sh -lc "until [ -f vendor/autoload.php ]; do sleep 2; done && php artisan queue:work --sleep=1 --tries=3"
+
+  # Runs routes/console.php (token pruning, retention report, lead reminders).
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: driveiq-scheduler
+    depends_on:
+      - backend
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/var/www/html
+    restart: unless-stopped
+    command: >
+      sh -lc "until [ -f vendor/autoload.php ]; do sleep 2; done && php artisan schedule:work"
+
   frontend:
     build:
       context: ./frontend

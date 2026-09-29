@@ -1,9 +1,13 @@
 import { motion } from "framer-motion";
+import { leadStatusColor, leadStatusLabel } from "@/lib/lead-status";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetSchoolStats, useListInquiries, getGetSchoolStatsQueryKey, getListInquiriesQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
-import { TrendingUp, Users, Star, MessageCircle, AlertCircle, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Users, Star, MessageCircle, AlertCircle, CheckCircle2, Timer, Zap, Hourglass } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchSchoolDashboard } from "@/lib/ops-api";
+import { formatDuration } from "@/lib/response-time";
 
 function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.ElementType; label: string; value: string | number; sub?: string; color: string }) {
   return (
@@ -29,6 +33,13 @@ export default function DashboardHomePage() {
   const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId, queryKey: getGetSchoolStatsQueryKey(schoolId!) } });
   const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) } });
 
+  const { data: dashboard } = useQuery({
+    queryKey: ["school-dashboard", schoolId],
+    queryFn: () => fetchSchoolDashboard(schoolId!),
+    enabled: !!schoolId,
+  });
+  const rt = dashboard?.metrics.responseTime;
+
   const recentInquiries = (inquiries || []).slice(0, 5);
 
   return (
@@ -51,6 +62,32 @@ export default function DashboardHomePage() {
         </div>
       )}
 
+      {rt && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-testid="response-time-tiles">
+          <StatCard
+            icon={Timer}
+            label="Median reply time"
+            value={formatDuration(rt.medianSeconds)}
+            sub={`Last ${rt.windowDays} days · ${rt.responded} answered`}
+            color="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+          />
+          <StatCard
+            icon={Zap}
+            label="Answered within 1 hour"
+            value={`${Math.round(rt.within1hRate * 100)}%`}
+            sub={`${Math.round(rt.within24hRate * 100)}% within 24 hours`}
+            color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          />
+          <StatCard
+            icon={Hourglass}
+            label="Waiting for a reply"
+            value={rt.awaitingReply}
+            sub={rt.awaitingReply ? "Open Leads, sorted by longest waiting" : "All caught up"}
+            color={rt.awaitingReply ? "bg-red-500/10 text-red-600 dark:text-red-400" : "bg-green-500/10 text-green-600 dark:text-green-400"}
+          />
+        </div>
+      )}
+
       <div className="rounded-xl border bg-card">
         <div className="p-5 border-b flex items-center justify-between">
           <h2 className="font-semibold">Recent Inquiries</h2>
@@ -70,12 +107,9 @@ export default function DashboardHomePage() {
                   <div className="text-xs text-muted-foreground">{inq.vehicleType} • {inq.phone}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    inq.status === "pending" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                    inq.status === "contacted" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-                    inq.status === "enrolled" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                    "bg-muted text-muted-foreground"
-                  }`}>{inq.status}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${leadStatusColor(inq.status)}`}>
+                    {leadStatusLabel(inq.status)}
+                  </span>
                   <span className="text-xs text-muted-foreground">{new Date(inq.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>

@@ -2,6 +2,9 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Models\Inquiry;
+use Illuminate\Validation\Rule;
+
 class UpdateInquiryRequest extends BaseFormRequest
 {
     public function rules(): array
@@ -15,7 +18,8 @@ class UpdateInquiryRequest extends BaseFormRequest
             'preferredTiming' => ['nullable', 'string', 'max:255'],
             'channel' => ['nullable', 'string', 'max:255'],
             'message' => ['nullable', 'string'],
-            'status' => ['sometimes', 'string', 'in:pending,contacted,converted,closed'],
+            'status' => ['sometimes', 'string', Rule::in(Inquiry::STATUSES)],
+            'lostReason' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -31,6 +35,7 @@ class UpdateInquiryRequest extends BaseFormRequest
             'channel' => 'channel',
             'message' => 'message',
             'status' => 'status',
+            'lostReason' => 'lost_reason',
         ]);
     }
 }

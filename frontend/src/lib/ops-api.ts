@@ -493,3 +493,69 @@ export function fetchMyConsents() {
 export function withdrawConsent(purpose: ConsentPurpose) {
   return request<void>(`/api/consents/${purpose}`, { method: "DELETE" });
 }
+
+// ── Lead notes & timeline (DIQ-706) ──
+
+export type LeadTimelineEvent =
+  | { type: "created"; at: string; channel?: string | null }
+  | { type: "status"; at: string; from: string | null; to: string; by: string | null }
+  | { type: "note"; id: number; at: string; body: string; followUpAt: string | null; by: string | null };
+
+export function fetchLeadTimeline(inquiryId: number) {
+  return request<{ inquiryId: number; status: string; nextFollowUpAt: string | null; events: LeadTimelineEvent[] }>(
+    `/api/inquiries/${inquiryId}/timeline`
+  );
+}
+
+export function addLeadNote(inquiryId: number, body: { body: string; followUpAt?: string }) {
+  return request<LeadTimelineEvent>(`/api/inquiries/${inquiryId}/notes`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// ── School settings (DIQ-707) ──
+
+export type SchoolSettings = {
+  notifications: {
+    email: boolean;
+    sms: boolean;
+    in_app: boolean;
+    new_inquiry: boolean;
+    new_review: boolean;
+    reminder_after_minutes: number;
+  };
+  timezone: string;
+  locale: string;
+  lead_auto_assign: boolean;
+};
+
+export function fetchSchoolSettings(schoolId: number) {
+  return request<{ schoolId: number; settings: SchoolSettings }>(`/api/schools/${schoolId}/settings`);
+}
+
+export function saveSchoolSettings(schoolId: number, settings: Partial<SchoolSettings>) {
+  return request<{ schoolId: number; settings: SchoolSettings }>(`/api/schools/${schoolId}/settings`, {
+    method: "PUT",
+    body: JSON.stringify({ settings }),
+  });
+}
+
+// ── Lead response time (DIQ-703/708) ──
+
+export type ResponseTimeSummary = {
+  windowDays: number;
+  leads: number;
+  responded: number;
+  awaitingReply: number;
+  medianSeconds: number | null;
+  averageSeconds: number | null;
+  within1hRate: number;
+  within24hRate: number;
+};
+
+export function fetchSchoolDashboard(schoolId: number) {
+  return request<{ schoolId: number; metrics: { responseTime: ResponseTimeSummary } & Record<string, unknown> }>(
+    `/api/schools/${schoolId}/dashboard`
+  );
+}

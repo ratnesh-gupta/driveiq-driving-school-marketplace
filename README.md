@@ -176,7 +176,15 @@ Key settings beyond the database (see `backend/.env.example` and `frontend/.env.
 | `VITE_API_BASE_URL` | frontend | API origin, with or without `/api` |
 | `VITE_GOOGLE_MAPS_API_KEY` | frontend | Enables maps on school pages and the search map view; without it only a link to Google Maps is shown |
 
-The scheduler (`php artisan schedule:work`, or cron running `schedule:run`) runs token pruning and the retention report daily.
+Two background processes are required outside tests (both are services in `docker-compose.yaml` and `docker-compose.prod.yaml`):
+
+- **Queue worker** (`php artisan queue:work`): sends new-lead emails, enquiry confirmations and reminders. With `QUEUE_CONNECTION=sync` they are sent inline instead.
+- **Scheduler** (`php artisan schedule:work`, or cron running `schedule:run` every minute):
+  - unanswered-lead reminders (`driveiq:lead-reminders`), every 15 minutes
+  - public reply-time badges (`driveiq:response-badges`), hourly
+  - token pruning and the retention report, daily
+
+Schools choose who is alerted about new leads, and when to be reminded, at `/dashboard/settings`.
 
 ## Documentation
 

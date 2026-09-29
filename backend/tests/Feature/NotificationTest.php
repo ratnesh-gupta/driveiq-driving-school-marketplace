@@ -64,6 +64,47 @@ class NotificationTest extends TestCase
             ->assertJsonFragment(['type' => 'inquiry.created']);
     }
 
+    /** DIQ-701: lead details go to the owner and managers only, once each. */
+    public function test_new_lead_notifies_only_active_staff_once(): void
+    {
+        [$owner, $school] = $this->makeSchoolOwner('notify-staff-only');
+        $manager = User::factory()->create(['role' => 'school', 'school_id' => $school->id]);
+        $formerManager = User::factory()->create(['role' => 'school', 'school_id' => $school->id, 'deactivated_at' => now()]);
+        $learner = User::factory()->create(['role' => 'learner', 'school_id' => $school->id]);
+        $instructor = User::factory()->create(['role' => 'instructor', 'school_id' => $school->id]);
+        $otherSchoolStaff = User::factory()->create(['role' => 'school']);
+
+        $this->postJson('/api/inquiries', [
+            'schoolId' => $school->id,
+            'name' => 'Lead',
+            'phone' => '9888888777',
+            'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
+        ])->assertCreated();
+
+        $recipients = AppNotification::where('type', 'inquiry.created')->pluck('user_id')->all();
+        $this->assertEqualsCanonicalizing([$owner->id, $manager->id], $recipients);
+        foreach ([$formerManager, $learner, $instructor, $otherSchoolStaff] as $u) {
+            $this->assertNotContains($u->id, $recipients);
+        }
+    }
+
+    public function test_legacy_owner_linked_only_by_school_user_id_is_notified(): void
+    {
+        [$owner, $school] = $this->makeSchoolOwner('notify-legacy-owner');
+        $owner->update(['school_id' => null]);
+
+        $this->postJson('/api/inquiries', [
+            'schoolId' => $school->id,
+            'name' => 'Lead',
+            'phone' => '9888888666',
+            'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
+        ])->assertCreated();
+
+        $this->assertSame([$owner->id], AppNotification::where('type', 'inquiry.created')->pluck('user_id')->all());
+    }
+
     public function test_user_cannot_see_other_users_notifications(): void
     {
         [$owner1, $school1] = $this->makeSchoolOwner('notify-school-a');
