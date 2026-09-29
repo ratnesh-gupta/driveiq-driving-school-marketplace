@@ -15,7 +15,7 @@ class SchedulingVehiclesTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-p6']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -40,7 +40,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_vehicle_crud(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->postJson('/api/schools/'.$school->id.'/vehicles', [
@@ -57,7 +57,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_schedule_conflict_on_instructor(): void
     {
-        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->postJson('/api/schools/'.$school->id.'/schedules', [
@@ -79,7 +79,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_attendance_marks_session_completed(): void
     {
-        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $created = $this->postJson('/api/schools/'.$school->id.'/schedules', [
@@ -102,7 +102,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_leave_blocks_scheduling(): void
     {
-        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $leave = $this->postJson('/api/schools/'.$school->id.'/leave-requests', [

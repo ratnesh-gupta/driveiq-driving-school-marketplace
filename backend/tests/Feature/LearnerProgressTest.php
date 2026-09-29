@@ -14,7 +14,7 @@ class LearnerProgressTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-p8']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -39,7 +39,7 @@ class LearnerProgressTest extends TestCase
 
     public function test_progress_snapshot_and_update(): void
     {
-        ['owner' => $owner, 'learner' => $learner] = $this->seed();
+        ['owner' => $owner, 'learner' => $learner] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->getJson('/api/learners/'.$learner->id.'/progress')
@@ -57,7 +57,7 @@ class LearnerProgressTest extends TestCase
 
     public function test_driving_test_lifecycle(): void
     {
-        ['owner' => $owner, 'learner' => $learner] = $this->seed();
+        ['owner' => $owner, 'learner' => $learner] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $created = $this->postJson('/api/learners/'.$learner->id.'/driving-tests', [
@@ -81,7 +81,7 @@ class LearnerProgressTest extends TestCase
 
     public function test_other_school_cannot_view_progress(): void
     {
-        ['learner' => $learner] = $this->seed();
+        ['learner' => $learner] = $this->seedFixtures();
         $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
 
         Sanctum::actingAs($other);

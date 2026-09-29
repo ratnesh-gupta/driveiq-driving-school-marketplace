@@ -15,7 +15,7 @@ class LearnerManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-p7']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -40,7 +40,7 @@ class LearnerManagementTest extends TestCase
 
     public function test_convert_inquiry_to_learner(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
 
         $inquiry = Inquiry::withoutGlobalScope('school')->create([
             'school_id' => $school->id,
@@ -72,7 +72,7 @@ class LearnerManagementTest extends TestCase
 
     public function test_assign_instructor(): void
     {
-        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $created = $this->postJson('/api/schools/'.$school->id.'/learners', [
@@ -90,7 +90,7 @@ class LearnerManagementTest extends TestCase
 
     public function test_other_school_cannot_list_learners(): void
     {
-        ['school' => $school] = $this->seed();
+        ['school' => $school] = $this->seedFixtures();
         $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
 
         Sanctum::actingAs($other);
@@ -100,7 +100,7 @@ class LearnerManagementTest extends TestCase
 
     public function test_document_verify_flow(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $created = $this->postJson('/api/schools/'.$school->id.'/learners', [

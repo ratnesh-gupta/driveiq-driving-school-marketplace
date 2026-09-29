@@ -16,7 +16,7 @@ class AnalyticsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-p10']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -63,7 +63,7 @@ class AnalyticsTest extends TestCase
 
     public function test_school_analytics(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->getJson('/api/schools/'.$school->id.'/analytics')
@@ -80,7 +80,7 @@ class AnalyticsTest extends TestCase
 
     public function test_instructor_analytics(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->getJson('/api/schools/'.$school->id.'/analytics/instructors')
@@ -90,7 +90,7 @@ class AnalyticsTest extends TestCase
 
     public function test_platform_analytics_admin_only(): void
     {
-        ['owner' => $owner, 'admin' => $admin] = $this->seed();
+        ['owner' => $owner, 'admin' => $admin] = $this->seedFixtures();
 
         Sanctum::actingAs($owner);
         $this->getJson('/api/admin/analytics')->assertForbidden();
@@ -108,7 +108,7 @@ class AnalyticsTest extends TestCase
 
     public function test_other_school_forbidden(): void
     {
-        ['school' => $school] = $this->seed();
+        ['school' => $school] = $this->seedFixtures();
         $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
 
         Sanctum::actingAs($other);

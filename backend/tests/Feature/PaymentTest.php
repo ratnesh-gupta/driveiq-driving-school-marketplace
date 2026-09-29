@@ -15,7 +15,7 @@ class PaymentTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-pay']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -50,7 +50,7 @@ class PaymentTest extends TestCase
 
     public function test_package_purchase_and_mark_paid(): void
     {
-        ['owner' => $owner, 'school' => $school, 'package' => $package, 'learner' => $learner] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'package' => $package, 'learner' => $learner] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $created = $this->postJson('/api/schools/'.$school->id.'/payments/package', [
@@ -74,7 +74,7 @@ class PaymentTest extends TestCase
 
     public function test_pending_then_mark_paid(): void
     {
-        ['owner' => $owner, 'school' => $school, 'package' => $package, 'learner' => $learner] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'package' => $package, 'learner' => $learner] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $created = $this->postJson('/api/schools/'.$school->id.'/payments/package', [
@@ -95,7 +95,7 @@ class PaymentTest extends TestCase
 
     public function test_other_school_forbidden(): void
     {
-        ['school' => $school] = $this->seed();
+        ['school' => $school] = $this->seedFixtures();
         $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
         Sanctum::actingAs($other);
 
