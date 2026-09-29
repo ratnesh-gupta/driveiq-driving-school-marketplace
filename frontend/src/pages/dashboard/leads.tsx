@@ -10,6 +10,25 @@ import { useSchoolId } from "@/hooks/use-school-id";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Phone, Mail, NotebookPen, CalendarClock } from "lucide-react";
 import { LeadTimelineSheet } from "@/components/lead-timeline-sheet";
+import { fetchSchoolSettings } from "@/lib/ops-api";
+import { formatDuration } from "@/lib/response-time";
+import { useQuery } from "@tanstack/react-query";
+
+/** "Awaiting reply" badge for leads nobody has answered yet (DIQ-708). */
+function AwaitingBadge({ createdAt, thresholdMinutes }: { createdAt: string; thresholdMinutes: number }) {
+  const waitedS = (Date.now() - new Date(createdAt).getTime()) / 1000;
+  const tone =
+    waitedS >= 86400
+      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+      : waitedS >= (thresholdMinutes || 60) * 60
+        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+        : "bg-muted text-muted-foreground";
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${tone}`} data-testid="badge-awaiting">
+      Awaiting reply · {formatDuration(waitedS)}
+    </span>
+  );
+}
 import { LEAD_STATUSES, leadStatusColor, leadStatusLabel } from "@/lib/lead-status";
 
 export default function LeadsPage() {
@@ -20,6 +39,12 @@ export default function LeadsPage() {
   const [followUpDue, setFollowUpDue] = useState(false);
   const [sort, setSort] = useState<"newest" | "oldest_waiting">("newest");
   const [openLead, setOpenLead] = useState<{ id: number; name: string } | null>(null);
+  const { data: settings } = useQuery({
+    queryKey: ["school-settings", schoolId],
+    queryFn: () => fetchSchoolSettings(schoolId!),
+    enabled: !!schoolId,
+  });
+  const reminderAfter = settings?.settings.notifications.reminder_after_minutes ?? 60;
 
   const params = {
     schoolId: schoolId!,
@@ -140,6 +165,9 @@ export default function LeadsPage() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${leadStatusColor(inq.status)}`}>
                       {leadStatusLabel(inq.status)}
                     </span>
+                    {!inq.firstRespondedAt && inq.status === "pending" && (
+                      <div className="mt-1"><AwaitingBadge createdAt={inq.createdAt} thresholdMinutes={reminderAfter} /></div>
+                    )}
                     {inq.status === "lost" && inq.lostReason && (
                       <div className="text-xs text-muted-foreground mt-1 max-w-40 truncate" title={inq.lostReason}>{inq.lostReason}</div>
                     )}

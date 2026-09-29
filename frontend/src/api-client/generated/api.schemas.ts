@@ -36,6 +36,8 @@ export interface School {
   rating: number;
   reviewCount: number;
   verified: boolean;
+  /** added manually, include in next OpenAPI spec regen */
+  typicalResponseMinutes?: number | null;
   /** Verification flags — added manually, include in next OpenAPI spec regen */
   phoneVerified?: boolean;
   businessVerified?: boolean;

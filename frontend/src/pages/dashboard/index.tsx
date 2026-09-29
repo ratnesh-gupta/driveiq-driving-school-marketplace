@@ -4,7 +4,10 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetSchoolStats, useListInquiries, getGetSchoolStatsQueryKey, getListInquiriesQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
-import { TrendingUp, Users, Star, MessageCircle, AlertCircle, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Users, Star, MessageCircle, AlertCircle, CheckCircle2, Timer, Zap, Hourglass } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchSchoolDashboard } from "@/lib/ops-api";
+import { formatDuration } from "@/lib/response-time";
 
 function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.ElementType; label: string; value: string | number; sub?: string; color: string }) {
   return (
@@ -30,6 +33,13 @@ export default function DashboardHomePage() {
   const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId, queryKey: getGetSchoolStatsQueryKey(schoolId!) } });
   const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) } });
 
+  const { data: dashboard } = useQuery({
+    queryKey: ["school-dashboard", schoolId],
+    queryFn: () => fetchSchoolDashboard(schoolId!),
+    enabled: !!schoolId,
+  });
+  const rt = dashboard?.metrics.responseTime;
+
   const recentInquiries = (inquiries || []).slice(0, 5);
 
   return (
@@ -49,6 +59,32 @@ export default function DashboardHomePage() {
           <StatCard icon={AlertCircle} label="Pending Leads" value={stats?.pendingInquiries ?? 0} sub="Awaiting response" color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" />
           <StatCard icon={Star} label="Avg. Rating" value={stats?.avgRating?.toFixed(1) ?? "—"} sub={`${stats?.totalReviews ?? 0} reviews`} color="bg-purple-500/10 text-purple-600 dark:text-purple-400" />
           <StatCard icon={TrendingUp} label="This Month" value={stats?.thisMonthInquiries ?? 0} sub="New inquiries" color="bg-green-500/10 text-green-600 dark:text-green-400" />
+        </div>
+      )}
+
+      {rt && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-testid="response-time-tiles">
+          <StatCard
+            icon={Timer}
+            label="Median reply time"
+            value={formatDuration(rt.medianSeconds)}
+            sub={`Last ${rt.windowDays} days · ${rt.responded} answered`}
+            color="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+          />
+          <StatCard
+            icon={Zap}
+            label="Answered within 1 hour"
+            value={`${Math.round(rt.within1hRate * 100)}%`}
+            sub={`${Math.round(rt.within24hRate * 100)}% within 24 hours`}
+            color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          />
+          <StatCard
+            icon={Hourglass}
+            label="Waiting for a reply"
+            value={rt.awaitingReply}
+            sub={rt.awaitingReply ? "Open Leads, sorted by longest waiting" : "All caught up"}
+            color={rt.awaitingReply ? "bg-red-500/10 text-red-600 dark:text-red-400" : "bg-green-500/10 text-green-600 dark:text-green-400"}
+          />
         </div>
       )}
 

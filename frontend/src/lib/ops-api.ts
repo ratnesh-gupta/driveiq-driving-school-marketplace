@@ -540,3 +540,22 @@ export function saveSchoolSettings(schoolId: number, settings: Partial<SchoolSet
     body: JSON.stringify({ settings }),
   });
 }
+
+// ── Lead response time (DIQ-703/708) ──
+
+export type ResponseTimeSummary = {
+  windowDays: number;
+  leads: number;
+  responded: number;
+  awaitingReply: number;
+  medianSeconds: number | null;
+  averageSeconds: number | null;
+  within1hRate: number;
+  within24hRate: number;
+};
+
+export function fetchSchoolDashboard(schoolId: number) {
+  return request<{ schoolId: number; metrics: { responseTime: ResponseTimeSummary } & Record<string, unknown> }>(
+    `/api/schools/${schoolId}/dashboard`
+  );
+}

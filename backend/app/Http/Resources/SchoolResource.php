@@ -28,6 +28,8 @@ class SchoolResource extends JsonResource
             'rating' => (float) ($this->rating ?? 0),
             'reviewCount' => (int) ($this->review_count ?? 0),
             'verified' => (bool) $this->verified,
+            // Median first-reply time over recent leads; null until there is enough data.
+            'typicalResponseMinutes' => $this->typical_response_minutes,
             'phoneVerified' => (bool) ($this->phone_verified ?? false),
             'businessVerified' => (bool) ($this->business_verified ?? false),
             'locationVerified' => (bool) ($this->location_verified ?? false),

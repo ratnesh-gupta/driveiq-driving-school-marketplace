@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Inquiry;
 use App\Models\School;
 use App\Models\User;
+use App\Services\LeadResponseStats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -108,5 +109,25 @@ class LeadResponseTimeTest extends TestCase
         $this->assertSame('Slow School', $rt['slowestSchools'][0]['schoolName']);
         $this->assertSame(1, $rt['slowestSchools'][0]['awaitingReply']);
         $this->assertSame(1200, $rt['slowestSchools'][1]['medianSeconds']);
+    }
+
+    /** DIQ-708: public badge needs 5 answered recent leads; schools cannot set it. */
+    public function test_public_reply_badge_is_computed_not_editable(): void
+    {
+        foreach ([300, 600, 900, 1200] as $seconds) {
+            $this->lead(['first_responded_at' => now(), 'response_seconds' => $seconds, 'status' => 'contacted']);
+        }
+        app(LeadResponseStats::class)->refreshSchoolBadges();
+        $this->assertNull($this->school->fresh()->typical_response_minutes);
+
+        $this->lead(['first_responded_at' => now(), 'response_seconds' => 5000, 'status' => 'contacted']);
+        app(LeadResponseStats::class)->refreshSchoolBadges();
+        $this->assertSame(15, $this->school->fresh()->typical_response_minutes);
+
+        $this->getJson('/api/schools/slug/fast-school')->assertOk()->assertJsonPath('typicalResponseMinutes', 15);
+
+        Sanctum::actingAs($this->owner);
+        $this->patchJson("/api/schools/{$this->school->id}", ['typicalResponseMinutes' => 1, 'typical_response_minutes' => 1])->assertOk();
+        $this->assertSame(15, $this->school->fresh()->typical_response_minutes);
     }
 }

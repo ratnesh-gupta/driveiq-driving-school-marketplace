@@ -13,6 +13,9 @@ class LeadResponseStats
 {
     public const WINDOW_DAYS = 90;
 
+    /** Answered leads needed in the window before a school gets a public badge. */
+    public const BADGE_MIN_LEADS = 5;
+
     /**
      * @return array{leads: int, responded: int, awaitingReply: int, medianSeconds: ?int,
      *               averageSeconds: ?int, within1hRate: float, within24hRate: float, windowDays: int}
@@ -44,6 +47,23 @@ class LeadResponseStats
             'within1hRate' => $leads > 0 ? round($row->within_1h / $leads, 4) : 0.0,
             'within24hRate' => $leads > 0 ? round($row->within_24h / $leads, 4) : 0.0,
         ];
+    }
+
+    /**
+     * Recompute every school's public median reply time (minutes, rounded up),
+     * or null below BADGE_MIN_LEADS answered leads in the window (DIQ-708).
+     */
+    public function refreshSchoolBadges(int $days = self::WINDOW_DAYS): int
+    {
+        return DB::update(
+            'UPDATE schools s SET typical_response_minutes = (
+                SELECT CASE WHEN COUNT(i.response_seconds) >= ?
+                    THEN CEIL(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY i.response_seconds) / 60.0)::int END
+                FROM inquiries i
+                WHERE i.school_id = s.id AND i.created_at >= ?
+            )',
+            [self::BADGE_MIN_LEADS, now()->subDays($days)]
+        );
     }
 
     /**
