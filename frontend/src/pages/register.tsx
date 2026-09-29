@@ -9,7 +9,7 @@ import { useAuthStore } from "@/lib/store";
 import { saveRegisterConsent, setRoleConsent } from "@/lib/consent";
 import { Users, Building2 } from "lucide-react";
 
-type AccountType = "user" | "school";
+type AccountType = "school" | "learner";
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
@@ -50,10 +50,10 @@ export default function RegisterPage() {
       await register({ name, email, password, role: accountType });
       const role = useAuthStore.getState().userRole ?? userRole;
       const userId = useAuthStore.getState().user?.id;
-      if (role === "school" || role === "user") {
-        setRoleConsent(role === "school" ? "school" : "user", userId);
+      if (role === "school" || role === "learner") {
+        setRoleConsent(role, userId);
       }
-      setLocation(role === "school" ? "/dashboard" : "/search");
+      setLocation(role === "school" ? "/dashboard" : "/learner");
     } catch {
       // errors are in the store
     }
@@ -84,8 +84,8 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-2 gap-3 mb-6">
             {([
-              { type: "school" as const, icon: Building2, label: "Driving School", desc: "I manage a school" },
-              { type: "user" as const, icon: Users, label: "Learner", desc: "I want to learn" },
+              { type: "school" as const, icon: Building2, label: "Driving School", desc: "I run a driving school" },
+              { type: "learner" as const, icon: Users, label: "Learner", desc: "I'm learning to drive" },
             ]).map((item) => (
               <button key={item.type} type="button" onClick={() => setAccountType(item.type)} className={`p-4 rounded-xl border text-left transition-all ${accountType === item.type ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/50"}`} data-testid={`button-account-type-${item.type}`}>
                 <item.icon className={`h-6 w-6 mb-2 ${accountType === item.type ? "text-primary" : "text-muted-foreground"}`} />

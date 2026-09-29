@@ -12,7 +12,10 @@ class RegisterRequest extends BaseFormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()],
-            'role' => ['sometimes', 'in:user,school,admin'],
+            // Self-registration: school owners and learners only. Admins are
+            // created via `php artisan driveiq:create-admin`; managers and
+            // instructors are added by their school.
+            'role' => ['required', 'in:school,learner'],
         ];
     }
 }

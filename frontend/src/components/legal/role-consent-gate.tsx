@@ -11,7 +11,6 @@ import {
 } from "@/lib/consent";
 
 const ROLE_LABEL: Record<AppRole, string> = {
-  user: "Learner / public account",
   school: "School partner",
   instructor: "Instructor",
   learner: "Learner",
