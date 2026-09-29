@@ -72,6 +72,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if (! $user->isActive()) {
+            throw ValidationException::withMessages([
+                'email' => ['This account has been deactivated. Contact support if you think this is a mistake.'],
+            ]);
+        }
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         // Prefer school_id column; fall back to owned school for legacy rows.

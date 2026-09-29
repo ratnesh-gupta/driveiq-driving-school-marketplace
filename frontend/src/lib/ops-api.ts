@@ -395,3 +395,34 @@ export function reviewDocument(
 export function getDocumentLink(kind: DocumentOwnerKind, docId: number) {
   return request<{ url: string; expiresAt: string }>(`/api/documents/${kind}/${docId}/link`);
 }
+
+// ── Admin users (DIQ-602) ──
+
+export type AdminUserRow = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "school" | "instructor" | "learner";
+  schoolId: number | null;
+  schoolName: string | null;
+  active: boolean;
+  deactivatedAt: string | null;
+  createdAt: string | null;
+};
+
+export type Paged<T> = { data: T[]; meta: { page: number; lastPage: number; total: number } };
+
+export function listAdminUsers(params: { search?: string; role?: string; status?: string; page?: number }) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== "") q.set(k, String(v));
+  });
+  return request<Paged<AdminUserRow>>(`/api/admin/users?${q.toString()}`);
+}
+
+export function setAdminUserActive(userId: number, active: boolean) {
+  return request<AdminUserRow>(`/api/admin/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ active }),
+  });
+}

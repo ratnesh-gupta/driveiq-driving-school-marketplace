@@ -7,6 +7,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,11 @@ class AppServiceProvider extends ServiceProvider
         // Password reset emails link to the SPA, not a Laravel web route.
         ResetPassword::createUrlUsing(fn ($user, string $token) => config('app.frontend_url')
             .'/auth/reset-password?token='.urlencode($token).'&email='.urlencode($user->getEmailForPasswordReset()));
+
+        // Deactivated accounts (DIQ-602): any token they still hold is refused.
+        Sanctum::authenticateAccessTokensUsing(
+            fn ($accessToken, bool $isValid) => $isValid && $accessToken->tokenable?->deactivated_at === null
+        );
 
         $this->configureRateLimiting();
     }

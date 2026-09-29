@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
@@ -155,6 +156,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
         Route::get('/admin/audit-logs', [AuditLogController::class, 'index']);
+
+        Route::get('/admin/users', [AdminUserController::class, 'index']);
+        Route::patch('/admin/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
