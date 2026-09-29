@@ -56,6 +56,7 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
             'schoolId' => $schoolId,
+            'schoolRole' => $schoolId ? 'owner' : null,
         ], 201);
     }
 
@@ -78,6 +79,7 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
             'schoolId' => $schoolId,
+            'schoolRole' => $this->schoolRole($user, $schoolId),
         ]);
     }
 
@@ -89,6 +91,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'schoolId' => $schoolId,
+            'schoolRole' => $this->schoolRole($user, $schoolId),
         ]);
     }
 
@@ -99,5 +102,15 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    /** 'owner' | 'manager' for school staff, otherwise null. */
+    private function schoolRole(User $user, ?int $schoolId): ?string
+    {
+        if (! $user->isSchool() || ! $schoolId) {
+            return null;
+        }
+
+        return $this->access()->isOwner($user, (int) $schoolId) ? 'owner' : 'manager';
     }
 }

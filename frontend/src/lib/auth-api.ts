@@ -7,10 +7,14 @@ export type AuthUser = {
   role: UserRole;
 };
 
+/** Owner vs manager, for school staff only (DIQ-302). */
+export type SchoolRole = "owner" | "manager";
+
 type AuthResponse = {
   user: AuthUser;
   token: string;
   schoolId: number | null;
+  schoolRole?: SchoolRole | null;
 };
 
 export type FieldErrors = Record<string, string[]>;
@@ -106,7 +110,7 @@ export async function loginApi(payload: { email: string; password: string }): Pr
   return JSON.parse(text) as AuthResponse;
 }
 
-export async function meApi(token: string): Promise<{ user: AuthUser; schoolId: number | null }> {
+export async function meApi(token: string): Promise<{ user: AuthUser; schoolId: number | null; schoolRole: SchoolRole | null }> {
   const res = await fetch(apiUrl("/api/auth/me"), {
     method: "GET",
     headers: {
@@ -118,7 +122,7 @@ export async function meApi(token: string): Promise<{ user: AuthUser; schoolId: 
   if (!res.ok) await handleError(res, "Session expired");
   const text = await res.text();
   const data = text ? JSON.parse(text) : {};
-  return { user: data.user, schoolId: data.schoolId ?? null };
+  return { user: data.user, schoolId: data.schoolId ?? null, schoolRole: data.schoolRole ?? null };
 }
 
 export async function logoutApi(token: string): Promise<void> {

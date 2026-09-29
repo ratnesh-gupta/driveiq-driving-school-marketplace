@@ -221,7 +221,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id, ownerOnly: true)) {
             return $deny;
         }
 
