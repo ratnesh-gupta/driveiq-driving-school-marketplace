@@ -108,11 +108,17 @@ class ApiPhaseTwoModulesTest extends TestCase
 
         $reviewId = $review->json('id') ?? Review::withoutGlobalScope('school')->value('id');
 
-        // Approve via school user so public listing includes it
+        // Schools cannot moderate reviews (DIQ-103); a platform admin approves it.
         Sanctum::actingAs($schoolUser);
+        $this->patchJson('/api/reviews/'.$reviewId, ['approved' => true])->assertForbidden();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($admin);
         $this->patchJson('/api/reviews/'.$reviewId, ['approved' => true])->assertOk()->assertJsonPath('approved', true);
 
         $this->getJson('/api/reviews?schoolId='.$schoolId)->assertOk()->assertJsonCount(1);
+
+        Sanctum::actingAs($schoolUser);
 
         $inquiry = $this->postJson('/api/inquiries', [
             'schoolId' => $schoolId,
@@ -126,8 +132,11 @@ class ApiPhaseTwoModulesTest extends TestCase
         $this->getJson('/api/inquiries?schoolId='.$schoolId)->assertOk();
         $this->patchJson('/api/inquiries/'.$inquiryId, ['status' => 'contacted'])->assertOk()->assertJsonPath('status', 'contacted');
 
-        $this->deleteJson('/api/reviews/'.$reviewId)->assertNoContent();
+        $this->deleteJson('/api/reviews/'.$reviewId)->assertForbidden();
         $this->deleteJson('/api/packages/'.$packageId)->assertNoContent();
+
+        Sanctum::actingAs($admin);
+        $this->deleteJson('/api/reviews/'.$reviewId)->assertNoContent();
     }
 
     public function test_review_submission_requires_authentication(): void

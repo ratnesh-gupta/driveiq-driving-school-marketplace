@@ -103,7 +103,7 @@ class AuthorizationTest extends TestCase
 
         Sanctum::actingAs($user1);
 
-        $this->deleteJson('/api/reviews/'.$review2->id)->assertNotFound();
+        $this->deleteJson('/api/reviews/'.$review2->id)->assertForbidden();
     }
 
     public function test_school_user_package_create_is_forced_to_own_school(): void

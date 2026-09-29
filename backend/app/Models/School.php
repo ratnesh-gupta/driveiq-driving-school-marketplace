@@ -63,6 +63,22 @@ class School extends Model
         });
     }
 
+    /**
+     * Rating and review count are derived from approved reviews only;
+     * they are never accepted as input from a school.
+     */
+    public function recalculateRating(): void
+    {
+        $approved = Review::withoutGlobalScope('school')
+            ->where('school_id', $this->id)
+            ->where('approved', true);
+
+        $this->update([
+            'rating' => round((float) ($approved->clone()->avg('rating') ?? 0), 1),
+            'review_count' => $approved->count(),
+        ]);
+    }
+
     public function calculateProfileCompleteness(): int
     {
         $fields = [
