@@ -54,3 +54,6 @@ Schedule::command('driveiq:lead-reminders')->everyFifteenMinutes()->withoutOverl
 // Public "usually replies within" badges (DIQ-708).
 Schedule::call(fn () => app(LeadResponseStats::class)->refreshSchoolBadges())
     ->name('driveiq:response-badges')->hourly()->withoutOverlapping();
+
+// Plan / trial reminders and expiry (DIQ-807).
+Schedule::command('driveiq:subscriptions')->dailyAt('03:15')->withoutOverlapping();
