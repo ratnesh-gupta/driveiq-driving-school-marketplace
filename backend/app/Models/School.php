@@ -22,9 +22,13 @@ class School extends Model
         'total_instructors', 'accepted_payments', 'cancellation_policy', 'profile_completeness',
     ];
 
+    /** PostGIS geography, derived from latitude/longitude by a DB trigger. */
+    protected $hidden = ['location'];
+
     protected function casts(): array
     {
         return [
+            'distance_km' => 'float',
             'verified' => 'boolean',
             'phone_verified' => 'boolean',
             'business_verified' => 'boolean',

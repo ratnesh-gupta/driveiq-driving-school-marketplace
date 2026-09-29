@@ -150,22 +150,14 @@ class SchoolService
 
     private function listWithGeo(Builder $query, float $lat, float $lng, float $radiusKm, array $filters): Collection
     {
-        $latDelta = $radiusKm / 111.0;
-        $lngDelta = $radiusKm / max(111.0 * cos(deg2rad($lat)), 0.01);
-
-        $haversine = sprintf(
-            '(6371 * acos(LEAST(1.0, GREATEST(-1.0, cos(radians(%1$s)) * cos(radians(latitude)) * cos(radians(longitude) - radians(%2$s)) + sin(radians(%1$s)) * sin(radians(latitude))))))',
-            $lat,
-            $lng
-        );
+        // PostGIS: schools.location (geography, GIST-indexed) is kept in sync
+        // with latitude/longitude by a DB trigger. ST_DWithin uses the index.
+        $origin = 'ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography';
 
         $schools = $query
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->whereBetween('latitude', [$lat - $latDelta, $lat + $latDelta])
-            ->whereBetween('longitude', [$lng - $lngDelta, $lng + $lngDelta])
-            ->selectRaw("schools.*, {$haversine} as distance_km")
-            ->havingRaw('distance_km <= ?', [$radiusKm])
+            ->select('schools.*')
+            ->selectRaw("ST_Distance(schools.location, {$origin}) / 1000.0 AS distance_km", [$lng, $lat])
+            ->whereRaw("ST_DWithin(schools.location, {$origin}, ?)", [$lng, $lat, $radiusKm * 1000])
             ->get()
             ->map(function (School $school) use ($radiusKm) {
                 $this->attachPlanMeta($school);
@@ -183,11 +175,13 @@ class SchoolService
                     ['plan_boost', 'desc'],
                     ['verified', 'desc'],
                     ['rating', 'desc'],
+                    ['id', 'asc'],
                 ])
                 ->values();
         } else {
             $schools = $schools
                 ->sortBy([
+                    ['top_placement', 'desc'],
                     ['ranking_score', 'desc'],
                     ['distance_km', 'asc'],
                     ['id', 'asc'],
@@ -230,6 +224,7 @@ class SchoolService
         $school->plan_boost = $sub?->plan?->rankingBoostScore() ?? 0.0;
         $school->is_sponsored = (bool) ($sub?->plan?->is_sponsored);
         $school->homepage_featured = (bool) ($sub?->plan?->homepage_featured);
+        $school->top_placement = in_array($school->plan_code, config('geo.top_placement_plans', []), true);
 
         return $school;
     }
