@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Plan;
-use App\Models\School;
 use App\Models\Subscription;
 use Illuminate\Support\Collection;
 
@@ -66,13 +65,8 @@ class SubscriptionService
         $starts = now();
         $expires = $plan->code === 'basic' ? null : $starts->copy()->addMonths($months);
 
-        // Sync school premium_verified for premium+ tiers
-        if (in_array($plan->code, ['premium', 'enterprise'], true)) {
-            School::where('id', $schoolId)->update([
-                'premium_verified' => true,
-                'verified' => true,
-            ]);
-        }
+        // Paying never changes verification flags: "Verified" is earned through
+        // the admin verification workflow (DIQ-506), not bought (DIQ-801).
 
         return Subscription::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
