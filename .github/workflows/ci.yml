@@ -90,7 +90,7 @@ jobs:
         run: php artisan migrate --force
 
       - name: PHPUnit
-        run: php artisan test --parallel=0
+        run: php artisan test
 
   frontend:
     name: Frontend typecheck & build
