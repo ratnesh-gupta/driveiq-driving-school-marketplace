@@ -28,7 +28,13 @@ class School extends Model
     protected function casts(): array
     {
         return [
+            // Computed by SchoolService search queries.
             'distance_km' => 'float',
+            'ranking_score' => 'float',
+            'plan_boost' => 'float',
+            'is_sponsored' => 'boolean',
+            'homepage_featured' => 'boolean',
+            'top_placement' => 'boolean',
             'verified' => 'boolean',
             'phone_verified' => 'boolean',
             'business_verified' => 'boolean',

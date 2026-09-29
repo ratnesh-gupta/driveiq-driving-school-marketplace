@@ -19,9 +19,11 @@ class SchoolController extends Controller
 
     public function index(ListSchoolsRequest $request): JsonResponse
     {
-        $schools = $this->schoolService->list($request->validated());
+        ['items' => $schools, 'total' => $total] = $this->schoolService->search($request->validated());
 
-        return response()->json(SchoolResource::collection($schools));
+        // Body stays a plain array (existing clients); the total is a header.
+        return response()->json(SchoolResource::collection($schools))
+            ->header('X-Total-Count', (string) $total);
     }
 
     public function featured(): JsonResponse

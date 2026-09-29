@@ -7,76 +7,73 @@ use App\Models\Locality;
 use App\Models\School;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class SchoolService
 {
-    public function __construct(
-        private readonly SubscriptionService $subscriptions,
-    ) {}
-
-    public function list(array $filters): Collection
+    /**
+     * Search (DIQ-501): filtering, plan boost, ranking and pagination all run
+     * in SQL, so the cost does not grow with the number of schools.
+     *
+     * @return array{items: Collection<int, School>, total: int}
+     */
+    public function search(array $filters): array
     {
-        $query = School::with('locality');
-
+        $query = $this->withPlanMeta(School::query()->with('locality'));
         $this->applyFilters($query, $filters);
 
         $nearLat = isset($filters['nearLat']) ? (float) $filters['nearLat'] : null;
         $nearLng = isset($filters['nearLng']) ? (float) $filters['nearLng'] : null;
-        $radiusKm = isset($filters['radiusKm'])
-            ? (float) $filters['radiusKm']
-            : (float) config('geo.default_radius_km', 5.0);
 
         if ($nearLat !== null && $nearLng !== null) {
-            return $this->listWithGeo($query, $nearLat, $nearLng, $radiusKm, $filters);
+            $radiusKm = isset($filters['radiusKm'])
+                ? (float) $filters['radiusKm']
+                : (float) config('geo.default_radius_km', 5.0);
+            $this->applyGeo($query, $nearLat, $nearLng, $radiusKm, $filters['sortBy'] ?? 'rank');
+        } else {
+            // Paid tiers first, then rating.
+            $query->orderByDesc('plan_boost')
+                ->orderByDesc('schools.rating')
+                ->orderByDesc('schools.review_count')
+                ->orderBy('schools.id');
         }
 
-        $schools = $query
-            ->orderByDesc('rating')
-            ->orderByDesc('review_count')
-            ->get()
-            ->map(fn (School $s) => $this->attachPlanMeta($s));
+        $total = (clone $query)->reorder()->count('schools.id');
 
-        // Paid tiers first when not using pure distance sort
-        $schools = $schools->sortBy([
-            ['plan_boost', 'desc'],
-            ['rating', 'desc'],
-            ['review_count', 'desc'],
-        ])->values();
+        $items = $query
+            ->offset((int) ($filters['offset'] ?? 0))
+            ->limit((int) ($filters['limit'] ?? 20))
+            ->get();
 
-        return $this->paginate($schools, $filters);
+        return ['items' => $items, 'total' => $total];
+    }
+
+    /** @return Collection<int, School> */
+    public function list(array $filters): Collection
+    {
+        return $this->search($filters)['items'];
     }
 
     public function featured(): Collection
     {
-        $schools = School::with('locality')
-            ->verified()
-            ->orderByDesc('rating')
-            ->limit(24)
-            ->get()
-            ->map(fn (School $s) => $this->attachPlanMeta($s));
-
-        return $schools
-            ->sortBy([
-                ['homepage_featured', 'desc'],
-                ['plan_boost', 'desc'],
-                ['rating', 'desc'],
-            ])
-            ->take(6)
-            ->values();
+        return $this->withPlanMeta(School::query()->with('locality'))
+            ->where('schools.verified', true)
+            ->orderByDesc('homepage_featured')
+            ->orderByDesc('plan_boost')
+            ->orderByDesc('schools.rating')
+            ->orderBy('schools.id')
+            ->limit(6)
+            ->get();
     }
 
     public function findById(int $id): ?School
     {
-        $school = School::with('locality')->find($id);
-
-        return $school ? $this->attachPlanMeta($school) : null;
+        return $this->withPlanMeta(School::query()->with('locality'))->where('schools.id', $id)->first();
     }
 
     public function findBySlug(string $slug): ?School
     {
-        $school = School::with('locality')->where('slug', $slug)->first();
-
-        return $school ? $this->attachPlanMeta($school) : null;
+        return $this->withPlanMeta(School::query()->with('locality'))->where('schools.slug', $slug)->first();
     }
 
     public function create(array $data): School
@@ -166,92 +163,78 @@ class SchoolService
         }
     }
 
-    private function listWithGeo(Builder $query, float $lat, float $lng, float $radiusKm, array $filters): Collection
+    /**
+     * Adds each school's current plan (latest active, unexpired subscription)
+     * as plan_code, plan_boost (0-1), is_sponsored, homepage_featured and
+     * top_placement, in one joined subquery instead of a query per school.
+     */
+    private function withPlanMeta(Builder $query): Builder
     {
-        // PostGIS: schools.location (geography, GIST-indexed) is kept in sync
-        // with latitude/longitude by a DB trigger. ST_DWithin uses the index.
-        $origin = 'ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography';
+        $activePlans = DB::table('subscriptions as sub')
+            ->join('plans as p', 'p.id', '=', 'sub.plan_id')
+            ->where('sub.status', 'active')
+            ->where(fn ($q) => $q->whereNull('sub.expires_at')->orWhere('sub.expires_at', '>', now()))
+            ->selectRaw('DISTINCT ON (sub.school_id) sub.school_id, p.code, p.ranking_boost, p.is_sponsored, p.homepage_featured')
+            ->orderBy('sub.school_id')
+            ->orderByDesc('sub.id');
 
-        $schools = $query
+        $topPlans = array_values(config('geo.top_placement_plans', []));
+        $topSql = $topPlans === []
+            ? 'false'
+            : 'COALESCE(ap.code, \'basic\') IN ('.implode(', ', array_fill(0, count($topPlans), '?')).')';
+
+        return $query
+            ->leftJoinSub($activePlans, 'ap', 'ap.school_id', '=', 'schools.id')
             ->select('schools.*')
-            ->selectRaw("ST_Distance(schools.location, {$origin}) / 1000.0 AS distance_km", [$lng, $lat])
-            ->whereRaw("ST_DWithin(schools.location, {$origin}, ?)", [$lng, $lat, $radiusKm * 1000])
-            ->get()
-            ->map(function (School $school) use ($radiusKm) {
-                $this->attachPlanMeta($school);
-                $school->ranking_score = $this->computeRankingScore($school, $radiusKm);
+            ->selectRaw("COALESCE(ap.code, 'basic') AS plan_code")
+            ->selectRaw('LEAST(GREATEST(COALESCE(ap.ranking_boost, 0), 0), 100) / 100.0 AS plan_boost')
+            ->selectRaw('COALESCE(ap.is_sponsored, false) AS is_sponsored')
+            ->selectRaw('COALESCE(ap.homepage_featured, false) AS homepage_featured')
+            ->selectRaw("({$topSql}) AS top_placement", $topPlans);
+    }
 
-                return $school;
-            });
+    /**
+     * Radius filter + distance + ranking score in SQL (PostGIS). The score is
+     * the documented formula in docs/PHASE-1-GEO-RANKING.md with the weights
+     * from config/geo.php.
+     */
+    private function applyGeo(Builder $query, float $lat, float $lng, float $radiusKm, string $sortBy): void
+    {
+        $w = config('geo.ranking');
+        $reviewCap = max(1, (int) ($w['review_cap'] ?? 50));
+        $origin = 'ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography';
+        $distance = "(ST_Distance(schools.location, {$origin}) / 1000.0)";
 
-        $sortBy = $filters['sortBy'] ?? 'rank';
+        $score = "(
+            ? * GREATEST(0.0, 1.0 - LEAST({$distance}, ?) / ?)
+          + ? * LEAST(GREATEST(COALESCE(schools.rating, 0) / 5.0, 0.0), 1.0)
+          + ? * LEAST(COALESCE(schools.review_count, 0)::float / ?, 1.0)
+          + ? * (CASE WHEN schools.verified THEN 1.0 ELSE 0.0 END)
+          + ? * (LEAST(GREATEST(COALESCE(ap.ranking_boost, 0), 0), 100) / 100.0)
+        )";
+
+        $query
+            ->selectRaw("{$distance} AS distance_km", [$lng, $lat])
+            ->selectRaw("ROUND(({$score})::numeric, 6)::float AS ranking_score", [
+                (float) ($w['weight_distance'] ?? 0.4), $lng, $lat, $radiusKm, $radiusKm,
+                (float) ($w['weight_rating'] ?? 0.25),
+                (float) ($w['weight_reviews'] ?? 0.12), $reviewCap,
+                (float) ($w['weight_verified'] ?? 0.08),
+                (float) ($w['weight_premium'] ?? 0.15),
+            ])
+            ->whereRaw("ST_DWithin(schools.location, {$origin}, ?)", [$lng, $lat, $radiusKm * 1000]);
 
         if ($sortBy === 'distance') {
-            $schools = $schools
-                ->sortBy([
-                    ['distance_km', 'asc'],
-                    ['plan_boost', 'desc'],
-                    ['verified', 'desc'],
-                    ['rating', 'desc'],
-                    ['id', 'asc'],
-                ])
-                ->values();
+            $query->orderBy('distance_km')
+                ->orderByDesc('plan_boost')
+                ->orderByDesc('schools.verified')
+                ->orderByDesc('schools.rating');
         } else {
-            $schools = $schools
-                ->sortBy([
-                    ['top_placement', 'desc'],
-                    ['ranking_score', 'desc'],
-                    ['distance_km', 'asc'],
-                    ['id', 'asc'],
-                ])
-                ->values();
+            $query->orderByDesc('top_placement')
+                ->orderByDesc('ranking_score')
+                ->orderBy('distance_km');
         }
 
-        return $this->paginate($schools, $filters);
-    }
-
-    public function computeRankingScore(School $school, float $radiusKm): float
-    {
-        $weights = config('geo.ranking');
-        $reviewCap = max(1, (int) ($weights['review_cap'] ?? 50));
-
-        $distanceKm = (float) ($school->distance_km ?? $radiusKm);
-        $distanceScore = $radiusKm > 0
-            ? max(0.0, 1.0 - min($distanceKm, $radiusKm) / $radiusKm)
-            : 0.0;
-
-        $ratingScore = min(max((float) ($school->rating ?? 0) / 5.0, 0.0), 1.0);
-        $reviewScore = min((int) ($school->review_count ?? 0) / $reviewCap, 1.0);
-        $verifiedBonus = $school->verified ? 1.0 : 0.0;
-        $premiumBoost = (float) ($school->plan_boost ?? 0.0);
-
-        $score =
-            ((float) ($weights['weight_distance'] ?? 0.4) * $distanceScore)
-            + ((float) ($weights['weight_rating'] ?? 0.25) * $ratingScore)
-            + ((float) ($weights['weight_reviews'] ?? 0.12) * $reviewScore)
-            + ((float) ($weights['weight_verified'] ?? 0.08) * $verifiedBonus)
-            + ((float) ($weights['weight_premium'] ?? 0.15) * $premiumBoost);
-
-        return round($score, 6);
-    }
-
-    private function attachPlanMeta(School $school): School
-    {
-        $sub = $this->subscriptions->activeForSchool((int) $school->id);
-        $school->plan_code = $sub?->plan?->code ?? 'basic';
-        $school->plan_boost = $sub?->plan?->rankingBoostScore() ?? 0.0;
-        $school->is_sponsored = (bool) ($sub?->plan?->is_sponsored);
-        $school->homepage_featured = (bool) ($sub?->plan?->homepage_featured);
-        $school->top_placement = in_array($school->plan_code, config('geo.top_placement_plans', []), true);
-
-        return $school;
-    }
-
-    private function paginate(Collection $schools, array $filters): Collection
-    {
-        $offset = (int) ($filters['offset'] ?? 0);
-        $limit = (int) ($filters['limit'] ?? 20);
-
-        return $schools->slice($offset, $limit)->values();
+        $query->orderBy('schools.id');
     }
 }
