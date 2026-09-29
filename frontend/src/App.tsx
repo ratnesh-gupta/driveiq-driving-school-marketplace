@@ -45,6 +45,7 @@ import AdminLocalitiesPage from "@/pages/admin/localities";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminAnalyticsPage from "@/pages/admin/analytics";
 import AdminDataRequestsPage from "@/pages/admin/data-requests";
+import AdminMessagesPage from "@/pages/admin/messages";
 
 import InstructorHomePage from "@/pages/instructor/index";
 import InstructorSessionsPage from "@/pages/instructor/sessions";
@@ -114,6 +115,7 @@ function Router() {
       <Route path="/admin/users">{() => <AuthGuard requireRole="admin"><AdminUsersPage /></AuthGuard>}</Route>
       <Route path="/admin/analytics">{() => <AuthGuard requireRole="admin"><AdminAnalyticsPage /></AuthGuard>}</Route>
       <Route path="/admin/data-requests">{() => <AuthGuard requireRole="admin"><AdminDataRequestsPage /></AuthGuard>}</Route>
+      <Route path="/admin/messages">{() => <AuthGuard requireRole="admin"><AdminMessagesPage /></AuthGuard>}</Route>
 
       <Route path="/instructor">{() => <AuthGuard requireRole="instructor"><InstructorHomePage /></AuthGuard>}</Route>
       <Route path="/instructor/sessions">{() => <AuthGuard requireRole="instructor"><InstructorSessionsPage /></AuthGuard>}</Route>

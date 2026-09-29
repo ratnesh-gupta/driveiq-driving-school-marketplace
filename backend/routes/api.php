@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\InquiryController;
@@ -71,6 +72,8 @@ Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
     ->middleware('throttle:public-forms');
+
+Route::post('/contact', [ContactMessageController::class, 'store'])->middleware('throttle:public-forms');
 
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
@@ -159,6 +162,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/admin/users', [AdminUserController::class, 'index']);
         Route::patch('/admin/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
+
+        Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
+        Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');

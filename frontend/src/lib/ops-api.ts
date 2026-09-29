@@ -426,3 +426,42 @@ export function setAdminUserActive(userId: number, active: boolean) {
     body: JSON.stringify({ active }),
   });
 }
+
+// ── Contact form (DIQ-603) ──
+
+export type ContactMessageRow = {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "new" | "read" | "closed";
+  userId: number | null;
+  handledAt: string | null;
+  createdAt: string | null;
+};
+
+export function sendContactMessage(body: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  website: string;
+  formStartedAt: number;
+}) {
+  return request<{ id: number; message: string }>(`/api/contact`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function listContactMessages(params: { status?: string; page?: number }) {
+  const q = new URLSearchParams();
+  if (params.status) q.set("status", params.status);
+  if (params.page) q.set("page", String(params.page));
+  return request<Paged<ContactMessageRow> & { meta: { unread: number } }>(`/api/admin/contact-messages?${q.toString()}`);
+}
+
+export function updateContactMessage(id: number, status: ContactMessageRow["status"]) {
+  return request<ContactMessageRow>(`/api/admin/contact-messages/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
