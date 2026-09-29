@@ -1,162 +1,157 @@
-# DriveIQ — AWS Infrastructure Architecture
+# DriveIQ — AWS Infrastructure Architecture (Pilot, cost-optimised)
 
-**Status:** Proposed · **Region:** `ap-south-1` (Mumbai; closest to Pune, keeps data in India for DPDP) · **DR region:** `ap-south-2` (Hyderabad)
+**Status:** Proposed · **Region:** `ap-south-1` (Mumbai; closest to Pune, keeps personal data in India for DPDP)
 
-This doc describes how to run DriveIQ (React/Vite SPA + Laravel API + Postgres/PostGIS + Redis + queue workers + optional Reverb) on AWS. It supersedes the DigitalOcean plan in `CLAUDE.md` §3 if adopted.
+This doc describes a low-cost way to run DriveIQ (React/Vite SPA + Laravel API + Postgres/PostGIS + Redis + queue worker + optional Reverb) on AWS for the Pune pilot. It supersedes the DigitalOcean plan in `CLAUDE.md` §3 if adopted.
+
+**Design goal:** keep the pilot under roughly $60/month while still getting managed Postgres backups, TLS, a CDN and WAF-style rate limiting. Section 9 describes how to grow out of it.
+
+Deliberately **not** used for the pilot:
+
+| Removed | Replaced by |
+|---|---|
+| ElastiCache | Redis running on the app EC2 instance (Docker container) |
+| Amazon SES | Laravel SMTP mailer pointed at an external provider (e.g. Zoho Mail / Brevo free tier), or `MAIL_MAILER=log` until notifications ship in Phase D |
+| Secrets Manager | `.env` on the instance, populated at deploy time from **SSM Parameter Store** SecureString parameters (standard tier is free) |
+| ECS Fargate, ALB, NAT Gateway | One EC2 instance running Docker Compose, with Caddy for TLS; instance sits in a public subnet so no NAT is needed |
+| RDS Multi-AZ | Single-AZ RDS with automated backups (+ PITR) |
 
 ---
 
 ## 1. High-level diagram
 
 ```
-                         Users (Pune / India, mobile-first)
-                                        │
-                              Route 53 (driveiq.in)
-                                        │
-                     ┌──────────── CloudFront ─────────────┐
-                     │  + AWS WAF (rate limits, bot ctrl,   │
-                     │    OWASP rules, /api/inquiries cap)  │
-                     │  + ACM TLS cert (us-east-1)          │
-                     └───────┬───────────────────┬──────────┘
-                  /* (static)│                   │ /api/*, /broadcasting/*
-                             ▼                   ▼
-                   S3: frontend bucket    ALB (public subnets, ACM cert)
-                   (OAC, private)                │
-                                                 ▼
- ┌─────────────────────────── VPC 10.0.0.0/16, 2–3 AZs ─────────────────────────────┐
- │  Private app subnets                                                              │
- │   ┌───────────────────────── ECS Fargate cluster ───────────────────────────┐     │
- │   │  api service      (Laravel Octane/FrankenPHP, 2–6 tasks, autoscale CPU) │     │
- │   │  worker service   (php artisan queue:work, scale on queue depth)        │     │
- │   │  scheduler svc    (php artisan schedule:work, 1 task)                   │     │
- │   │  reverb service   (optional websockets, 1–2 tasks, sticky TG)           │     │
- │   └─────────────────────────────────────────────────────────────────────────┘     │
- │            │                     │                        │                       │
- │  Private data subnets            ▼                        ▼                       │
- │   RDS PostgreSQL 16 + PostGIS   ElastiCache Redis 7     (optional) SQS queue      │
- │   Multi-AZ, gp3, encrypted      cache/session/queue                               │
- │            │                                                                      │
- │   NAT Gateway (1 in pilot, 1/AZ in prod) → Google Maps, WhatsApp, Razorpay        │
- │   VPC endpoints: S3, ECR, Secrets Manager, CloudWatch Logs, SQS                   │
- └───────────────────────────────────────────────────────────────────────────────────┘
-           │                                 │
-     S3: media bucket (school photos,   Amazon SES (email) · SNS/Pinpoint (SMS/OTP, later)
-     learner docs — private, presigned
-     URLs, served via CloudFront /media/*)
+                     Users (Pune / India, mobile-first)
+                                    │
+                          Route 53 (driveiq.in)
+                                    │
+                 ┌──────────── CloudFront ─────────────┐
+                 │  ACM TLS cert (us-east-1)            │
+                 │  AWS WAF: rate rule on /api/*        │
+                 │  (optional, ~$6/mo)                  │
+                 └───────┬──────────────────┬───────────┘
+              /* static  │                  │ /api/*, /app/* (Reverb WS)
+                         ▼                  ▼
+               S3: frontend bucket   ┌──────────── VPC 10.0.0.0/16 ─────────────────────┐
+               (private, OAC)        │  Public subnet (AZ-a)                             │
+                                     │  ┌───────── EC2 t4g.medium (Docker Compose) ───┐ │
+                                     │  │ caddy     :443  TLS, reverse proxy          │ │
+                                     │  │ api       Laravel Octane/FrankenPHP :8000   │ │
+                                     │  │ worker    php artisan queue:work redis      │ │
+                                     │  │ scheduler php artisan schedule:work         │ │
+                                     │  │ reverb    (optional) :8080                  │ │
+                                     │  │ redis     :6379, bound to docker network,   │ │
+                                     │  │           AOF on, maxmemory 256mb           │ │
+                                     │  └─────────────────────────────────────────────┘ │
+                                     │               │ 5432                              │
+                                     │  Private subnets (AZ-a, AZ-b)                     │
+                                     │   RDS PostgreSQL 16 + PostGIS, db.t4g.micro,      │
+                                     │   single-AZ, gp3 20 GB, encrypted, 7-day PITR     │
+                                     └───────────────────────────────────────────────────┘
+                                                     │
+                     S3: media bucket (school photos public via CloudFront /media/*;
+                     learner/instructor docs private, presigned URLs)
 ```
 
 ## 2. Component choices
 
-| Concern | AWS service | Why |
+| Concern | Service | Notes |
 |---|---|---|
-| DNS | Route 53 | Alias records to CloudFront; health checks for DR failover |
-| SPA hosting | S3 + CloudFront (OAC) | Vite build is static; cheap, global edge, SPA fallback via CloudFront Function rewriting to `/index.html` |
-| Edge security | AWS WAF on CloudFront | Covers Phase A "rate limiting + spam protection": rate-based rule on `POST /api/inquiries` and `/api/auth/*`, AWS managed rule sets, Bot Control |
-| API compute | ECS on Fargate | Existing Dockerfiles; no servers to patch; per-service scaling. (EKS is overkill at this stage; App Runner lacks worker/scheduler patterns.) |
-| Load balancer | ALB | Path routing: `/api/*` → api TG, `/app/*` (Reverb WS) → reverb TG; health check `/api/healthz` |
-| Database | RDS for PostgreSQL 16, Multi-AZ | PostGIS is supported natively (`CREATE EXTENSION postgis`) for ST_DWithin radius search. Aurora PostgreSQL is an upgrade path when read replicas/traffic grow |
-| Cache / queue / sessions | ElastiCache for Redis (Valkey) 7, replication group with 1 replica | Laravel cache, rate limiter, queue driver, Reverb pub/sub |
-| Queue (alt.) | SQS | Optional swap for `QUEUE_CONNECTION=sqs` if Redis queue durability becomes a concern |
-| Object storage | S3 (media bucket) | School photos public-via-CloudFront; learner/instructor/vehicle documents private with presigned URLs, SSE-KMS |
-| Email | Amazon SES (Mumbai) | Lead notifications (Phase D) |
-| SMS / OTP | SNS SMS or Pinpoint (DLT-registered sender for India) | Future OTP login |
-| Secrets | Secrets Manager + SSM Parameter Store | `APP_KEY`, DB creds (auto-rotation), Razorpay/Maps keys injected as ECS task secrets |
-| Images | ECR | Scan on push, immutable tags (git SHA) |
-| Observability | CloudWatch Logs/Metrics/Alarms, Container Insights, X-Ray (optional) | Replaces Uptime Kuma; plus Route 53 health checks for uptime |
-| Audit | CloudTrail, AWS Config, GuardDuty | Account-level audit; app-level `audit_logs` remain in Postgres |
-| Encryption | KMS CMKs | RDS, S3 docs bucket, Secrets, EBS snapshots |
+| DNS | Route 53 | Alias to CloudFront; `api` origin points at the EC2 Elastic IP |
+| SPA hosting | S3 + CloudFront (OAC) | CloudFront Function rewrites unknown paths to `/index.html` |
+| Rate limiting | Laravel `throttle` middleware backed by Redis (free) + optional WAF rate rule | Covers Phase A inquiry spam protection |
+| Compute | 1 × EC2 `t4g.medium` (2 vCPU / 4 GB, ARM) | Runs everything except Postgres; start with `t4g.small` if load is tiny |
+| TLS at origin | Caddy (auto Let's Encrypt) | CloudFront → Caddy over HTTPS; security group only allows CloudFront prefix list on 443 |
+| Database | RDS PostgreSQL 16, single-AZ `db.t4g.micro` | Managed backups/patching; PostGIS supported (`CREATE EXTENSION postgis`) |
+| Cache / queue / sessions | Redis 7 container on the EC2 instance | Persistent volume, AOF enabled, not exposed outside the Docker network |
+| Object storage | S3 (media bucket) | SSE-S3 encryption; docs bucket blocks public access |
+| Email | External SMTP provider | Laravel `smtp` mailer; no AWS service |
+| Secrets | SSM Parameter Store (SecureString, free) → `.env` | Instance role can read `/driveiq/prod/*` only |
+| Images | ECR (or GHCR) | ECR private repo ~cents/month at this size |
+| Monitoring | CloudWatch agent (basic metrics + a few alarms), Route 53 health check on `/api/healthz` | |
+| Access | SSM Session Manager | No SSH port open, no bastion |
 
-## 3. Network layout
+## 3. Network & security
 
-| Subnet tier | CIDRs (per AZ) | Contents | Route |
-|---|---|---|---|
-| Public | 10.0.0.0/24, 10.0.1.0/24 | ALB, NAT GW | IGW |
-| Private-app | 10.0.10.0/23, 10.0.12.0/23 | ECS tasks | NAT |
-| Private-data | 10.0.20.0/24, 10.0.21.0/24 | RDS, ElastiCache | none (isolated) |
+- One VPC, public subnet (EC2) + two private subnets (RDS requires a 2-AZ subnet group).
+- No NAT Gateway: the EC2 instance has a public Elastic IP for outbound calls (Google Maps, WhatsApp, Razorpay, SMTP).
+- `sg-app`: inbound 443 from the CloudFront managed prefix list only; nothing else.
+- `sg-db`: inbound 5432 from `sg-app` only; `rds.force_ssl=1`.
+- Redis is only reachable on the internal Docker network and requires a password (`requirepass`).
+- EC2 IMDSv2 required, EBS encrypted, automatic OS patching via SSM Patch Manager.
 
-Security groups (least privilege):
-- `sg-alb`: 443 from CloudFront managed prefix list only (+ custom origin header secret checked by ALB rule).
-- `sg-app`: 8000/8080 from `sg-alb` only.
-- `sg-db`: 5432 from `sg-app` (+ bastion-less access via SSM Session Manager port forwarding for ops).
-- `sg-redis`: 6379 from `sg-app`, TLS + AUTH enabled.
+## 4. Docker Compose on the instance
 
-## 4. Container services
+| Service | Command | Notes |
+|---|---|---|
+| caddy | `caddy run` | Reverse proxy `/api/*` → api:8000, `/app/*` → reverb:8080 |
+| api | `php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000` | 2–4 Octane workers |
+| worker | `php artisan queue:work redis --tries=3 --max-time=3600` | |
+| scheduler | `php artisan schedule:work` | |
+| reverb | `php artisan reverb:start --port=8080` | optional |
+| redis | `redis-server --appendonly yes --maxmemory 256mb --requirepass $REDIS_PASSWORD` | volume `redis-data` |
 
-Build one backend image (PHP 8.3 + pdo_pgsql + redis ext + Octane/FrankenPHP, `composer install --no-dev`, config cached at boot) and run it with different commands:
+Laravel settings: `SESSION_DRIVER=redis`, `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `FILESYSTEM_DISK=s3`, `MAIL_MAILER=smtp`, `LOG_CHANNEL=stderr`, `TRUSTED_PROXIES=*`.
 
-| Service | Command | Size (pilot) | Scaling |
-|---|---|---|---|
-| api | `php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000` | 0.5 vCPU / 1 GB × 2 | target CPU 60%, 2–6 tasks |
-| worker | `php artisan queue:work redis --tries=3 --max-time=3600` | 0.25 vCPU / 0.5 GB × 1 | step on queue length metric, 1–4 |
-| scheduler | `php artisan schedule:work` | 0.25 / 0.5 × 1 | fixed 1 |
-| reverb (opt.) | `php artisan reverb:start --port=8080` | 0.25 / 0.5 × 1 | fixed 1–2 |
-| migrate (one-off) | `php artisan migrate --force` | run as ECS RunTask in CI before deploy | — |
+The current `backend/Dockerfile` and `frontend/Dockerfile` are dev images. Production needs a multi-stage backend image; the frontend is built with `pnpm build` and uploaded to S3.
 
-Note: the current `backend/Dockerfile` and `frontend/Dockerfile` are dev images (`php:8.3-cli`, Vite dev server). Production needs a multi-stage backend Dockerfile; the frontend is not containerized in prod — it's `pnpm build` → S3.
+## 5. Data & backups
 
-Stateless rules: `SESSION_DRIVER=redis`, `CACHE_STORE=redis`, `FILESYSTEM_DISK=s3`, `LOG_CHANNEL=stderr`, `TRUSTED_PROXIES=*` (behind ALB/CloudFront).
+- RDS automated backups, 7-day point-in-time recovery; deletion protection on.
+- Weekly manual snapshot kept 30 days.
+- Redis holds only cache, sessions and queued jobs; losing it logs users out and may drop in-flight jobs, but no system-of-record data. AOF persistence limits that on restart.
+- EC2: daily EBS snapshot via Data Lifecycle Manager (7 retained).
+- **Recovery:** instance is disposable. Re-create from the launch template + user-data (installs Docker, pulls `.env` from Parameter Store, `docker compose up`). Target RTO ≈ 30 min, RPO ≈ 5 min for Postgres.
+- **DPDP:** all data stays in `ap-south-1`.
 
-## 5. Data layer
+## 6. Environments
 
-- **RDS PostgreSQL 16**, `db.t4g.medium` Multi-AZ for pilot → `db.r7g.large` at scale; gp3 100 GB autoscaling storage; 14-day PITR; deletion protection; Performance Insights on; `rds.force_ssl=1`.
-- PostGIS enabled in a migration; GIST index on the schools geography column.
-- Index `(school_id, created_at)` on operational tables per CLAUDE.md.
-- RDS Proxy optional once task count × Octane workers approaches `max_connections`.
-- **Backups/DR:** automated snapshots + AWS Backup copy to `ap-south-2` daily; RPO ≤ 24h (≤ 5 min in-region via PITR), RTO ≈ 2h by restoring stack via IaC in DR region.
-- **DPDP:** all personal data (learner docs, phone numbers) stays in India regions; S3 docs bucket blocks public access, versioned, lifecycle to IA after 90 days; retention/deletion jobs run via scheduler.
+- **prod:** as above.
+- **staging:** optional; either a `t4g.small` spot instance with Postgres in a container, or run it only when needed.
 
-## 6. Environments & accounts
-
-AWS Organizations with separate accounts: `shared` (ECR, CI roles), `staging`, `prod`. Staging mirrors prod at minimum sizes (single-AZ RDS, 1 task each, no NAT per AZ).
-
-## 7. CI/CD (GitHub Actions → AWS via OIDC, no long-lived keys)
+## 7. CI/CD (GitHub Actions → AWS via OIDC)
 
 1. PR: `php artisan test`, `pnpm typecheck`, `pnpm build`.
 2. Merge to `main`:
-   - Build backend image → push to ECR tagged with git SHA.
-   - Run migrate task (ECS RunTask) against staging → deploy api/worker/scheduler services (rolling, circuit breaker with rollback).
-   - `pnpm build` with `VITE_API_BASE_URL` → `aws s3 sync` → CloudFront invalidation of `/index.html`.
-3. Promote same image SHA to prod via manual approval (GitHub environment protection).
+   - Build ARM backend image → push to ECR tagged with git SHA.
+   - `aws ssm send-command` on the instance: refresh `.env` from Parameter Store, `docker compose pull && php artisan migrate --force && docker compose up -d`.
+   - `pnpm build` → `aws s3 sync` → CloudFront invalidation of `/index.html`.
 
-## 8. Infrastructure as Code
+Infrastructure defined in Terraform under `infra/` (modules: `network`, `edge`, `ec2-app`, `rds`, `storage`, `ci-oidc`).
 
-Terraform (or AWS CDK in TypeScript) in `infra/`, modules: `network`, `edge` (CloudFront/WAF/Route53/ACM), `ecs`, `rds`, `redis`, `storage`, `observability`, `ci-oidc`. State in S3 + DynamoDB lock in the `shared` account.
+## 8. Cost estimate (ap-south-1, on-demand, approximate USD/month)
 
-## 9. Monitoring & alarms
-
-- ALB 5xx rate, p95 latency > 1s, unhealthy hosts.
-- ECS CPU/memory, running task count < desired.
-- RDS CPU, free storage, connections, replica lag.
-- Redis memory, evictions.
-- Queue depth / oldest job age (custom metric pushed by scheduler).
-- WAF blocked-request spikes on inquiry endpoint.
-- Alerts → SNS → email/Slack (AWS Chatbot).
-
-## 10. Cost estimate (pilot, ap-south-1, on-demand, approximate USD/month)
+Figures are rough; confirm with the AWS Pricing Calculator before committing.
 
 | Item | Est. |
 |---|---|
-| Fargate (api 2×, worker, scheduler) | 45 |
-| ALB | 20 |
-| NAT Gateway (1) + data | 40 |
-| RDS t4g.medium Multi-AZ + 100 GB | 120 |
-| ElastiCache t4g.small ×2 | 50 |
-| CloudFront + S3 + WAF | 25 |
-| Secrets, CloudWatch, Route 53, SES | 25 |
-| **Total** | **≈ $325/mo** |
+| EC2 t4g.medium + 30 GB gp3 + Elastic IP | 25 |
+| RDS db.t4g.micro single-AZ + 20 GB gp3 + backups | 18 |
+| CloudFront + S3 (low traffic) | 3 |
+| Route 53 hosted zone + health check | 1.5 |
+| ECR, CloudWatch basic, Parameter Store | 2 |
+| WAF (optional: 1 web ACL + 1 rule) | 6 |
+| **Total** | **≈ $50–55/mo** (≈ $45 without WAF) |
 
-Cost levers for an early pilot: single-AZ RDS (~$60), single Redis node, Fargate Spot for workers, Compute Savings Plan (~20–30% off). A leaner "starter" option is Lightsail containers + Lightsail Postgres (~$60/mo) but it lacks WAF/Multi-AZ and is harder to grow out of.
+Further savings: 1-year Savings Plan / Reserved Instance on EC2 and RDS (~30–40% off), or `t4g.small` for EC2 while traffic is low. For comparison, the earlier Fargate + ALB + NAT + Multi-AZ design was ≈ $325/mo; removing only ElastiCache, SES and Secrets Manager from it would have saved about $55. Most of the saving comes from dropping NAT, ALB, Fargate and Multi-AZ RDS.
 
-## 11. Scaling path
+### Trade-offs accepted for the pilot
 
-1. Pilot (Pune): as above.
-2. Growth: RDS read replica for search/stats endpoints; RDS Proxy; CloudFront caching of public GET endpoints (`/api/localities`, `/api/schools/featured`) with short TTLs.
-3. Multi-city: Aurora PostgreSQL, OpenSearch (geo queries) if PostGIS search becomes the bottleneck, SQS + EventBridge for notification fan-out.
+- **Single point of failure:** one EC2 instance and single-AZ RDS. An AZ outage means downtime until restore.
+- **No horizontal scaling:** scale up the instance size first.
+- **Manual-ish ops:** OS patching and Docker updates are our responsibility (automated via SSM).
 
-## 12. Next steps
+## 9. Upgrade path (when traffic or revenue justifies it)
 
-- [ ] Production multi-stage backend Dockerfile (Octane/FrankenPHP)
-- [ ] `infra/` Terraform skeleton (network + ECR + ECS + RDS)
+1. Move Redis to ElastiCache and put an ALB + Auto Scaling Group (2 instances) in front of the API.
+2. Turn on RDS Multi-AZ; add RDS Proxy/read replica for search.
+3. Move to ECS Fargate, SES for email, Secrets Manager with rotation.
+4. Cross-region backup copies to `ap-south-2` for disaster recovery.
+
+## 10. Next steps
+
+- [ ] Production multi-stage backend Dockerfile (Octane/FrankenPHP, ARM)
+- [ ] `docker-compose.prod.yml` + Caddyfile
+- [ ] `infra/` Terraform skeleton (VPC, EC2, RDS, S3, CloudFront)
 - [ ] GitHub OIDC role + deploy workflow
-- [ ] Configure Laravel for S3 disk, Redis, SES, trusted proxies
-- [ ] WAF rate rules matching inquiry throttling requirements
+- [ ] Laravel config for S3 disk, Redis, SMTP, trusted proxies, throttling on inquiries
