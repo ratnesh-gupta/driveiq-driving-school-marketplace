@@ -1,9 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ConsentController;
+use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
+use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LearnerController;
@@ -70,11 +74,25 @@ Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
     ->middleware('throttle:public-forms');
 
+Route::post('/contact', [ContactMessageController::class, 'store'])->middleware('throttle:public-forms');
+
+// Consent records (DIQ-604). Optional auth: anonymous calls may only record
+// the cookie banner choice.
+Route::post('/consents', [ConsentController::class, 'store'])->middleware('throttle:consents');
+
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
 Route::get('/training-skills', [ProgressController::class, 'skillsCatalog']);
 
 Route::get('/stats/overview', [StatsController::class, 'overview']);
+
+// Private document download (DIQ-601): only reachable through a short-lived
+// signed URL issued by the authenticated /documents/{kind}/{id}/link.
+Route::get('/documents/{kind}/{id}/file', [DocumentController::class, 'file'])
+    ->whereIn('kind', ['learner', 'instructor', 'vehicle'])
+    ->whereNumber('id')
+    ->middleware('signed')
+    ->name('documents.file');
 
 Route::middleware('auth:sanctum')->group(function (): void {
 
@@ -85,9 +103,17 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
+    Route::get('/consents', [ConsentController::class, 'index']);
+    Route::delete('/consents/{purpose}', [ConsentController::class, 'destroy']);
+
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])
         ->whereNumber('id')
         ->middleware('throttle:10,1');
+
+    Route::get('/documents/{kind}/{id}/link', [DocumentController::class, 'link'])
+        ->whereIn('kind', ['learner', 'instructor', 'vehicle'])
+        ->whereNumber('id')
+        ->middleware('throttle:60,1');
 
     Route::get('/admin/ping', fn () => response()->json(['ok' => true]))->middleware('role:admin');
     Route::get('/school/ping', fn () => response()->json(['ok' => true]))->middleware('role:school,admin');
@@ -105,10 +131,17 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/instructor/sessions', [ScheduleController::class, 'instructorSessions']);
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
         Route::put('/learners/{id}/progress', [ProgressController::class, 'update'])->whereNumber('id');
+
+        // Staff manage any instructor's documents; an instructor only their own.
+        Route::get('/instructors/{id}/documents', [InstructorController::class, 'listDocuments'])->whereNumber('id');
+        Route::post('/instructors/{id}/documents', [InstructorController::class, 'addDocument'])->whereNumber('id');
+        Route::patch('/instructors/{id}/documents/{docId}', [InstructorController::class, 'updateDocument'])
+            ->whereNumber(['id', 'docId']);
     });
 
     Route::middleware('role:learner,school,admin,instructor')->group(function (): void {
         Route::get('/learner/me', [LearnerController::class, 'me']);
+        Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
         Route::post('/learners/{id}/documents', [LearnerController::class, 'addDocument'])->whereNumber('id');
         Route::get('/learners/{id}/progress', [ProgressController::class, 'show'])->whereNumber('id');
         Route::get('/learners/{id}/sessions', [ProgressController::class, 'sessionHistory'])->whereNumber('id');
@@ -134,6 +167,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
         Route::get('/admin/audit-logs', [AuditLogController::class, 'index']);
+
+        Route::get('/admin/users', [AdminUserController::class, 'index']);
+        Route::patch('/admin/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
+
+        Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
+        Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
@@ -170,14 +209,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/instructors/{id}', [InstructorController::class, 'update'])->whereNumber('id');
         Route::delete('/instructors/{id}', [InstructorController::class, 'destroy'])->whereNumber('id');
 
-        Route::get('/instructors/{id}/documents', [InstructorController::class, 'listDocuments'])->whereNumber('id');
-        Route::post('/instructors/{id}/documents', [InstructorController::class, 'addDocument'])->whereNumber('id');
-        Route::patch('/instructors/{id}/documents/{docId}', [InstructorController::class, 'updateDocument'])
-            ->whereNumber(['id', 'docId']);
-
         Route::get('/schools/{id}/vehicles', [VehicleController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/vehicles', [VehicleController::class, 'store'])->whereNumber('id');
         Route::patch('/vehicles/{id}', [VehicleController::class, 'update'])->whereNumber('id');
+        Route::get('/vehicles/{id}/documents', [VehicleController::class, 'listDocuments'])->whereNumber('id');
         Route::post('/vehicles/{id}/documents', [VehicleController::class, 'addDocument'])->whereNumber('id');
 
         Route::get('/schools/{id}/schedules', [ScheduleController::class, 'index'])->whereNumber('id');
@@ -193,7 +228,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/learners/{id}', [LearnerController::class, 'show'])->whereNumber('id');
         Route::patch('/learners/{id}', [LearnerController::class, 'update'])->whereNumber('id');
         Route::post('/learners/{id}/assign', [LearnerController::class, 'assign'])->whereNumber('id');
-        Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
         Route::patch('/learners/{id}/documents/{docId}', [LearnerController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
 

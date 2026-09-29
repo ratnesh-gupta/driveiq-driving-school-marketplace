@@ -259,6 +259,8 @@ womenInstructor?: boolean;
 maxPrice?: number;
 transmission?: string;
 weekendClasses?: boolean;
+/** Only verified schools (added manually, include in next OpenAPI spec regen) */
+verified?: boolean;
 nearLat?: number;
 nearLng?: number;
 radiusKm?: number;

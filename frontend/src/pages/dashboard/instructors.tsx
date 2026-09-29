@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentsDialog } from "@/components/documents-panel";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { createInstructor, listInstructors } from "@/lib/ops-api";
 import { UserCog, Plus } from "lucide-react";
@@ -79,7 +80,10 @@ export default function InstructorsPage() {
                 <div className="font-medium text-sm">{i.name}</div>
                 <div className="text-xs text-muted-foreground">{i.mobile || "—"}</div>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{i.status}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{i.status}</span>
+                <DocumentsDialog kind="instructor" ownerId={i.id} canReview title={`Documents · ${i.name}`} />
+              </div>
             </div>
           ))}
         </div>

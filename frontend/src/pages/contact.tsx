@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Button } from "@/components/ui/button";
@@ -6,20 +6,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { sendContactMessage } from "@/lib/ops-api";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 
 export default function ContactPage() {
   const { toast } = useToast();
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [honeypot, setHoneypot] = useState("");
   const [sending, setSending] = useState(false);
+  // Anti-spam: the server rejects forms submitted within 3s of rendering.
+  const startedAt = useRef(Date.now());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
-    await new Promise(r => setTimeout(r, 1000));
-    toast({ title: "Message sent!", description: "We'll get back to you within 24 hours." });
-    setForm({ name: "", email: "", subject: "", message: "" });
-    setSending(false);
+    try {
+      const res = await sendContactMessage({ ...form, website: honeypot, formStartedAt: startedAt.current });
+      toast({ title: "Message sent!", description: res.message });
+      setForm({ name: "", email: "", subject: "", message: "" });
+      startedAt.current = Date.now();
+    } catch (err) {
+      toast({
+        title: "Could not send your message",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -60,6 +74,13 @@ export default function ContactPage() {
 
             <motion.div className="lg:col-span-3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0, transition: { delay: 0.15 } }}>
               <form onSubmit={handleSubmit} className="rounded-2xl border bg-card p-8 space-y-5">
+                {/* Honeypot: hidden from people and assistive tech; bots tend to fill it. */}
+                <div aria-hidden="true" className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden">
+                  <label>
+                    Website
+                    <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                  </label>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Name</Label>

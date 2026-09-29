@@ -8,6 +8,7 @@ use App\Models\Instructor;
 use App\Models\InstructorDocument;
 use App\Models\School;
 use App\Models\User;
+use App\Support\DocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -292,7 +293,8 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
+        // Staff of the school, or the instructor themself (not their colleagues).
+        if ($deny = $this->access()->instructor($request, $instructor, allowSelf: true)) {
             return $deny;
         }
 
@@ -305,7 +307,7 @@ class InstructorController extends Controller
         return response()->json($docs);
     }
 
-    public function addDocument(Request $request, int $id): JsonResponse
+    public function addDocument(Request $request, int $id, DocumentStorage $storage): JsonResponse
     {
         $instructor = Instructor::withoutGlobalScope('school')->find($id);
 
@@ -313,31 +315,38 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
+        if ($deny = $this->access()->instructor($request, $instructor, allowSelf: true)) {
             return $deny;
         }
 
         $data = $request->validate([
             'type' => ['required', 'string', 'in:driving_license,aadhaar,pan,photo,certificate'],
-            'filePath' => ['nullable', 'string', 'max:2048'],
-            'fileName' => ['nullable', 'string', 'max:255'],
+            'file' => ['nullable', ...DocumentStorage::FILE_RULE],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $file = $request->file('file');
+        $schoolId = (int) $instructor->school_id;
+
         $doc = InstructorDocument::withoutGlobalScope('school')->create([
             'instructor_id' => $instructor->id,
-            'school_id' => $instructor->school_id,
+            'school_id' => $schoolId,
             'type' => $data['type'],
-            'file_path' => $data['filePath'] ?? null,
-            'file_name' => $data['fileName'] ?? null,
-            'status' => ! empty($data['filePath']) ? 'uploaded' : 'pending',
+            'file_path' => $file ? $storage->store($file, $schoolId, 'instructors', $instructor->id) : null,
+            'file_name' => $file ? DocumentStorage::displayName($file) : null,
+            'status' => $file ? 'uploaded' : 'pending',
             'notes' => $data['notes'] ?? null,
         ]);
 
         return response()->json($this->serializeDoc($doc), 201);
     }
 
-    public function updateDocument(Request $request, int $id, int $docId): JsonResponse
+    /**
+     * Staff verify / reject a document; staff or the instructor may attach or
+     * replace its file (multipart POST with _method=PATCH). Instructors cannot
+     * change the review status of their own documents.
+     */
+    public function updateDocument(Request $request, int $id, int $docId, DocumentStorage $storage): JsonResponse
     {
         $instructor = Instructor::withoutGlobalScope('school')->find($id);
 
@@ -345,7 +354,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
+        if ($deny = $this->access()->instructor($request, $instructor, allowSelf: true)) {
             return $deny;
         }
 
@@ -358,21 +367,30 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Document not found'], 404);
         }
 
+        $isStaff = ! $request->user()->isInstructor();
+
         $data = $request->validate([
-            'status' => ['required', 'string', 'in:pending,uploaded,verified,rejected'],
+            'status' => [$isStaff ? 'required_without:file' : 'prohibited', 'string', 'in:pending,uploaded,verified,rejected'],
             'notes' => ['nullable', 'string', 'max:500'],
-            'filePath' => ['nullable', 'string', 'max:2048'],
-            'fileName' => ['nullable', 'string', 'max:255'],
+            'file' => [$isStaff ? 'nullable' : 'required', ...DocumentStorage::FILE_RULE],
         ]);
+
+        if ($file = $request->file('file')) {
+            $old = $doc->file_path;
+            $doc->file_path = $storage->store($file, (int) $doc->school_id, 'instructors', $instructor->id);
+            $doc->file_name = DocumentStorage::displayName($file);
+            $doc->status = 'uploaded';
+            $doc->verified_by = null;
+            $doc->verified_at = null;
+            $storage->delete($old, (int) $doc->school_id);
+        }
 
         $doc->fill([
-            'status' => $data['status'],
+            'status' => $data['status'] ?? $doc->status,
             'notes' => $data['notes'] ?? $doc->notes,
-            'file_path' => $data['filePath'] ?? $doc->file_path,
-            'file_name' => $data['fileName'] ?? $doc->file_name,
         ]);
 
-        if (in_array($data['status'], ['verified', 'rejected'], true)) {
+        if (in_array($data['status'] ?? null, ['verified', 'rejected'], true)) {
             $doc->verified_by = $request->user()->id;
             $doc->verified_at = now();
         }
@@ -443,7 +461,7 @@ class InstructorController extends Controller
             'id' => $d->id,
             'instructorId' => $d->instructor_id,
             'type' => $d->type,
-            'filePath' => $d->file_path,
+            'hasFile' => $d->file_path !== null,
             'fileName' => $d->file_name,
             'status' => $d->status,
             'verifiedBy' => $d->verified_by,

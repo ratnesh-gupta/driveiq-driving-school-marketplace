@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentsDialog } from "@/components/documents-panel";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { listVehicles } from "@/lib/ops-api";
 import { Car } from "lucide-react";
@@ -46,7 +47,10 @@ export default function VehiclesPage() {
                   {[v.type, v.transmission, v.makeModel].filter(Boolean).join(" · ")}
                 </div>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{v.status}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{v.status}</span>
+                <DocumentsDialog kind="vehicle" ownerId={v.id} title={`Documents · ${v.registrationNumber}`} />
+              </div>
             </div>
           ))}
         </div>

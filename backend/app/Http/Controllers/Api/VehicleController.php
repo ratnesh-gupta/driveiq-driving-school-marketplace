@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
+use App\Support\DocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -104,7 +105,26 @@ class VehicleController extends Controller
         return response()->json($this->serialize($vehicle));
     }
 
-    public function addDocument(Request $request, int $id): JsonResponse
+    public function listDocuments(Request $request, int $id): JsonResponse
+    {
+        $vehicle = Vehicle::withoutGlobalScope('school')->find($id);
+        if (! $vehicle) {
+            return response()->json(['message' => 'Vehicle not found'], 404);
+        }
+        if ($deny = $this->access()->school($request, (int) $vehicle->school_id)) {
+            return $deny;
+        }
+
+        $docs = VehicleDocument::withoutGlobalScope('school')
+            ->where('vehicle_id', $id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (VehicleDocument $d) => $this->serializeDoc($d));
+
+        return response()->json($docs);
+    }
+
+    public function addDocument(Request $request, int $id, DocumentStorage $storage): JsonResponse
     {
         $vehicle = Vehicle::withoutGlobalScope('school')->find($id);
         if (! $vehicle) {
@@ -116,29 +136,39 @@ class VehicleController extends Controller
 
         $data = $request->validate([
             'type' => ['required', 'string', 'in:registration,insurance,pollution,permit'],
-            'filePath' => ['nullable', 'string', 'max:2048'],
-            'fileName' => ['nullable', 'string', 'max:255'],
+            'file' => ['nullable', ...DocumentStorage::FILE_RULE],
             'expiryDate' => ['nullable', 'date'],
             'status' => ['nullable', 'string', 'in:pending,valid,expired'],
         ]);
 
+        $file = $request->file('file');
+        $schoolId = (int) $vehicle->school_id;
+
         $doc = VehicleDocument::withoutGlobalScope('school')->create([
             'vehicle_id' => $vehicle->id,
-            'school_id' => $vehicle->school_id,
+            'school_id' => $schoolId,
             'type' => $data['type'],
-            'file_path' => $data['filePath'] ?? null,
-            'file_name' => $data['fileName'] ?? null,
+            'file_path' => $file ? $storage->store($file, $schoolId, 'vehicles', $vehicle->id) : null,
+            'file_name' => $file ? DocumentStorage::displayName($file) : null,
             'expiry_date' => $data['expiryDate'] ?? null,
             'status' => $data['status'] ?? 'pending',
         ]);
 
-        return response()->json([
-            'id' => $doc->id,
-            'type' => $doc->type,
-            'filePath' => $doc->file_path,
-            'expiryDate' => $doc->expiry_date?->toDateString(),
-            'status' => $doc->status,
-        ], 201);
+        return response()->json($this->serializeDoc($doc), 201);
+    }
+
+    private function serializeDoc(VehicleDocument $d): array
+    {
+        return [
+            'id' => $d->id,
+            'vehicleId' => $d->vehicle_id,
+            'type' => $d->type,
+            'hasFile' => $d->file_path !== null,
+            'fileName' => $d->file_name,
+            'expiryDate' => $d->expiry_date?->toDateString(),
+            'status' => $d->status,
+            'createdAt' => $d->created_at?->toISOString(),
+        ];
     }
 
     private function serialize(Vehicle $v): array

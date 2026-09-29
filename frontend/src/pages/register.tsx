@@ -41,15 +41,16 @@ export default function RegisterPage() {
     if (!canSubmit) return;
     clearAuthErrors();
     try {
-      saveRegisterConsent({
+      await register({ name, email, password, role: accountType });
+      const role = useAuthStore.getState().userRole ?? userRole;
+      const userId = useAuthStore.getState().user?.id;
+      // Recorded server-side now that the account exists (DIQ-604).
+      await saveRegisterConsent({
         terms: agreeTerms,
         privacy: agreePrivacy,
         processing: agreeProcessing,
         role: accountType,
       });
-      await register({ name, email, password, role: accountType });
-      const role = useAuthStore.getState().userRole ?? userRole;
-      const userId = useAuthStore.getState().user?.id;
       if (role === "school" || role === "learner") {
         setRoleConsent(role, userId);
       }

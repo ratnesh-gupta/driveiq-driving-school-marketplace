@@ -212,6 +212,7 @@ const en = {
     localities: "Localities",
     users: "Users",
     dataRequests: "Data requests",
+    messages: "Messages",
     title: "Admin Portal",
     brand: "DriveIQ Admin",
   },

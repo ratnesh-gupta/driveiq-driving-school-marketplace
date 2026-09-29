@@ -2,12 +2,11 @@
 
 namespace App\Http\Requests\Api;
 
-use Illuminate\Validation\Validator;
+use App\Http\Requests\Api\Concerns\GuardsAgainstBots;
 
 class StoreInquiryRequest extends BaseFormRequest
 {
-    /** Humans take longer than this to fill in the enquiry form (DIQ-404). */
-    private const MIN_FILL_MS = 3000;
+    use GuardsAgainstBots;
 
     public function rules(): array
     {
@@ -21,24 +20,7 @@ class StoreInquiryRequest extends BaseFormRequest
             'preferredTiming' => ['nullable', 'string', 'max:255'],
             'channel' => ['nullable', 'string', 'max:255'],
             'message' => ['nullable', 'string'],
-            // Anti-spam: a hidden field people never see (must stay empty) and
-            // the time the form was rendered (ms since epoch).
-            'website' => ['prohibited'],
-            'formStartedAt' => ['required', 'integer'],
-        ];
-    }
-
-    public function after(): array
-    {
-        return [
-            function (Validator $validator): void {
-                $startedAt = (int) $this->input('formStartedAt');
-                $elapsed = (int) (microtime(true) * 1000) - $startedAt;
-
-                if ($validator->errors()->isEmpty() && $elapsed < self::MIN_FILL_MS) {
-                    $validator->errors()->add('formStartedAt', 'Please take a moment to fill in the form and try again.');
-                }
-            },
+            ...$this->botRules(),
         ];
     }
 

@@ -16,7 +16,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...(init.headers as Record<string, string> | undefined),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (init.body && !headers["Content-Type"]) {
+  // FormData sets its own multipart boundary header.
+  if (init.body && !(init.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -338,4 +339,157 @@ export type VerificationFlags = {
 
 export function updateSchoolVerification(schoolId: number, flags: VerificationFlags) {
   return request(`/api/schools/${schoolId}`, { method: "PATCH", body: JSON.stringify(flags) });
+}
+
+// ── Documents (DIQ-601): private uploads, opened through short-lived signed links ──
+
+export type DocumentOwnerKind = "learner" | "instructor" | "vehicle";
+
+export type DocumentRow = {
+  id: number;
+  type: string;
+  hasFile: boolean;
+  fileName: string | null;
+  status: string;
+  expiryDate?: string | null;
+  notes?: string | null;
+  verifiedAt?: string | null;
+  createdAt?: string | null;
+};
+
+const DOCUMENT_BASE: Record<DocumentOwnerKind, string> = {
+  learner: "/api/learners",
+  instructor: "/api/instructors",
+  vehicle: "/api/vehicles",
+};
+
+export function listDocuments(kind: DocumentOwnerKind, ownerId: number) {
+  return request<DocumentRow[]>(`${DOCUMENT_BASE[kind]}/${ownerId}/documents`);
+}
+
+export function uploadDocument(
+  kind: DocumentOwnerKind,
+  ownerId: number,
+  body: { type: string; file: File; expiryDate?: string }
+) {
+  const form = new FormData();
+  form.append("type", body.type);
+  form.append("file", body.file);
+  if (body.expiryDate) form.append("expiryDate", body.expiryDate);
+  return request<DocumentRow>(`${DOCUMENT_BASE[kind]}/${ownerId}/documents`, { method: "POST", body: form });
+}
+
+/** Staff review (learner and instructor documents only). */
+export function reviewDocument(
+  kind: Exclude<DocumentOwnerKind, "vehicle">,
+  ownerId: number,
+  docId: number,
+  status: "verified" | "rejected"
+) {
+  return request<DocumentRow>(`${DOCUMENT_BASE[kind]}/${ownerId}/documents/${docId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function getDocumentLink(kind: DocumentOwnerKind, docId: number) {
+  return request<{ url: string; expiresAt: string }>(`/api/documents/${kind}/${docId}/link`);
+}
+
+// ── Admin users (DIQ-602) ──
+
+export type AdminUserRow = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "school" | "instructor" | "learner";
+  schoolId: number | null;
+  schoolName: string | null;
+  active: boolean;
+  deactivatedAt: string | null;
+  createdAt: string | null;
+};
+
+export type Paged<T> = { data: T[]; meta: { page: number; lastPage: number; total: number } };
+
+export function listAdminUsers(params: { search?: string; role?: string; status?: string; page?: number }) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== "") q.set(k, String(v));
+  });
+  return request<Paged<AdminUserRow>>(`/api/admin/users?${q.toString()}`);
+}
+
+export function setAdminUserActive(userId: number, active: boolean) {
+  return request<AdminUserRow>(`/api/admin/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ active }),
+  });
+}
+
+// ── Contact form (DIQ-603) ──
+
+export type ContactMessageRow = {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "new" | "read" | "closed";
+  userId: number | null;
+  handledAt: string | null;
+  createdAt: string | null;
+};
+
+export function sendContactMessage(body: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  website: string;
+  formStartedAt: number;
+}) {
+  return request<{ id: number; message: string }>(`/api/contact`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function listContactMessages(params: { status?: string; page?: number }) {
+  const q = new URLSearchParams();
+  if (params.status) q.set("status", params.status);
+  if (params.page) q.set("page", String(params.page));
+  return request<Paged<ContactMessageRow> & { meta: { unread: number } }>(`/api/admin/contact-messages?${q.toString()}`);
+}
+
+export function updateContactMessage(id: number, status: ContactMessageRow["status"]) {
+  return request<ContactMessageRow>(`/api/admin/contact-messages/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+// ── Consent records (DIQ-604) ──
+
+export type ConsentPurpose = "terms" | "privacy" | "processing" | "role_portal" | "cookies_optional";
+
+export type ConsentRow = {
+  id: number;
+  purpose: ConsentPurpose;
+  role: string | null;
+  version: string;
+  grantedAt: string;
+  withdrawnAt: string | null;
+};
+
+export function postConsents(consents: { purpose: ConsentPurpose; version: string }[], deviceId?: string) {
+  return request<ConsentRow[]>(`/api/consents`, {
+    method: "POST",
+    body: JSON.stringify({ consents, deviceId }),
+  });
+}
+
+export function fetchMyConsents() {
+  return request<ConsentRow[]>(`/api/consents`);
+}
+
+export function withdrawConsent(purpose: ConsentPurpose) {
+  return request<void>(`/api/consents/${purpose}`, { method: "DELETE" });
 }

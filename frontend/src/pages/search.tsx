@@ -38,6 +38,7 @@ export default function SearchPage() {
   const [hasPickup, setHasPickup] = useState(false);
   const [womenInstructor, setWomenInstructor] = useState(false);
   const [weekendClasses, setWeekendClasses] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minRating, setMinRating] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [nearMe, setNearMe] = useState(false);
@@ -56,6 +57,7 @@ export default function SearchPage() {
     if (hasPickup) p.hasPickup = true;
     if (womenInstructor) p.womenInstructor = true;
     if (weekendClasses) p.weekendClasses = true;
+    if (verifiedOnly) p.verified = true;
     if (minRating > 0) p.minRating = minRating;
     if (maxPrice < 10000) p.maxPrice = maxPrice;
     if (nearMe && geo) {
@@ -64,18 +66,18 @@ export default function SearchPage() {
       p.radiusKm = radiusKm;
     }
     return p;
-  }, [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, minRating, maxPrice, nearMe, geo, radiusKm]);
+  }, [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, verifiedOnly, minRating, maxPrice, nearMe, geo, radiusKm]);
 
   const { data: schools, isLoading } = useListSchools(params);
 
   const activeFilterCount = [
     locality, vehicleType, transmission, hasPickup, womenInstructor,
-    weekendClasses, minRating > 0, maxPrice < 10000, nearMe,
+    weekendClasses, verifiedOnly, minRating > 0, maxPrice < 10000, nearMe,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setLocality(""); setVehicleType(""); setTransmission("");
-    setHasPickup(false); setWomenInstructor(false); setWeekendClasses(false);
+    setHasPickup(false); setWomenInstructor(false); setWeekendClasses(false); setVerifiedOnly(false);
     setMinRating(0); setMaxPrice(10000);
     setNearMe(false); setGeo(null); setRadiusKm(5);
   };
@@ -221,6 +223,7 @@ export default function SearchPage() {
           { label: "Pickup & Drop", value: hasPickup, setter: setHasPickup, id: "pickup" },
           { label: "Women Instructor", value: womenInstructor, setter: setWomenInstructor, id: "women" },
           { label: "Weekend Classes", value: weekendClasses, setter: setWeekendClasses, id: "weekend" },
+          { label: "Verified schools only", value: verifiedOnly, setter: setVerifiedOnly, id: "verified" },
         ].map((item) => (
           <div key={item.id} className="flex items-center gap-2">
             <Checkbox
