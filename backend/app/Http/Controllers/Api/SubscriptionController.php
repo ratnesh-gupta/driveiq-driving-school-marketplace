@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\School;
 use App\Services\SubscriptionService;
+use App\Support\Entitlements;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -50,6 +51,16 @@ class SubscriptionController extends Controller
         }
 
         return response()->json($this->serialize($sub));
+    }
+
+    /** What the school's plan and trial unlock (DIQ-802). */
+    public function entitlements(Request $request, int $schoolId, Entitlements $entitlements): JsonResponse
+    {
+        if ($deny = $this->access()->school($request, $schoolId, allowInstructor: true)) {
+            return $deny;
+        }
+
+        return response()->json(['schoolId' => $schoolId, ...$entitlements->forSchool($schoolId)]);
     }
 
     public function assign(Request $request): JsonResponse

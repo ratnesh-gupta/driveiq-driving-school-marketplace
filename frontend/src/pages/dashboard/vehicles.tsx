@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { PlanGateBanner } from "@/components/plan/plan-gate-banner";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentsDialog } from "@/components/documents-panel";
@@ -25,6 +26,7 @@ export default function VehiclesPage() {
 
   return (
     <DashboardLayout>
+      <PlanGateBanner feature="vehicles" />
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Vehicles</h1>
         <p className="text-sm text-muted-foreground mt-1">Fleet status and availability</p>

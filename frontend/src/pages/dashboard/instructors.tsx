@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PlanGateBanner } from "@/components/plan/plan-gate-banner";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,7 @@ type InstructorRow = {
 };
 
 export default function InstructorsPage() {
+  const canWrite = useEntitlements().has("instructors");
   const schoolId = useSchoolId();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -47,12 +50,13 @@ export default function InstructorsPage() {
 
   return (
     <DashboardLayout>
+      <PlanGateBanner feature="instructors" />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Instructors</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage trainers for your school</p>
         </div>
-        <Button onClick={() => setOpen((v) => !v)}><Plus className="h-4 w-4 mr-1" /> Add instructor</Button>
+        <Button disabled={!canWrite} onClick={() => setOpen((v) => !v)}><Plus className="h-4 w-4 mr-1" /> Add instructor</Button>
       </div>
 
       {open && (

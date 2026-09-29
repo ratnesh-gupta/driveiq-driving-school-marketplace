@@ -79,6 +79,29 @@ class SubscriptionService
         ]);
     }
 
+    /**
+     * Start a school's feature trial (DIQ-802), once: a school that already
+     * had a trial or a paid plan does not get another.
+     */
+    public function startTrial(int $schoolId): ?Subscription
+    {
+        $hadAny = Subscription::withoutGlobalScope('school')->where('school_id', $schoolId)->exists();
+        $plan = Plan::where('code', config('plans.trial_plan', 'premium'))->first();
+
+        if ($hadAny || ! $plan || config('plans.trial_days', 30) <= 0) {
+            return null;
+        }
+
+        return Subscription::withoutGlobalScope('school')->create([
+            'school_id' => $schoolId,
+            'plan_id' => $plan->id,
+            'status' => 'trial',
+            'starts_at' => now(),
+            'expires_at' => now()->addDays((int) config('plans.trial_days', 30)),
+            'notes' => 'Feature trial',
+        ]);
+    }
+
     public function cancel(int $schoolId): ?Subscription
     {
         $sub = $this->activeForSchool($schoolId);

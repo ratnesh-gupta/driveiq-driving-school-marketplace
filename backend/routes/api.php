@@ -127,7 +127,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/messages/threads/{id}/read', [MessageController::class, 'markRead'])->whereNumber('id');
     });
 
-    Route::middleware('role:instructor,school,admin')->group(function (): void {
+    // plan.features runs after the role check (DIQ-802; routes in config/plans.php).
+    Route::middleware(['role:instructor,school,admin', 'plan.features'])->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
         Route::get('/instructor/sessions', [ScheduleController::class, 'instructorSessions']);
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
@@ -140,7 +141,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
             ->whereNumber(['id', 'docId']);
     });
 
-    Route::middleware('role:learner,school,admin,instructor')->group(function (): void {
+    Route::middleware(['role:learner,school,admin,instructor', 'plan.features'])->group(function (): void {
         Route::get('/learner/me', [LearnerController::class, 'me']);
         Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
         Route::post('/learners/{id}/documents', [LearnerController::class, 'addDocument'])->whereNumber('id');
@@ -179,7 +180,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
     });
 
-    Route::middleware('role:school,admin')->group(function (): void {
+    Route::middleware(['role:school,admin', 'plan.features'])->group(function (): void {
         Route::patch('/schools/{id}', [SchoolController::class, 'update'])->whereNumber('id');
 
         Route::get('/inquiries', [InquiryController::class, 'index']);
@@ -203,6 +204,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/schools/{id}/team/{memberId}', [SchoolTeamController::class, 'remove'])
             ->whereNumber(['id', 'memberId']);
 
+        Route::get('/schools/{id}/entitlements', [SubscriptionController::class, 'entitlements'])->whereNumber('id');
         Route::get('/schools/{id}/subscription', [SubscriptionController::class, 'showForSchool'])
             ->whereNumber('id');
 

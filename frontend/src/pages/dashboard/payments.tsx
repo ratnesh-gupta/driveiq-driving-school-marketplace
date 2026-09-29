@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PlanGateBanner } from "@/components/plan/plan-gate-banner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ export default function PaymentsPage() {
 
   return (
     <DashboardLayout>
+      <PlanGateBanner feature="payments" />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Payments</h1>

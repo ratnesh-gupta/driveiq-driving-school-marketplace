@@ -3,8 +3,10 @@ import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu,
-  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound, Settings,
+  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound, Settings, Lock,
 } from "lucide-react";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { ROUTE_FEATURE } from "@/lib/plan";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RoleConsentGate } from "@/components/legal/role-consent-gate";
@@ -16,6 +18,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { logout } = useAuthStore();
   const t = useT();
+  const { has } = useEntitlements();
 
   const links = [
     { href: "/dashboard", label: t("schoolNav.overview"), icon: LayoutDashboard },
@@ -51,6 +54,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               >
                 <Icon className="mr-2 h-4 w-4" />
                 {link.label}
+                {ROUTE_FEATURE[link.href] && !has(ROUTE_FEATURE[link.href]) && (
+                  <Lock className="ml-auto h-3.5 w-3.5 opacity-60" aria-label="Not on your plan" />
+                )}
               </Button>
             </Link>
           );

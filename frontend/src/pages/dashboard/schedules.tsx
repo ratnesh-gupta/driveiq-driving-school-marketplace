@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PlanGateBanner } from "@/components/plan/plan-gate-banner";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ import { toast } from "sonner";
 type Named = { id: number; name: string };
 
 export default function SchedulesPage() {
+  const canWrite = useEntitlements().has("schedules");
   const schoolId = useSchoolId();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -65,12 +68,13 @@ export default function SchedulesPage() {
 
   return (
     <DashboardLayout>
+      <PlanGateBanner feature="schedules" />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Schedules</h1>
           <p className="text-sm text-muted-foreground mt-1">Week and month view of training sessions</p>
         </div>
-        <Button onClick={() => setOpen((v) => !v)}><Plus className="h-4 w-4 mr-1" /> New session</Button>
+        <Button disabled={!canWrite} onClick={() => setOpen((v) => !v)}><Plus className="h-4 w-4 mr-1" /> New session</Button>
       </div>
 
       {open && (

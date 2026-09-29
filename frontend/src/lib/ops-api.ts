@@ -1,4 +1,5 @@
 import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
+import { announcePlanRequired, type PlanFeature } from "@/lib/plan";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)
@@ -27,6 +28,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
+      if (res.status === 402) announcePlanRequired(data);
       if (data.message) message = data.message;
       else if (data.errors) message = Object.values(data.errors).flat().join(" ");
     } catch {
@@ -558,4 +560,20 @@ export function fetchSchoolDashboard(schoolId: number) {
   return request<{ schoolId: number; metrics: { responseTime: ResponseTimeSummary } & Record<string, unknown> }>(
     `/api/schools/${schoolId}/dashboard`
   );
+}
+
+// ── Plan entitlements (DIQ-802) ──
+
+export type Entitlements = {
+  schoolId: number;
+  plan: string;
+  planExpiresAt: string | null;
+  trial: { active: boolean; endsAt: string | null; plan: string };
+  features: PlanFeature[];
+  lockedFeatures: PlanFeature[];
+  enforced: boolean;
+};
+
+export function fetchEntitlements(schoolId: number) {
+  return request<Entitlements>(`/api/schools/${schoolId}/entitlements`);
 }

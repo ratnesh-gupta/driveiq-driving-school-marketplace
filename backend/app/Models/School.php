@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\SubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -71,6 +72,10 @@ class School extends Model
         static::saving(function (School $school) {
             $school->profile_completeness = $school->calculateProfileCompleteness();
         });
+
+        // Every new school starts on a feature trial (DIQ-802), however it was
+        // created (registration, admin, seeder).
+        static::created(fn (School $school) => app(SubscriptionService::class)->startTrial($school->id));
     }
 
     /**
