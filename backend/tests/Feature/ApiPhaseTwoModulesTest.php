@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\DrivePackage;
 use App\Models\Inquiry;
+use App\Models\Learner;
 use App\Models\Locality;
 use App\Models\Review;
 use App\Models\School;
@@ -42,7 +43,7 @@ class ApiPhaseTwoModulesTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $schoolUser = User::factory()->create(['role' => 'school']);
-        $learner = User::factory()->create(['role' => 'user', 'email' => 'learner-phase2@example.com']);
+        $learner = User::factory()->create(['role' => 'learner', 'email' => 'learner-phase2@example.com']);
 
         $locality = Locality::create([
             'name' => 'Wakad',
@@ -89,14 +90,13 @@ class ApiPhaseTwoModulesTest extends TestCase
         $packageId = $package->json('id') ?? DrivePackage::withoutGlobalScope('school')->value('id');
         $this->patchJson('/api/packages/'.$packageId, ['active' => false])->assertOk()->assertJsonPath('active', false);
 
-        // Eligibility: learner must have an enquiry with matching email
-        Inquiry::withoutGlobalScope('school')->create([
+        // Eligibility (DIQ-407): the reviewer must be a learner enrolled at this school.
+        $learner->update(['school_id' => $schoolId]);
+        Learner::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
+            'user_id' => $learner->id,
             'name' => 'Learner',
-            'phone' => '9888888888',
-            'email' => 'learner-phase2@example.com',
-            'vehicle_type' => 'car',
-            'status' => 'pending',
+            'status' => 'active',
         ]);
 
         Sanctum::actingAs($learner);

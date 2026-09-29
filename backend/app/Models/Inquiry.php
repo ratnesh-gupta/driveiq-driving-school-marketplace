@@ -15,7 +15,15 @@ class Inquiry extends Model
     protected $fillable = [
         'school_id', 'name', 'phone', 'email', 'vehicle_type', 'area',
         'preferred_timing', 'channel', 'message', 'status',
+        'review_token_hash', 'review_token_expires_at',
     ];
+
+    protected $hidden = ['review_token_hash'];
+
+    protected function casts(): array
+    {
+        return ['review_token_expires_at' => 'datetime'];
+    }
 
     public function school(): BelongsTo
     {

@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/lib/store";
+import { useT } from "@/i18n/use-locale";
 import {
   useGetSchoolBySlug,
   useListReviews,
@@ -71,6 +73,8 @@ export default function SchoolDetailPage() {
   const queryClient = useQueryClient();
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const { userRole, schoolId: mySchoolId } = useAuthStore();
+  const t = useT();
 
   const { data: school, isLoading } = useGetSchoolBySlug(params.slug);
   const { data: reviews } = useListReviews(
@@ -113,10 +117,16 @@ export default function SchoolDetailPage() {
           setReviewOpen(false);
           queryClient.invalidateQueries({ queryKey: getListReviewsQueryKey({ schoolId: school.id }) });
         },
-        onError: () => toast({ title: "Failed to submit review", variant: "destructive" }),
+        onError: (err: unknown) => {
+          const message = (err as { data?: { message?: string } })?.data?.message;
+          toast({ title: "Failed to submit review", description: message, variant: "destructive" });
+        },
       }
     );
   };
+
+  // PBAC: only learners enrolled at this school review from their account (DIQ-407).
+  const canReview = userRole === "learner" && !!school && mySchoolId === school.id;
 
   if (isLoading) {
     return (
@@ -250,37 +260,43 @@ export default function SchoolDetailPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }} className="rounded-xl border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-lg">Reviews ({approvedReviews.length})</h2>
-                <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" data-testid="button-write-review">Write a Review</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Write a Review</DialogTitle></DialogHeader>
-                    <div className="space-y-4 mt-2">
-                      <div>
-                        <Label>Your Name</Label>
-                        <Input value={reviewForm.authorName} onChange={e => setReviewForm(p => ({ ...p, authorName: e.target.value }))} placeholder="Enter your name" data-testid="input-reviewer-name" />
-                      </div>
-                      <div>
-                        <Label>Rating</Label>
-                        <div className="flex gap-1 mt-1">
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <button key={n} onClick={() => setReviewForm(p => ({ ...p, rating: n }))}>
-                              <Star className={`h-7 w-7 transition-colors ${n <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
-                            </button>
-                          ))}
+                {canReview ? (
+                  <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" data-testid="button-write-review">Write a Review</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Write a Review</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-2">
+                        <div>
+                          <Label>Your Name</Label>
+                          <Input value={reviewForm.authorName} onChange={e => setReviewForm(p => ({ ...p, authorName: e.target.value }))} placeholder="Enter your name" data-testid="input-reviewer-name" />
                         </div>
+                        <div>
+                          <Label>Rating</Label>
+                          <div className="flex gap-1 mt-1">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <button key={n} onClick={() => setReviewForm(p => ({ ...p, rating: n }))}>
+                                <Star className={`h-7 w-7 transition-colors ${n <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Review</Label>
+                          <Textarea value={reviewForm.content} onChange={e => setReviewForm(p => ({ ...p, content: e.target.value }))} placeholder="Share your experience..." rows={4} data-testid="textarea-review-content" />
+                        </div>
+                        <Button onClick={handleReview} disabled={createReview.isPending} className="w-full" data-testid="button-submit-review">
+                          {createReview.isPending ? "Submitting..." : "Submit Review"}
+                        </Button>
                       </div>
-                      <div>
-                        <Label>Review</Label>
-                        <Textarea value={reviewForm.content} onChange={e => setReviewForm(p => ({ ...p, content: e.target.value }))} placeholder="Share your experience..." rows={4} data-testid="textarea-review-content" />
-                      </div>
-                      <Button onClick={handleReview} disabled={createReview.isPending} className="w-full" data-testid="button-submit-review">
-                        {createReview.isPending ? "Submitting..." : "Submit Review"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <p className="text-xs text-muted-foreground max-w-[16rem] text-right" data-testid="text-review-eligibility">
+                    {t("reviewLink.eligibility")}
+                  </p>
+                )}
               </div>
 
               {approvedReviews.length === 0 ? (

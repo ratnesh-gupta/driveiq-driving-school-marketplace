@@ -52,6 +52,9 @@ Route::prefix('localities')->group(function (): void {
 });
 
 Route::get('/reviews', [ReviewController::class, 'index']);
+// One-time review link from an inquiry confirmation email (DIQ-407).
+Route::get('/reviews/via-inquiry/{token}', [ReviewController::class, 'showInquiryReview'])->middleware('throttle:20,1');
+Route::post('/reviews/via-inquiry', [ReviewController::class, 'storeViaInquiry'])->middleware('throttle:5,1');
 Route::post('/reviews', [ReviewController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:10,1']);
 

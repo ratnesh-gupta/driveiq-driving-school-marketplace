@@ -36,6 +36,7 @@ import SchoolMessagesPage from "@/pages/dashboard/messages";
 import PaymentsPage from "@/pages/dashboard/payments";
 import TeamPage from "@/pages/dashboard/team";
 import TeamAcceptPage from "@/pages/team-accept";
+import ReviewViaLinkPage from "@/pages/review-via-link";
 
 import AdminHomePage from "@/pages/admin/index";
 import AdminSchoolsPage from "@/pages/admin/schools";
@@ -89,6 +90,7 @@ function Router() {
       <Route path="/auth/reset-password" component={ResetPasswordPage} />
       <Route path="/compare" component={ComparePage} />
       <Route path="/team/accept" component={TeamAcceptPage} />
+      <Route path="/review" component={ReviewViaLinkPage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>
       <Route path="/dashboard/leads">{() => schoolGuard(<LeadsPage />)}</Route>

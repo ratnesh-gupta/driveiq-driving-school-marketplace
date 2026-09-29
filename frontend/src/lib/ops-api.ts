@@ -268,3 +268,20 @@ export function acceptInvitation(body: {
     body: JSON.stringify(body),
   });
 }
+
+// ── One-time inquiry review link (DIQ-407) ──────────────────────
+
+export type InquiryReviewPreview = {
+  schoolId: number;
+  schoolName: string;
+  schoolSlug: string;
+  authorName: string;
+};
+
+export function getInquiryReview(token: string) {
+  return request<InquiryReviewPreview>(`/api/reviews/via-inquiry/${encodeURIComponent(token)}`);
+}
+
+export function submitInquiryReview(body: { token: string; authorName: string; rating: number; content: string }) {
+  return request<{ id: number }>(`/api/reviews/via-inquiry`, { method: "POST", body: JSON.stringify(body) });
+}

@@ -3,98 +3,83 @@
 namespace App\Services;
 
 use App\Models\Inquiry;
+use App\Models\Learner;
+use App\Models\Review;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
+/**
+ * Who may review a school (DIQ-407, PBAC "Reviews: Create = Learner").
+ *
+ * Path A: a learner enrolled at the school, from their account.
+ * Path B: someone who enquired, through the one-time link emailed with their
+ *         inquiry confirmation (no account needed). See issueInquiryToken().
+ */
 class ReviewEligibilityService
 {
+    public const INQUIRY_LINK_TTL_DAYS = 90;
+
     /**
-     * A user may review a school if they previously submitted an inquiry
-     * to that school using a matching email or phone (normalized).
+     * Path A.
      *
-     * Platform admins may always review (for testing / moderation seeding).
-     *
-     * @return array{eligible: bool, source: ?string, inquiry_id: ?int, message: ?string}
+     * @return array{eligible: bool, source: ?string, learner_id: ?int, message: ?string}
      */
     public function check(User $user, int $schoolId): array
     {
-        if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
-            return [
-                'eligible' => true,
-                'source' => 'admin',
-                'inquiry_id' => null,
-                'message' => null,
-            ];
-        }
-
-        $email = $user->email ? strtolower(trim($user->email)) : null;
-        $phoneDigits = $this->normalizePhone($user->name); // unlikely
-        // Prefer matching inquiry by user email against inquiry email/phone fields.
-
-        $inquiry = Inquiry::withoutGlobalScope('school')
-            ->where('school_id', $schoolId)
-            ->where(function ($q) use ($user, $email) {
-                if ($email) {
-                    $q->whereRaw('LOWER(email) = ?', [$email]);
-                }
-                // Also allow if inquiry phone is embedded in message / exact phone later.
-                if ($user->email) {
-                    $q->orWhere('email', $user->email);
-                }
-            })
-            ->orderByDesc('id')
-            ->first();
-
-        // Fallback: any inquiry for this school by same phone if stored on a prior inquiry
-        // linked loosely via name match is too weak — require email match primarily.
-        if (! $inquiry && $email) {
-            $inquiry = Inquiry::withoutGlobalScope('school')
+        $learner = $user->isLearner()
+            ? Learner::withoutGlobalScope('school')
+                ->where('user_id', $user->id)
                 ->where('school_id', $schoolId)
-                ->whereRaw('LOWER(email) = ?', [$email])
-                ->orderByDesc('id')
-                ->first();
+                ->first()
+            : null;
+
+        if (! $learner) {
+            return $this->deny('Only learners enrolled with this school can review it from their account. If you enquired, use the review link from your enquiry confirmation email.');
         }
 
-        if (! $inquiry) {
-            return [
-                'eligible' => false,
-                'source' => null,
-                'inquiry_id' => null,
-                'message' => 'You can only review a school after submitting an enquiry to them.',
-            ];
+        if (Review::withoutGlobalScope('school')->where('learner_id', $learner->id)->exists()) {
+            return $this->deny('You have already reviewed this school.');
         }
 
-        // One review per user per school
-        $already = DB::table('reviews')
-            ->where('school_id', $schoolId)
-            ->where('user_id', $user->id)
-            ->exists();
-
-        if ($already) {
-            return [
-                'eligible' => false,
-                'source' => null,
-                'inquiry_id' => $inquiry->id,
-                'message' => 'You have already reviewed this school.',
-            ];
-        }
-
-        return [
-            'eligible' => true,
-            'source' => 'inquiry',
-            'inquiry_id' => $inquiry->id,
-            'message' => null,
-        ];
+        return ['eligible' => true, 'source' => 'learner', 'learner_id' => $learner->id, 'message' => null];
     }
 
-    private function normalizePhone(?string $phone): ?string
+    /** Path B: create a fresh single-use review token for an inquiry; returns the plain token. */
+    public function issueInquiryToken(Inquiry $inquiry): string
     {
-        if (! $phone) {
+        $token = Str::random(48);
+
+        $inquiry->forceFill([
+            'review_token_hash' => hash('sha256', $token),
+            'review_token_expires_at' => now()->addDays(self::INQUIRY_LINK_TTL_DAYS),
+        ])->save();
+
+        return $token;
+    }
+
+    /** Path B: the inquiry a still-valid, unused review token belongs to. */
+    public function inquiryForToken(string $token): ?Inquiry
+    {
+        $inquiry = Inquiry::withoutGlobalScope('school')
+            ->with('school:id,name,slug')
+            ->where('review_token_hash', hash('sha256', $token))
+            ->where('review_token_expires_at', '>', now())
+            ->first();
+
+        if (! $inquiry || Review::withoutGlobalScope('school')->where('inquiry_id', $inquiry->id)->exists()) {
             return null;
         }
 
-        $digits = preg_replace('/\D+/', '', $phone);
+        return $inquiry;
+    }
 
-        return $digits !== '' ? $digits : null;
+    public function reviewUrl(string $token): string
+    {
+        return config('app.frontend_url').'/review?token='.urlencode($token);
+    }
+
+    private function deny(string $message): array
+    {
+        return ['eligible' => false, 'source' => null, 'learner_id' => null, 'message' => $message];
     }
 }
