@@ -46,3 +46,6 @@ Schedule::command('sanctum:prune-expired --hours=24')->daily();
 
 // DPDP retention (DIQ-606): reports daily; deletes only when RETENTION_EXECUTE=true.
 Schedule::command('driveiq:retention')->dailyAt('02:30')->withoutOverlapping();
+
+// Remind schools about leads still waiting for a first reply (DIQ-705).
+Schedule::command('driveiq:lead-reminders')->everyFifteenMinutes()->withoutOverlapping();

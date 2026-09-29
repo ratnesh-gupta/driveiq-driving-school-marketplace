@@ -39,6 +39,7 @@ class Inquiry extends Model
             'review_token_expires_at' => 'datetime',
             'first_responded_at' => 'datetime',
             'response_seconds' => 'integer',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 
