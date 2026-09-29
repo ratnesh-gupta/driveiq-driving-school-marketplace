@@ -16,7 +16,7 @@ class AnalyticsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-p10']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -36,12 +36,14 @@ class AnalyticsTest extends TestCase
             'name' => 'Lead One',
             'phone' => '9000000001',
             'status' => 'pending',
+            'vehicle_type' => 'car',
         ]);
         Inquiry::withoutGlobalScope('school')->create([
             'school_id' => $school->id,
             'name' => 'Lead Two',
             'phone' => '9000000002',
             'status' => 'converted',
+            'vehicle_type' => 'car',
         ]);
 
         Instructor::withoutGlobalScope('school')->create([
@@ -63,7 +65,7 @@ class AnalyticsTest extends TestCase
 
     public function test_school_analytics(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->getJson('/api/schools/'.$school->id.'/analytics')
@@ -80,7 +82,7 @@ class AnalyticsTest extends TestCase
 
     public function test_instructor_analytics(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->getJson('/api/schools/'.$school->id.'/analytics/instructors')
@@ -90,7 +92,7 @@ class AnalyticsTest extends TestCase
 
     public function test_platform_analytics_admin_only(): void
     {
-        ['owner' => $owner, 'admin' => $admin] = $this->seed();
+        ['owner' => $owner, 'admin' => $admin] = $this->seedFixtures();
 
         Sanctum::actingAs($owner);
         $this->getJson('/api/admin/analytics')->assertForbidden();
@@ -108,8 +110,8 @@ class AnalyticsTest extends TestCase
 
     public function test_other_school_forbidden(): void
     {
-        ['school' => $school] = $this->seed();
-        $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
+        ['school' => $school] = $this->seedFixtures();
+        $other = $this->otherSchoolUser();
 
         Sanctum::actingAs($other);
         $this->getJson('/api/schools/'.$school->id.'/analytics')->assertForbidden();

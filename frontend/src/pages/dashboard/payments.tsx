@@ -13,7 +13,7 @@ import {
   purchasePackage,
   type PaymentRow,
 } from "@/lib/ops-api";
-import { useListPackages } from "@/api-client";
+import { useListPackages, getListPackagesQueryKey } from "@/api-client";
 import { IndianRupee, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,7 +40,7 @@ export default function PaymentsPage() {
     enabled: !!schoolId && open,
   });
 
-  const packages = useListPackages({ schoolId: schoolId! }, { query: { enabled: !!schoolId && open } });
+  const packages = useListPackages({ schoolId: schoolId! }, { query: { enabled: !!schoolId && open, queryKey: getListPackagesQueryKey({ schoolId: schoolId! }) } });
 
   const create = useMutation({
     mutationFn: () =>

@@ -13,7 +13,7 @@ class MessagingTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-p9']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -39,17 +39,14 @@ class MessagingTest extends TestCase
             'name' => 'Learner User',
         ]);
 
-        $otherSchoolUser = User::factory()->create([
-            'role' => 'school',
-            'school_id' => 999,
-        ]);
+        $otherSchoolUser = $this->otherSchoolUser();
 
         return compact('owner', 'school', 'instructor', 'learner', 'otherSchoolUser');
     }
 
     public function test_school_can_message_instructor(): void
     {
-        ['owner' => $owner, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->postJson('/api/messages', [
@@ -76,7 +73,7 @@ class MessagingTest extends TestCase
 
     public function test_cross_school_messaging_blocked(): void
     {
-        ['owner' => $owner, 'otherSchoolUser' => $other] = $this->seed();
+        ['owner' => $owner, 'otherSchoolUser' => $other] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->postJson('/api/messages', [
@@ -87,7 +84,7 @@ class MessagingTest extends TestCase
 
     public function test_instructor_learner_thread(): void
     {
-        ['instructor' => $instructor, 'learner' => $learner] = $this->seed();
+        ['instructor' => $instructor, 'learner' => $learner] = $this->seedFixtures();
         Sanctum::actingAs($instructor);
 
         $this->postJson('/api/messages', [

@@ -10,7 +10,5 @@ class InquiryCreated
 {
     use Dispatchable, SerializesModels;
 
-    public function __construct(public Inquiry $inquiry)
-    {
-    }
+    public function __construct(public Inquiry $inquiry) {}
 }

@@ -26,7 +26,6 @@ class SchoolManagementTest extends TestCase
             'address' => 'Baner',
             'phone' => '9000006000',
             'user_id' => $owner->id,
-            'profile_completeness' => 50,
         ]);
         $owner->update(['school_id' => $school->id]);
 
@@ -64,7 +63,7 @@ class SchoolManagementTest extends TestCase
     {
         ['school' => $school] = $this->seedSchoolOwner();
 
-        $other = User::factory()->create(['role' => 'school', 'school_id' => 99999]);
+        $other = $this->otherSchoolUser();
 
         Sanctum::actingAs($other);
 
@@ -109,7 +108,10 @@ class SchoolManagementTest extends TestCase
             ->assertOk()
             ->assertJsonPath('metrics.totalInquiries', 1)
             ->assertJsonPath('metrics.pendingInquiries', 1)
-            ->assertJsonPath('profileCompleteness', 50);
+            // Completeness is derived on save (School::calculateProfileCompleteness),
+            // never taken from input; this sparse profile is < 80 so a nudge shows.
+            ->assertJsonPath('profileCompleteness', $school->fresh()->calculateProfileCompleteness())
+            ->assertJsonFragment(['type' => 'complete_profile']);
     }
 
     public function test_audit_logs_scoped(): void

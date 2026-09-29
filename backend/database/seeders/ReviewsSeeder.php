@@ -26,7 +26,7 @@ class ReviewsSeeder extends Seeder
 
         foreach ($reviews as $review) {
             $schoolId = $schoolIds[$review['school_slug']] ?? null;
-            if (!$schoolId) {
+            if (! $schoolId) {
                 continue;
             }
 

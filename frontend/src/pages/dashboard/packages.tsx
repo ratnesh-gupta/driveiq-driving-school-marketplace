@@ -23,7 +23,7 @@ export default function PackagesPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", description: "", price: "", sessions: "", vehicleType: "Car", transmission: "Manual", hasPickup: false });
 
-  const { data: packages, isLoading } = useListPackages({ schoolId: schoolId! }, { query: { enabled: !!schoolId } });
+  const { data: packages, isLoading } = useListPackages({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListPackagesQueryKey({ schoolId: schoolId! }) } });
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
   const deletePackage = useDeletePackage();

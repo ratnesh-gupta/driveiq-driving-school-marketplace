@@ -90,6 +90,7 @@ class ReviewController extends Controller
         $review->fill($request->toSnakeCase());
         $review->save();
         $review->load('school');
+        $review->school?->recalculateRating();
 
         AuditLog::log('update', 'Review', $review->id, $oldValues, $review->only(['approved', 'rating', 'content']));
 
@@ -105,7 +106,9 @@ class ReviewController extends Controller
         }
 
         AuditLog::log('delete', 'Review', $review->id, $review->toArray(), []);
+        $school = $review->school;
         $review->delete();
+        $school?->recalculateRating();
 
         return response()->json(null, 204);
     }
@@ -146,6 +149,7 @@ class ReviewController extends Controller
         // Auto-unapprove when reports exceed threshold
         if ($review->report_count >= 3 && $review->approved) {
             $review->update(['approved' => false]);
+            $review->school?->recalculateRating();
         }
 
         AuditLog::log('report', 'Review', $review->id, [], [

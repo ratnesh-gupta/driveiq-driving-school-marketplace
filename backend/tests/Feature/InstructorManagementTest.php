@@ -65,7 +65,7 @@ class InstructorManagementTest extends TestCase
     public function test_other_school_cannot_list_instructors(): void
     {
         ['school' => $school] = $this->seedSchool();
-        $other = User::factory()->create(['role' => 'school', 'school_id' => 999]);
+        $other = $this->otherSchoolUser();
 
         Sanctum::actingAs($other);
 

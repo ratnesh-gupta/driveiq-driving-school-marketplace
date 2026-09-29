@@ -15,7 +15,7 @@ return new class extends Migration
             if (Schema::getConnection()->getDriverName() === 'pgsql') {
                 DB::statement('CREATE EXTENSION IF NOT EXISTS postgis');
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Extension not available — Haversine path remains the default.
         }
 

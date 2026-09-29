@@ -6,7 +6,6 @@ use App\Models\DrivePackage;
 use App\Models\Invoice;
 use App\Models\Learner;
 use App\Models\Payment;
-use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

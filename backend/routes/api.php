@@ -111,6 +111,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
         Route::post('/localities', [LocalityController::class, 'store']);
 
+        // Review moderation is platform-admin only; schools can report a review instead.
+        Route::patch('/reviews/{id}', [ReviewController::class, 'update'])->whereNumber('id');
+        Route::delete('/reviews/{id}', [ReviewController::class, 'delete'])->whereNumber('id');
+
         Route::get('/review-reports', [ReviewController::class, 'reports']);
         Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
 
@@ -135,9 +139,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/packages', [PackageController::class, 'store']);
         Route::patch('/packages/{id}', [PackageController::class, 'update'])->whereNumber('id');
         Route::delete('/packages/{id}', [PackageController::class, 'delete'])->whereNumber('id');
-
-        Route::patch('/reviews/{id}', [ReviewController::class, 'update'])->whereNumber('id');
-        Route::delete('/reviews/{id}', [ReviewController::class, 'delete'])->whereNumber('id');
 
         Route::get('/schools/{id}/dashboard', [SchoolDashboardController::class, 'show'])->whereNumber('id');
         Route::get('/schools/{id}/audit-logs', [SchoolDashboardController::class, 'auditLogs'])->whereNumber('id');

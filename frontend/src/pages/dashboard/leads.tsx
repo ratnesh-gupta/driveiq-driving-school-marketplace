@@ -25,7 +25,7 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   const params = { schoolId: schoolId!, ...(statusFilter ? { status: statusFilter } : {}) };
-  const { data: inquiries, isLoading } = useListInquiries(params, { query: { enabled: !!schoolId } });
+  const { data: inquiries, isLoading } = useListInquiries(params, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey(params) } });
   const updateInquiry = useUpdateInquiry();
 
   const handleStatusChange = (id: number, status: string) => {

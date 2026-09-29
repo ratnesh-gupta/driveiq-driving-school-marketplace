@@ -6,7 +6,6 @@ use App\Models\Instructor;
 use App\Models\Locality;
 use App\Models\School;
 use App\Models\User;
-use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -15,7 +14,7 @@ class SchedulingVehiclesTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): array
+    private function seedFixtures(): array
     {
         $locality = Locality::create(['name' => 'Baner', 'slug' => 'baner-p6']);
         $owner = User::factory()->create(['role' => 'school']);
@@ -40,7 +39,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_vehicle_crud(): void
     {
-        ['owner' => $owner, 'school' => $school] = $this->seed();
+        ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->postJson('/api/schools/'.$school->id.'/vehicles', [
@@ -57,7 +56,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_schedule_conflict_on_instructor(): void
     {
-        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $this->postJson('/api/schools/'.$school->id.'/schedules', [
@@ -79,7 +78,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_attendance_marks_session_completed(): void
     {
-        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $created = $this->postJson('/api/schools/'.$school->id.'/schedules', [
@@ -102,7 +101,7 @@ class SchedulingVehiclesTest extends TestCase
 
     public function test_leave_blocks_scheduling(): void
     {
-        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seed();
+        ['owner' => $owner, 'school' => $school, 'instructor' => $instructor] = $this->seedFixtures();
         Sanctum::actingAs($owner);
 
         $leave = $this->postJson('/api/schools/'.$school->id.'/leave-requests', [

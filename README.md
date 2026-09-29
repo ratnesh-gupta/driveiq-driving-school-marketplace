@@ -117,9 +117,15 @@ All database and Artisan commands below run **inside the `backend` container** v
 
 | Command | Description |
 |---------|-------------|
-| `make test` | Backend PHPUnit inside container |
+| `make test` | Backend PHPUnit inside container (creates the `driveiq_test` PostGIS DB if missing) |
 | `make test-filter FILTER=PaymentTest` | Filtered PHPUnit run |
 | `make frontend-check` | Host-side `pnpm typecheck` + `pnpm build` |
+
+Backend tests run against **PostgreSQL + PostGIS** (not SQLite), in a separate
+`driveiq_test` database so `RefreshDatabase` never touches dev data. To run them
+on the host instead of the container: `make up-infra`, create the database once
+(`docker compose exec postgres createdb -U driveiq driveiq_test`), then
+`cd backend && php artisan test --filter=GeoSearchTest`.
 
 ### Production compose
 

@@ -28,6 +28,7 @@ abstract class BaseFormRequest extends FormRequest
                 $payload[$snakeKey] = $data[$camelKey];
             }
         }
+
         return $payload;
     }
 }

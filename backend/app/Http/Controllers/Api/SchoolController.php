@@ -68,6 +68,11 @@ class SchoolController extends Controller
             return response()->json(['message' => 'School not found'], 404);
         }
 
+        $user = $request->user();
+        if (! $user->isAdmin() && (int) $user->school_id !== $school->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         $school = $this->schoolService->update($school, $request->toSnakeCase());
 
         return response()->json(new SchoolResource($school));

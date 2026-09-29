@@ -25,7 +25,7 @@ class PackagesSeeder extends Seeder
 
         foreach ($packages as $package) {
             $schoolId = $schoolIds[$package['school_slug']] ?? null;
-            if (!$schoolId) {
+            if (! $schoolId) {
                 continue;
             }
 

@@ -1,6 +1,6 @@
 /** Client-side consent keys (DPDP-minded). Not a substitute for server-side records. */
 
-export type AppRole = "user" | "school" | "admin" | "instructor" | "learner";
+export type AppRole = "school" | "admin" | "instructor" | "learner";
 
 const ROLE_CONSENT_PREFIX = "driveiq_role_consent_v1:";
 const REGISTER_CONSENT_KEY = "driveiq_register_consent_v1";

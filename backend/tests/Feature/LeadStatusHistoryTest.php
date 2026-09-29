@@ -41,6 +41,7 @@ class LeadStatusHistoryTest extends TestCase
             'name' => 'Lead',
             'phone' => '9888888888',
             'status' => 'pending',
+            'vehicle_type' => 'car',
         ]);
 
         Sanctum::actingAs($owner);
@@ -86,6 +87,7 @@ class LeadStatusHistoryTest extends TestCase
             'phone' => '9777777777',
             'status' => 'pending',
             'message' => 'Old',
+            'vehicle_type' => 'car',
         ]);
 
         Sanctum::actingAs($owner);

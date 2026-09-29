@@ -10,8 +10,11 @@ trait BelongsToSchool
 {
     /**
      * Automatically scope queries to the authenticated user's school.
-     * Platform admins (no school_id) see all records.
-     * Public/unauthenticated requests are not filtered.
+     * Platform admins see all records.
+     * Any other authenticated user without a school (e.g. a learner who has
+     * not enrolled yet) sees nothing — the scope fails closed.
+     * Public/unauthenticated requests are not filtered; public endpoints
+     * filter explicitly.
      */
     protected static function bootBelongsToSchool(): void
     {
@@ -29,7 +32,11 @@ trait BelongsToSchool
 
             if ($user->school_id) {
                 $builder->where($builder->getModel()->getTable().'.school_id', $user->school_id);
+
+                return;
             }
+
+            $builder->whereRaw('1 = 0');
         });
     }
 

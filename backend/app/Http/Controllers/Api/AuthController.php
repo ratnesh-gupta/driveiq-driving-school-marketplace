@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Requests\Api\RegisterRequest;
 use App\Models\School;
+use App\Models\SchoolAdmin;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class AuthController extends Controller
             'name' => $request->validated('name'),
             'email' => $request->validated('email'),
             'password' => $request->validated('password'),
-            'role' => $request->validated('role', 'user'),
+            'role' => $request->validated('role'),
         ]);
 
         $schoolId = null;
@@ -36,6 +37,16 @@ class AuthController extends Controller
 
             $user->update(['school_id' => $school->id]);
             $user->refresh();
+
+            // The registrant is the school's owner.
+            SchoolAdmin::create([
+                'school_id' => $school->id,
+                'user_id' => $user->id,
+                'role' => 'owner',
+                'status' => 'active',
+                'invited_at' => now(),
+                'accepted_at' => now(),
+            ]);
             $schoolId = $school->id;
         }
 

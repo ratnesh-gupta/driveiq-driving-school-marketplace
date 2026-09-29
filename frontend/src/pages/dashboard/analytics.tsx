@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetSchoolStats, useListInquiries, useListReviews } from "@/api-client";
+import { useGetSchoolStats, useListInquiries, useListReviews, getGetSchoolStatsQueryKey, getListInquiriesQueryKey, getListReviewsQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Users, Star, CheckCircle2 } from "lucide-react";
@@ -8,9 +8,9 @@ const COLORS = ["hsl(221,83%,53%)", "hsl(258,60%,55%)", "hsl(142,71%,45%)", "hsl
 
 export default function AnalyticsPage() {
   const schoolId = useSchoolId();
-  const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId } });
-  const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId } });
-  const { data: reviews } = useListReviews({ schoolId: schoolId! }, { query: { enabled: !!schoolId } });
+  const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId, queryKey: getGetSchoolStatsQueryKey(schoolId!) } });
+  const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) } });
+  const { data: reviews } = useListReviews({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey({ schoolId: schoolId! }) } });
 
   // Build monthly inquiries chart data (mock from real data counts)
   const monthlyData = [
