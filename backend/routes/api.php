@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
+use App\Http\Controllers\Api\LeadNoteController;
 use App\Http\Controllers\Api\LearnerController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\MessageController;
@@ -184,6 +185,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/inquiries', [InquiryController::class, 'index']);
         Route::patch('/inquiries/{id}', [InquiryController::class, 'update'])->whereNumber('id');
         Route::post('/inquiries/{id}/convert', [LearnerController::class, 'convertInquiry'])->whereNumber('id');
+        Route::get('/inquiries/{id}/timeline', [LeadNoteController::class, 'timeline'])->whereNumber('id');
+        Route::post('/inquiries/{id}/notes', [LeadNoteController::class, 'store'])->whereNumber('id');
 
         Route::post('/packages', [PackageController::class, 'store']);
         Route::patch('/packages/{id}', [PackageController::class, 'update'])->whereNumber('id');

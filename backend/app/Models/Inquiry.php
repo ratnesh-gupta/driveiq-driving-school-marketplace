@@ -28,7 +28,7 @@ class Inquiry extends Model
         'school_id', 'user_id', 'name', 'phone', 'email', 'vehicle_type', 'area',
         'preferred_timing', 'channel', 'message', 'status', 'lost_reason',
         'review_token_hash', 'review_token_expires_at',
-        'first_responded_at', 'response_seconds',
+        'first_responded_at', 'response_seconds', 'next_follow_up_at',
     ];
 
     protected $hidden = ['review_token_hash'];
@@ -40,6 +40,7 @@ class Inquiry extends Model
             'first_responded_at' => 'datetime',
             'response_seconds' => 'integer',
             'reminder_sent_at' => 'datetime',
+            'next_follow_up_at' => 'datetime',
         ];
     }
 

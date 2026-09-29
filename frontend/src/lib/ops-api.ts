@@ -493,3 +493,23 @@ export function fetchMyConsents() {
 export function withdrawConsent(purpose: ConsentPurpose) {
   return request<void>(`/api/consents/${purpose}`, { method: "DELETE" });
 }
+
+// ── Lead notes & timeline (DIQ-706) ──
+
+export type LeadTimelineEvent =
+  | { type: "created"; at: string; channel?: string | null }
+  | { type: "status"; at: string; from: string | null; to: string; by: string | null }
+  | { type: "note"; id: number; at: string; body: string; followUpAt: string | null; by: string | null };
+
+export function fetchLeadTimeline(inquiryId: number) {
+  return request<{ inquiryId: number; status: string; nextFollowUpAt: string | null; events: LeadTimelineEvent[] }>(
+    `/api/inquiries/${inquiryId}/timeline`
+  );
+}
+
+export function addLeadNote(inquiryId: number, body: { body: string; followUpAt?: string }) {
+  return request<LeadTimelineEvent>(`/api/inquiries/${inquiryId}/notes`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}

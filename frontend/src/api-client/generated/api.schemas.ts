@@ -184,6 +184,9 @@ export interface Inquiry {
   preferredTiming?: string | null;
   channel?: string | null;
   lostReason?: string | null;
+  firstRespondedAt?: string | null;
+  responseSeconds?: number | null;
+  nextFollowUpAt?: string | null;
   status: string;
   createdAt: string;
 }
@@ -282,6 +285,9 @@ schoolId?: number;
 export type ListInquiriesParams = {
 schoolId?: number;
 status?: string;
+/** added manually, include in next OpenAPI spec regen */
+followUpDue?: number;
+sort?: "newest" | "oldest_waiting";
 };
 
 export type ListPackagesParams = {
