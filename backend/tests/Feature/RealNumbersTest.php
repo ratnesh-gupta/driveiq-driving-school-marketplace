@@ -142,4 +142,15 @@ class RealNumbersTest extends TestCase
             ->assertJsonPath('dashboard.assignedLearners', 1)
             ->assertJsonPath('dashboard.attendanceRate', 0.6667);
     }
+
+    /** Seeding runs without model events; seeded schools must still be scored. */
+    public function test_seeded_schools_have_a_real_completeness_score(): void
+    {
+        $this->seed();
+
+        foreach (School::query()->get() as $school) {
+            $this->assertSame($school->calculateProfileCompleteness(), (int) $school->profile_completeness, $school->slug);
+        }
+        $this->assertGreaterThan(50, School::where('slug', 'skyline-driving-academy')->value('profile_completeness'));
+    }
 }

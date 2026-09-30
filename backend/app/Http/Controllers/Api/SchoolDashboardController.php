@@ -25,6 +25,8 @@ class SchoolDashboardController extends Controller
         }
 
         $school = School::with('locality')->find($schoolId);
+        // Scored live so the bar and the "missing" list always agree.
+        $completeness = $school->calculateProfileCompleteness();
 
         $now = now();
         $startThisMonth = $now->copy()->startOfMonth();
@@ -105,7 +107,7 @@ class SchoolDashboardController extends Controller
 
         return response()->json([
             'schoolId' => $schoolId,
-            'profileCompleteness' => (int) ($school->profile_completeness ?? 0),
+            'profileCompleteness' => $completeness,
             'missingProfileFields' => $school->missingProfileFields(),
             'metrics' => [
                 'totalInquiries' => $totalInquiries,
@@ -159,7 +161,7 @@ class SchoolDashboardController extends Controller
                     'label' => "{$pendingReviews} review(s) awaiting moderation",
                     'href' => '/dashboard/reviews',
                 ] : null,
-                ($school->profile_completeness ?? 0) < 80 ? [
+                $completeness < 80 ? [
                     'type' => 'complete_profile',
                     'count' => 1,
                     'label' => 'Complete your school profile',
