@@ -88,7 +88,7 @@ class AuditAndPrivacyTest extends TestCase
 
         $entry = $this->getJson("/api/schools/{$school->id}/audit-logs")
             ->assertOk()
-            ->collect()
+            ->collect('data')
             ->firstWhere('modelType', 'School');
 
         $this->assertSame('update', $entry['action']);

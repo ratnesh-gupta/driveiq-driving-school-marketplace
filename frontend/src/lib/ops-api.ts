@@ -563,10 +563,22 @@ export type ResponseTimeSummary = {
   within24hRate: number;
 };
 
+export type DashboardTask = { type: string; count: number; label: string; href: string };
+
 export function fetchSchoolDashboard(schoolId: number) {
-  return request<{ schoolId: number; metrics: { responseTime: ResponseTimeSummary } & Record<string, unknown> }>(
-    `/api/schools/${schoolId}/dashboard`
-  );
+  return request<{
+    schoolId: number;
+    profileCompleteness: number;
+    missingProfileFields: string[];
+    pendingTasks: DashboardTask[];
+    metrics: {
+      responseTime: ResponseTimeSummary;
+      inquiriesThisMonth: number;
+      inquiriesLastMonth: number;
+      learnersThisMonth: number;
+      learnersLastMonth: number;
+    } & Record<string, unknown>;
+  }>(`/api/schools/${schoolId}/dashboard`);
 }
 
 // ── Plan entitlements (DIQ-802) ──
@@ -1016,4 +1028,34 @@ export type PublicTrainer = {
 
 export function fetchPublicTrainers(slug: string) {
   return request<PublicTrainer[]>(`/api/schools/slug/${encodeURIComponent(slug)}/trainers`);
+}
+
+/* ---------- Audit trail (DIQ-912) ---------- */
+
+export type AuditEntry = {
+  id: number;
+  schoolId: number | null;
+  schoolName: string | null;
+  userId: number | null;
+  userName: string | null;
+  userRole: string | null;
+  action: string;
+  modelType: string;
+  modelId: number | null;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+};
+
+export type AuditPage = { data: AuditEntry[]; meta: { page: number; lastPage: number; total: number } };
+
+export function fetchAuditLogs(scope: { schoolId: number } | "admin", filters: { action?: string; modelType?: string; page?: number }) {
+  const sp = new URLSearchParams();
+  if (filters.action) sp.set("action", filters.action);
+  if (filters.modelType) sp.set("modelType", filters.modelType);
+  if (filters.page && filters.page > 1) sp.set("page", String(filters.page));
+  const q = sp.toString() ? `?${sp}` : "";
+  const base = scope === "admin" ? "/api/admin/audit-logs" : `/api/schools/${scope.schoolId}/audit-logs`;
+  return request<AuditPage>(`${base}${q}`);
 }

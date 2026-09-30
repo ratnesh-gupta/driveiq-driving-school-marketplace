@@ -3,7 +3,7 @@ import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu,
-  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound, Settings, Lock, CreditCard,
+  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound, Settings, Lock, CreditCard, History,
 } from "lucide-react";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { ROUTE_FEATURE } from "@/lib/plan";
@@ -18,6 +18,7 @@ import { useT } from "@/i18n/use-locale";
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { logout } = useAuthStore();
+  const isOwner = useAuthStore((s) => s.schoolRole) !== "manager";
   const t = useT();
   const { has } = useEntitlements();
 
@@ -37,6 +38,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/analytics", label: t("schoolNav.analytics"), icon: BarChart3 },
     { href: "/dashboard/billing", label: t("schoolNav.billing"), icon: CreditCard },
     { href: "/dashboard/settings", label: t("schoolNav.settings"), icon: Settings },
+    // The activity log is owner-only (it records managers' actions too).
+    ...(isOwner ? [{ href: "/dashboard/audit", label: t("schoolNav.audit"), icon: History }] : []),
   ];
 
   const SidebarContent = () => (

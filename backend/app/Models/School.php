@@ -107,38 +107,52 @@ class School extends Model
         ]);
     }
 
+    /** Profile fields that count towards completeness, with the label shown to schools. */
+    private const PROFILE_FIELDS = [
+        'name' => 'name', 'phone' => 'phone', 'email' => 'email', 'description' => 'description',
+        'address' => 'address', 'timings' => 'timings', 'image_url' => 'photo',
+        'vehicle_types' => 'vehicle types', 'transmission' => 'transmission', 'price_from' => 'starting price',
+        'languages' => 'languages', 'batch_timings' => 'batch timings', 'service_areas' => 'service areas',
+        'established_year' => 'established year', 'total_vehicles' => 'number of vehicles',
+        'total_instructors' => 'number of trainers', 'accepted_payments' => 'payment methods',
+    ];
+
+    private const FEATURE_FLAGS = [
+        'has_pickup', 'women_instructor', 'weekend_classes',
+        'simulator_training', 'ac_vehicle', 'rto_assistance',
+    ];
+
     public function calculateProfileCompleteness(): int
     {
-        $fields = [
-            'name', 'phone', 'email', 'description', 'address', 'timings',
-            'image_url', 'vehicle_types', 'transmission', 'price_from',
-            'languages', 'batch_timings', 'service_areas',
-            'established_year', 'total_vehicles', 'total_instructors',
-            'accepted_payments',
-        ];
-        $booleanFields = [
-            'has_pickup', 'women_instructor', 'weekend_classes',
-            'simulator_training', 'ac_vehicle', 'rto_assistance',
-        ];
+        // The feature flags count as one item (see missingProfileFields()).
+        $total = count(self::PROFILE_FIELDS) + 1;
 
-        $filled = 0;
-        // The feature flags default to false, so "unanswered" and "no" look the
-        // same. They count as one item, filled once any feature is ticked.
-        $total = count($fields) + 1;
+        return (int) round((($total - count($this->missingProfileFields())) / $total) * 100);
+    }
 
-        foreach ($fields as $field) {
+    /**
+     * Labels of what is still missing from the public profile. The feature
+     * flags default to false, so "unanswered" and "no" look the same; they
+     * count as one "features" item, filled once any feature is ticked.
+     *
+     * @return list<string>
+     */
+    public function missingProfileFields(): array
+    {
+        $missing = [];
+        foreach (self::PROFILE_FIELDS as $field => $label) {
             $value = $this->getAttribute($field);
             // Numeric 0 is a column default (e.g. price_from), not a filled-in answer.
             $isZero = (is_int($value) || is_float($value)) && $value == 0;
-            if (! is_null($value) && $value !== '' && $value !== [] && ! $isZero) {
-                $filled++;
+            if (is_null($value) || $value === '' || $value === [] || $isZero) {
+                $missing[] = $label;
             }
         }
-        if (collect($booleanFields)->contains(fn ($f) => (bool) $this->getAttribute($f))) {
-            $filled++;
+        if (! collect(self::FEATURE_FLAGS)->contains(fn ($f) => (bool) $this->getAttribute($f))) {
+            $missing[] = 'features';
         }
 
-        return (int) round(($filled / $total) * 100);
+        return $missing;
     }
 
     public function owner(): BelongsTo
