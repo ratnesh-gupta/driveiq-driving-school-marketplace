@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Messaging\MessageSender;
+use App\Notifications\Channels\WhatsAppChannel;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
@@ -16,7 +19,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // WhatsApp / SMS driver (DIQ-1001), chosen by MESSAGING_DRIVER.
+        $this->app->bind(MessageSender::class, function () {
+            $driver = config('messaging.driver', 'log');
+            $class = config("messaging.drivers.{$driver}")
+                ?? throw new \InvalidArgumentException("Unknown MESSAGING_DRIVER [{$driver}]");
+
+            return $this->app->make($class);
+        });
     }
 
     /**
@@ -24,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Notification::extend('whatsapp', fn ($app) => $app->make(WhatsAppChannel::class));
+
         // Password reset emails link to the SPA, not a Laravel web route.
         ResetPassword::createUrlUsing(fn ($user, string $token) => config('app.frontend_url')
             .'/auth/reset-password?token='.urlencode($token).'&email='.urlencode($user->getEmailForPasswordReset()));
