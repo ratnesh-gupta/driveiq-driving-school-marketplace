@@ -230,6 +230,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/instructors/{id}', [InstructorController::class, 'show'])->whereNumber('id');
         Route::patch('/instructors/{id}', [InstructorController::class, 'update'])->whereNumber('id');
         Route::delete('/instructors/{id}', [InstructorController::class, 'destroy'])->whereNumber('id');
+        Route::post('/instructors/{id}/login', [InstructorController::class, 'sendLogin'])->whereNumber('id');
 
         Route::get('/schools/{id}/vehicles', [VehicleController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/vehicles', [VehicleController::class, 'store'])->whereNumber('id');

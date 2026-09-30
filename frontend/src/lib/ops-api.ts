@@ -846,3 +846,58 @@ export function createDrivingTest(learnerId: number, body: Record<string, unknow
 export function updateDrivingTest(id: number, body: Record<string, unknown>) {
   return request<DrivingTestRow>(`/api/driving-tests/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 }
+
+/* ---------- Instructor management (DIQ-907) ---------- */
+
+export type InstructorDetail = {
+  id: number;
+  schoolId: number;
+  name: string;
+  status: "active" | "inactive" | "terminated";
+  gender?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  dob?: string | null;
+  address?: string | null;
+  employeeId?: string | null;
+  joiningDate?: string | null;
+  employmentType?: "full_time" | "part_time" | "contract" | null;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseExpiry?: string | null;
+  yearsExperience?: number;
+  skills?: string[];
+  languages?: string[];
+  womenInstructor?: boolean;
+  publicVisible?: boolean;
+  bio?: string | null;
+  totalLearnersTrained?: number;
+  hasLogin?: boolean;
+};
+
+export type InstructorPerformanceRow = {
+  instructorId: number;
+  name: string;
+  sessionsCompleted: number;
+  sessionsTotal: number;
+  learnersAssigned: number;
+  attendanceRate: number;
+  completionRate: number;
+  hoursThisWeek: number;
+  totalLearnersTrained: number;
+};
+
+export function updateInstructor(id: number, body: Record<string, unknown>) {
+  return request<InstructorDetail>(`/api/instructors/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function sendInstructorLogin(id: number, email?: string) {
+  return request<InstructorDetail>(`/api/instructors/${id}/login`, {
+    method: "POST",
+    body: JSON.stringify(email ? { email } : {}),
+  });
+}
+
+export function removeInstructor(id: number) {
+  return request<void>(`/api/instructors/${id}`, { method: "DELETE" });
+}

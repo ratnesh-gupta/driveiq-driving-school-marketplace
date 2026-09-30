@@ -50,6 +50,7 @@ return [
         'api/schools/{id}/instructors' => 'instructors',
         'api/instructors/{id}' => 'instructors',
         'api/instructors/{id}/documents' => 'instructors',
+        'api/instructors/{id}/login' => 'instructors',
         'api/instructors/{id}/documents/{docId}' => 'instructors',
         'api/schools/{id}/vehicles' => 'vehicles',
         'api/vehicles/{id}' => 'vehicles',

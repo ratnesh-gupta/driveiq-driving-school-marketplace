@@ -11,6 +11,7 @@ use App\Models\Learner;
 use App\Models\Schedule;
 use App\Models\School;
 use App\Models\User;
+use App\Notifications\StaffLoginInvite;
 use App\Support\DocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,34 +72,14 @@ class InstructorController extends Controller
             'createLogin' => ['nullable', 'boolean'],
         ]);
 
-        $userId = null;
+        $login = null;
         if (! empty($data['createLogin']) && ! empty($data['email'])) {
-            $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
-            if (! $user) {
-                $user = User::create([
-                    'name' => $data['name'],
-                    'email' => strtolower($data['email']),
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => 'instructor',
-                    'school_id' => $schoolId,
-                ]);
-            } else {
-                // Never repurpose someone else's account (another school's
-                // owner, a learner, an admin...). Only an instructor login of
-                // this school that has no profile yet can be attached.
-                $attachable = $user->isInstructor()
-                    && (int) $user->school_id === $schoolId
-                    && ! Instructor::withoutGlobalScope('school')->where('user_id', $user->id)->exists();
-
-                if (! $attachable) {
-                    return response()->json([
-                        'message' => 'Validation failed',
-                        'errors' => ['email' => ['This email already belongs to another DriveIQ account.']],
-                    ], 422);
-                }
+            $login = $this->loginFor($schoolId, $data['name'], $data['email']);
+            if ($login instanceof JsonResponse) {
+                return $login;
             }
-            $userId = $user->id;
         }
+        $userId = $login?->id;
 
         $instructor = Instructor::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
@@ -132,7 +113,84 @@ class InstructorController extends Controller
 
         AuditLog::log('create', 'Instructor', $instructor->id, [], ['name' => $instructor->name]);
 
+        if ($login?->wasRecentlyCreated) {
+            $login->notify(new StaffLoginInvite(School::find($schoolId)));
+        }
+
         return response()->json($this->serialize($instructor, full: true), 201);
+    }
+
+    /**
+     * Create (or resend) the trainer's portal login. A new account gets an
+     * email to set its password; nothing is ever shown to the school.
+     */
+    public function sendLogin(Request $request, int $id): JsonResponse
+    {
+        $instructor = Instructor::withoutGlobalScope('school')->find($id);
+        if (! $instructor) {
+            return response()->json(['message' => 'Instructor not found'], 404);
+        }
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id)) {
+            return $deny;
+        }
+
+        $data = $request->validate(['email' => ['nullable', 'email', 'max:255']]);
+        $schoolId = (int) $instructor->school_id;
+
+        if ($instructor->user_id) {
+            $user = User::find($instructor->user_id);
+        } else {
+            $email = $data['email'] ?? $instructor->email;
+            if (! $email) {
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => ['email' => ['Add the trainer\'s email first.']],
+                ], 422);
+            }
+            $user = $this->loginFor($schoolId, $instructor->name, $email);
+            if ($user instanceof JsonResponse) {
+                return $user;
+            }
+            $instructor->update(['user_id' => $user->id, 'email' => $instructor->email ?: strtolower($email)]);
+        }
+
+        $user->notify(new StaffLoginInvite(School::find($schoolId)));
+        AuditLog::log('send_login', 'Instructor', $instructor->id, [], ['user_id' => $user->id], $schoolId);
+
+        return response()->json($this->serialize($instructor->fresh(), full: true));
+    }
+
+    /**
+     * The login to attach to a trainer: a new instructor account, or an
+     * existing instructor login of this school that has no profile yet.
+     * Never repurposes anyone else's account (another school's owner, a
+     * learner, an admin...).
+     */
+    private function loginFor(int $schoolId, string $name, string $email): User|JsonResponse
+    {
+        $user = User::whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
+        if (! $user) {
+            return User::create([
+                'name' => $name,
+                'email' => strtolower($email),
+                'password' => Hash::make(Str::random(40)),
+                'role' => 'instructor',
+                'school_id' => $schoolId,
+            ]);
+        }
+
+        $attachable = $user->isInstructor()
+            && (int) $user->school_id === $schoolId
+            && ! Instructor::withoutGlobalScope('school')->where('user_id', $user->id)->exists();
+
+        if (! $attachable) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['email' => ['This email already belongs to another DriveIQ account.']],
+            ], 422);
+        }
+
+        return $user;
     }
 
     public function show(Request $request, int $id): JsonResponse
@@ -477,6 +535,7 @@ class InstructorController extends Controller
             'licenseCategory' => $i->license_category,
             'licenseExpiry' => $i->license_expiry?->toDateString(),
             'totalLearnersTrained' => (int) $i->total_learners_trained,
+            'hasLogin' => $i->user_id !== null,
         ]);
     }
 
