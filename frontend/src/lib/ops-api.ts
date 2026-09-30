@@ -114,10 +114,11 @@ export function listInstructorSessions(params?: { from?: string; to?: string }) 
   return request<unknown[]>(`/api/instructor/sessions${q}`);
 }
 
-export function listSchedules(schoolId: number, params?: { from?: string; to?: string }) {
+export function listSchedules(schoolId: number, params?: { from?: string; to?: string; instructorId?: number }) {
   const sp = new URLSearchParams();
   if (params?.from) sp.set("from", params.from);
   if (params?.to) sp.set("to", params.to);
+  if (params?.instructorId) sp.set("instructorId", String(params.instructorId));
   const q = sp.toString() ? `?${sp}` : "";
   return request<unknown[]>(`/api/schools/${schoolId}/schedules${q}`);
 }
@@ -361,6 +362,8 @@ export type DocumentRow = {
   notes?: string | null;
   verifiedAt?: string | null;
   createdAt?: string | null;
+  /** Vehicle papers only: valid but lapsing within 30 days. */
+  expiringSoon?: boolean;
 };
 
 const DOCUMENT_BASE: Record<DocumentOwnerKind, string> = {
@@ -937,4 +940,61 @@ export function listMyLeave() {
 
 export function requestMyLeave(body: { startDate: string; endDate: string; reason?: string }) {
   return request<LeaveRow>(`/api/instructor/leave-requests`, { method: "POST", body: JSON.stringify(body) });
+}
+
+/* ---------- Scheduling & fleet (DIQ-909) ---------- */
+
+export type ScheduleRow = {
+  id: number;
+  learnerId: number | null;
+  learnerName: string | null;
+  instructorId: number;
+  instructorName: string | null;
+  vehicleId: number | null;
+  vehicleRegistration: string | null;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  pickupLocation: string | null;
+  status: string;
+  notes: string | null;
+  sessionSummary: string | null;
+  attendance: { status: string } | null;
+};
+
+export type VehicleRow = {
+  id: number;
+  registrationNumber: string;
+  type: string;
+  transmission: string | null;
+  fuelType: string | null;
+  status: "active" | "maintenance" | "retired";
+  makeModel: string | null;
+  year: number | null;
+  notes: string | null;
+  expiredDocuments?: number;
+  expiringDocuments?: number;
+};
+
+export function updateSchedule(id: number, body: Record<string, unknown>) {
+  return request<ScheduleRow>(`/api/schedules/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function listSchoolLeave(schoolId: number) {
+  return request<LeaveRow[]>(`/api/schools/${schoolId}/leave-requests`);
+}
+
+export function reviewLeave(id: number, status: "approved" | "rejected") {
+  return request<LeaveRow & { clashingSessions: ScheduleRow[] }>(`/api/leave-requests/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function createVehicle(schoolId: number, body: Record<string, unknown>) {
+  return request<VehicleRow>(`/api/schools/${schoolId}/vehicles`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function updateVehicle(id: number, body: Record<string, unknown>) {
+  return request<VehicleRow>(`/api/vehicles/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 }

@@ -400,10 +400,18 @@ class ScheduleController extends Controller
 
         AuditLog::log('review', 'LeaveRequest', $leave->id, ['status' => $previous], ['status' => $leave->status], (int) $leave->school_id);
 
-        return response()->json([
-            'id' => $leave->id,
-            'status' => $leave->status,
-            'reviewedAt' => $leave->reviewed_at?->toISOString(),
+        // Approving leave does not touch existing bookings; list the ones that
+        // now clash so staff can reassign or cancel them.
+        $clashing = $leave->status !== 'approved' ? collect() : Schedule::withoutGlobalScope('school')
+            ->with(['instructor:id,name', 'vehicle:id,registration_number,type', 'attendance'])
+            ->where('instructor_id', $leave->instructor_id)
+            ->whereIn('status', ['scheduled', 'rescheduled'])
+            ->whereBetween('session_date', [$leave->start_date->toDateString(), $leave->end_date->toDateString()])
+            ->orderBy('session_date')->orderBy('start_time')
+            ->get();
+
+        return response()->json($this->serializeLeave($leave->load('instructor:id,name')) + [
+            'clashingSessions' => $clashing->map(fn (Schedule $s) => $this->serialize($s))->values(),
         ]);
     }
 

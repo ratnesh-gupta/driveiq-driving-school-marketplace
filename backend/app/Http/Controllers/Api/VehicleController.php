@@ -14,17 +14,32 @@ use Illuminate\Validation\Rules\Unique;
 
 class VehicleController extends Controller
 {
+    /** Insurance, PUC and permits are flagged this many days before they lapse. */
+    private const EXPIRY_WARNING_DAYS = 30;
+
     public function index(Request $request, int $schoolId): JsonResponse
     {
         if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
-        $items = Vehicle::withoutGlobalScope('school')
+        $vehicles = Vehicle::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
             ->orderBy('registration_number')
-            ->get()
-            ->map(fn (Vehicle $v) => $this->serialize($v));
+            ->get();
+
+        // Per vehicle: documents already expired, or expiring within 30 days.
+        $docs = VehicleDocument::withoutGlobalScope('school')
+            ->whereIn('vehicle_id', $vehicles->pluck('id'))
+            ->whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', now()->addDays(self::EXPIRY_WARNING_DAYS)->toDateString())
+            ->get(['vehicle_id', 'expiry_date'])
+            ->groupBy('vehicle_id');
+
+        $items = $vehicles->map(fn (Vehicle $v) => $this->serialize($v) + [
+            'expiredDocuments' => ($docs[$v->id] ?? collect())->filter(fn ($d) => $d->expiry_date->lt(today()))->count(),
+            'expiringDocuments' => ($docs[$v->id] ?? collect())->filter(fn ($d) => $d->expiry_date->gte(today()))->count(),
+        ]);
 
         return response()->json($items);
     }
@@ -177,16 +192,29 @@ class VehicleController extends Controller
         return Rule::unique('vehicles', 'registration_number')->where('school_id', $schoolId)->ignore($ignoreId);
     }
 
+    /**
+     * Vehicle papers are not reviewed like learner documents: their status
+     * follows the expiry date, so an expired PUC shows as expired without
+     * anyone having to change it.
+     */
     private function serializeDoc(VehicleDocument $d): array
     {
+        $expiry = $d->expiry_date;
+        $status = match (true) {
+            $expiry !== null && $expiry->lt(today()) => 'expired',
+            $d->file_path !== null => 'valid',
+            default => 'pending',
+        };
+
         return [
             'id' => $d->id,
             'vehicleId' => $d->vehicle_id,
             'type' => $d->type,
             'hasFile' => $d->file_path !== null,
             'fileName' => $d->file_name,
-            'expiryDate' => $d->expiry_date?->toDateString(),
-            'status' => $d->status,
+            'expiryDate' => $expiry?->toDateString(),
+            'status' => $status,
+            'expiringSoon' => $status !== 'expired' && $expiry !== null && $expiry->lte(today()->addDays(self::EXPIRY_WARNING_DAYS)),
             'createdAt' => $d->created_at?->toISOString(),
         ];
     }
