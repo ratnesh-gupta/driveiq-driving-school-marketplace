@@ -4,7 +4,9 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetSchoolStats, useListInquiries, getGetSchoolStatsQueryKey, getListInquiriesQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
-import { TrendingUp, Users, Star, MessageCircle, AlertCircle, CheckCircle2, Timer, Zap, Hourglass } from "lucide-react";
+import { TrendingUp, Users, Star, MessageCircle, AlertCircle, Timer, Zap, Hourglass, GraduationCap, ChevronRight, ClipboardList } from "lucide-react";
+import { Link } from "wouter";
+import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSchoolDashboard } from "@/lib/ops-api";
 import { formatDuration } from "@/lib/response-time";
@@ -26,6 +28,14 @@ function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.Elemen
       </div>
     </motion.div>
   );
+}
+
+/** "+3 vs last month" style comparison; neutral when there is no history. */
+function vsLastMonth(now: number, prev: number): string {
+  if (!prev) return now ? "First this month" : "None last month either";
+  const diff = now - prev;
+  const pct = Math.round((diff / prev) * 100);
+  return `${diff >= 0 ? "+" : ""}${pct}% vs last month (${prev})`;
 }
 
 export default function DashboardHomePage() {
@@ -58,7 +68,58 @@ export default function DashboardHomePage() {
           <StatCard icon={Users} label="Total Inquiries" value={stats?.totalInquiries ?? 0} sub="All time" color="bg-blue-500/10 text-blue-600 dark:text-blue-400" />
           <StatCard icon={AlertCircle} label="Pending Leads" value={stats?.pendingInquiries ?? 0} sub="Awaiting response" color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" />
           <StatCard icon={Star} label="Avg. Rating" value={stats?.avgRating?.toFixed(1) ?? "—"} sub={`${stats?.totalReviews ?? 0} reviews`} color="bg-purple-500/10 text-purple-600 dark:text-purple-400" />
-          <StatCard icon={TrendingUp} label="This Month" value={stats?.thisMonthInquiries ?? 0} sub="New inquiries" color="bg-green-500/10 text-green-600 dark:text-green-400" />
+          <StatCard
+            icon={TrendingUp}
+            label="Leads this month"
+            value={dashboard?.metrics.inquiriesThisMonth ?? stats?.thisMonthInquiries ?? 0}
+            sub={dashboard ? vsLastMonth(dashboard.metrics.inquiriesThisMonth, dashboard.metrics.inquiriesLastMonth) : "New inquiries"}
+            color="bg-green-500/10 text-green-600 dark:text-green-400"
+          />
+        </div>
+      )}
+
+      {dashboard && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+          <div className="rounded-xl border bg-card p-5 lg:col-span-2" data-testid="pending-tasks">
+            <h2 className="font-semibold mb-3 flex items-center gap-2"><ClipboardList className="h-4 w-4" /> To do</h2>
+            {!dashboard.pendingTasks.length ? (
+              <p className="text-sm text-muted-foreground">Nothing waiting on you. Nice.</p>
+            ) : (
+              <ul className="divide-y">
+                {dashboard.pendingTasks.map((t) => (
+                  <li key={t.type}>
+                    <Link href={t.href} className="flex items-center justify-between py-2.5 text-sm hover:text-primary">
+                      {t.label}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-card p-5" data-testid="profile-completeness">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="font-semibold">Profile completeness</span>
+                <span className="tabular-nums">{dashboard.profileCompleteness}%</span>
+              </div>
+              <Progress value={dashboard.profileCompleteness} />
+              {dashboard.missingProfileFields.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Missing: {dashboard.missingProfileFields.slice(0, 5).join(", ")}
+                  {dashboard.missingProfileFields.length > 5 ? ` and ${dashboard.missingProfileFields.length - 5} more` : ""}.{" "}
+                  <Link href="/dashboard/profile" className="text-primary underline">Complete profile</Link>
+                </p>
+              )}
+            </div>
+            <StatCard
+              icon={GraduationCap}
+              label="New learners this month"
+              value={dashboard.metrics.learnersThisMonth}
+              sub={vsLastMonth(dashboard.metrics.learnersThisMonth, dashboard.metrics.learnersLastMonth)}
+              color="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+            />
+          </div>
         </div>
       )}
 

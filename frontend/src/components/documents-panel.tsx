@@ -185,6 +185,11 @@ export function DocumentsPanel({ kind, ownerId, canReview = false }: Props) {
                     .join(" · ")}
                 </div>
               </div>
+              {doc.expiringSoon && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                  expires soon
+                </span>
+              )}
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLE[doc.status] ?? "bg-muted"}`}>
                 {doc.status}
               </span>

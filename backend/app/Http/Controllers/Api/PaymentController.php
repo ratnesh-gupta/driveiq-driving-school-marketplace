@@ -41,7 +41,7 @@ class PaymentController extends Controller
         $data = $request->validate([
             'learnerId' => ['required', 'integer'],
             'packageId' => ['required', 'integer'],
-            'method' => ['nullable', 'string', 'in:manual,cash,upi,card,razorpay,bank'],
+            'method' => ['nullable', 'string', 'in:manual,cash,upi,card,bank'],
             'markPaid' => ['nullable', 'boolean'],
         ]);
 
@@ -68,7 +68,6 @@ class PaymentController extends Controller
                 'amount' => $result['invoice']->amount,
                 'status' => $result['invoice']->status,
             ],
-            'gateway' => $result['gateway'],
         ], 201);
     }
 
@@ -92,6 +91,8 @@ class PaymentController extends Controller
             $data['providerPaymentId'] ?? null
         );
 
+        AuditLog::log('mark_paid', 'Payment', $payment->id, ['status' => 'pending'], ['status' => 'paid']);
+
         return response()->json($this->serialize($payment));
     }
 
@@ -110,6 +111,8 @@ class PaymentController extends Controller
         ]);
 
         $payment = $this->payments->markFailed($payment, $data['notes'] ?? null);
+
+        AuditLog::log('mark_failed', 'Payment', $payment->id, ['status' => 'pending'], ['status' => 'failed']);
 
         return response()->json($this->serialize($payment));
     }

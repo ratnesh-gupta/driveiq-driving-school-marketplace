@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\Locality;
+use App\Models\MarketplaceSetting;
 use App\Models\School;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -11,6 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class SchoolService
 {
+    /** Sponsored slots per page, read inside the search SQL (no extra query). */
+    private const SLOTS_SQL = "COALESCE((SELECT (value #>> '{}')::int FROM marketplace_settings WHERE key = ?), ?)";
+
     /**
      * Search (DIQ-501): filtering, plan boost, ranking and pagination all run
      * in SQL, so the cost does not grow with the number of schools.
@@ -19,26 +23,49 @@ class SchoolService
      */
     public function search(array $filters): array
     {
-        $query = $this->withPlanMeta(School::query()->with('locality'));
-        $this->applyFilters($query, $filters);
+        $inner = $this->withPlanMeta(School::query(), $filters['locality'] ?? null);
+        $this->applyFilters($inner, $filters);
 
         $nearLat = isset($filters['nearLat']) ? (float) $filters['nearLat'] : null;
         $nearLng = isset($filters['nearLng']) ? (float) $filters['nearLng'] : null;
+        $geo = $nearLat !== null && $nearLng !== null;
+        $sortBy = $filters['sortBy'] ?? 'rank';
 
-        if ($nearLat !== null && $nearLng !== null) {
+        if ($geo) {
             $radiusKm = isset($filters['radiusKm'])
                 ? (float) $filters['radiusKm']
                 : (float) config('geo.default_radius_km', 5.0);
-            $this->applyGeo($query, $nearLat, $nearLng, $radiusKm, $filters['sortBy'] ?? 'rank');
+            $this->applyGeo($inner, $nearLat, $nearLng, $radiusKm);
         } else {
-            // Paid tiers first, then rating.
-            $query->orderByDesc('plan_boost')
-                ->orderByDesc('schools.rating')
-                ->orderByDesc('schools.review_count')
-                ->orderBy('schools.id');
+            $this->applyScoreWithoutDistance($inner);
         }
 
-        $total = (clone $query)->reorder()->count('schools.id');
+        // Outer query so the sponsored slot cap can use a window function.
+        $query = School::query()->fromSub($inner, 'schools')->with('locality')->select('schools.*');
+
+        if ($geo && $sortBy === 'distance') {
+            // The visitor asked for nearest first: no pinned slots.
+            $query->orderBy('distance_km')
+                ->orderByDesc('plan_boost')
+                ->orderByDesc('verified')
+                ->orderByDesc('rating');
+        } else {
+            // DIQ-805: at most N sponsor-eligible schools (top-placement plan or
+            // live campaign) are pinned to the top, best-ranked first; the rest
+            // are ranked by score like everyone else (their boost is in it).
+            $query->selectRaw(
+                '(schools.top_placement AND ROW_NUMBER() OVER (PARTITION BY schools.top_placement ORDER BY schools.ranking_score DESC, schools.id) <= '.self::SLOTS_SQL.') AS is_pinned',
+                ['sponsored_slots_per_page', MarketplaceSetting::DEFAULTS['sponsored_slots_per_page']]
+            )
+                ->orderByDesc('is_pinned')
+                ->orderByDesc('ranking_score');
+            if ($geo) {
+                $query->orderBy('distance_km');
+            }
+        }
+        $query->orderBy('schools.id');
+
+        $total = (clone $query)->reorder()->count();
 
         $items = $query
             ->offset((int) ($filters['offset'] ?? 0))
@@ -54,15 +81,28 @@ class SchoolService
         return $this->search($filters)['items'];
     }
 
+    /**
+     * Homepage: live homepage campaigns first, then plans with homepage
+     * placement, then the best-rated verified schools (DIQ-805).
+     */
     public function featured(): Collection
     {
+        $campaigns = DB::table('featured_placements')
+            ->where('placement', 'homepage')
+            ->where('starts_at', '<=', now())
+            ->where('ends_at', '>', now())
+            ->select('school_id')
+            ->distinct();
+
         return $this->withPlanMeta(School::query()->with('locality'))
-            ->where('schools.verified', true)
+            ->leftJoinSub($campaigns, 'hp', 'hp.school_id', '=', 'schools.id')
+            ->where(fn ($q) => $q->where('schools.verified', true)->orWhereNotNull('hp.school_id'))
+            ->orderByRaw('(hp.school_id IS NOT NULL) DESC')
             ->orderByDesc('homepage_featured')
             ->orderByDesc('plan_boost')
             ->orderByDesc('schools.rating')
             ->orderBy('schools.id')
-            ->limit(6)
+            ->limit((int) MarketplaceSetting::get('homepage_slots'))
             ->get();
     }
 
@@ -277,8 +317,23 @@ class SchoolService
      * as plan_code, plan_boost (0-1), is_sponsored, homepage_featured and
      * top_placement, in one joined subquery instead of a query per school.
      */
-    private function withPlanMeta(Builder $query): Builder
+    private function withPlanMeta(Builder $query, ?string $localitySlug = null): Builder
     {
+        // Live sponsored campaigns (DIQ-805): search-wide, or for the locality
+        // being browsed.
+        $campaigns = DB::table('featured_placements as fp')
+            ->where('fp.starts_at', '<=', now())
+            ->where('fp.ends_at', '>', now())
+            ->where(function ($q) use ($localitySlug) {
+                $q->where('fp.placement', 'search_top');
+                if ($localitySlug) {
+                    $q->orWhere(fn ($w) => $w->where('fp.placement', 'locality')
+                        ->whereIn('fp.locality_id', DB::table('localities')->select('id')->where('slug', $localitySlug)));
+                }
+            })
+            ->select('fp.school_id')
+            ->distinct();
+
         $activePlans = DB::table('subscriptions as sub')
             ->join('plans as p', 'p.id', '=', 'sub.plan_id')
             ->where('sub.status', 'active')
@@ -294,12 +349,33 @@ class SchoolService
 
         return $query
             ->leftJoinSub($activePlans, 'ap', 'ap.school_id', '=', 'schools.id')
+            ->leftJoinSub($campaigns, 'camp', 'camp.school_id', '=', 'schools.id')
             ->select('schools.*')
             ->selectRaw("COALESCE(ap.code, 'basic') AS plan_code")
             ->selectRaw('LEAST(GREATEST(COALESCE(ap.ranking_boost, 0), 0), 100) / 100.0 AS plan_boost')
             ->selectRaw('COALESCE(ap.is_sponsored, false) AS is_sponsored')
             ->selectRaw('COALESCE(ap.homepage_featured, false) AS homepage_featured')
-            ->selectRaw("({$topSql}) AS top_placement", $topPlans);
+            ->selectRaw('(camp.school_id IS NOT NULL) AS has_campaign')
+            // Eligible for a sponsored top slot: top-placement plan or live campaign.
+            ->selectRaw("(({$topSql}) OR camp.school_id IS NOT NULL) AS top_placement", $topPlans);
+    }
+
+    /** Ranking score without the distance term, for non-geo search (DIQ-805). */
+    private function applyScoreWithoutDistance(Builder $query): void
+    {
+        $w = config('geo.ranking');
+
+        $query->selectRaw('ROUND((
+              ? * LEAST(GREATEST(COALESCE(schools.rating, 0) / 5.0, 0.0), 1.0)
+            + ? * LEAST(COALESCE(schools.review_count, 0)::float / ?, 1.0)
+            + ? * (CASE WHEN schools.verified THEN 1.0 ELSE 0.0 END)
+            + ? * (LEAST(GREATEST(COALESCE(ap.ranking_boost, 0), 0), 100) / 100.0)
+        )::numeric, 6)::float AS ranking_score', [
+            (float) ($w['weight_rating'] ?? 0.25),
+            (float) ($w['weight_reviews'] ?? 0.12), max(1, (int) ($w['review_cap'] ?? 50)),
+            (float) ($w['weight_verified'] ?? 0.08),
+            (float) ($w['weight_premium'] ?? 0.15),
+        ]);
     }
 
     /**
@@ -307,7 +383,7 @@ class SchoolService
      * the documented formula in docs/PHASE-1-GEO-RANKING.md with the weights
      * from config/geo.php.
      */
-    private function applyGeo(Builder $query, float $lat, float $lng, float $radiusKm, string $sortBy): void
+    private function applyGeo(Builder $query, float $lat, float $lng, float $radiusKm): void
     {
         $w = config('geo.ranking');
         $reviewCap = max(1, (int) ($w['review_cap'] ?? 50));
@@ -332,18 +408,5 @@ class SchoolService
                 (float) ($w['weight_premium'] ?? 0.15),
             ])
             ->whereRaw("ST_DWithin(schools.location, {$origin}, ?)", [$lng, $lat, $radiusKm * 1000]);
-
-        if ($sortBy === 'distance') {
-            $query->orderBy('distance_km')
-                ->orderByDesc('plan_boost')
-                ->orderByDesc('schools.verified')
-                ->orderByDesc('schools.rating');
-        } else {
-            $query->orderByDesc('top_placement')
-                ->orderByDesc('ranking_score')
-                ->orderBy('distance_km');
-        }
-
-        $query->orderBy('schools.id');
     }
 }

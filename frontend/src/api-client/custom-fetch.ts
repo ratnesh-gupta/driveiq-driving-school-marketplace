@@ -1,3 +1,4 @@
+import { announcePlanRequired } from "@/lib/plan";
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
@@ -374,6 +375,7 @@ export async function customFetch<T = unknown>(
       _unauthorizedHandler?.();
     }
     const errorData = await parseErrorBody(response, method);
+    if (response.status === 402) announcePlanRequired(errorData);
     throw new ApiError(response, errorData, requestInfo);
   }
 

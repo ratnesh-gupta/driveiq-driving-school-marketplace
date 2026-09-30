@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/store";
 import { JsonLd, SITE_ORIGIN, breadcrumbList } from "@/components/seo/json-ld";
 import { SchoolMap } from "@/components/maps/school-map";
+import { TrainersSection } from "@/components/school/trainers-section";
 import type { InquiryInput } from "@/api-client/generated/api.schemas";
 import { useT } from "@/i18n/use-locale";
 import {
@@ -331,6 +332,8 @@ export default function SchoolDetailPage() {
                 </div>
               </motion.div>
             )}
+
+            <TrainersSection slug={school.slug} />
 
             {/* Reviews */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }} className="rounded-xl border bg-card p-6">

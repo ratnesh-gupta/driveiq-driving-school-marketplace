@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { PlanRequiredListener } from "@/components/plan/plan-required-listener";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -29,6 +30,8 @@ import PackagesPage from "@/pages/dashboard/packages";
 import DashboardReviewsPage from "@/pages/dashboard/reviews";
 import AnalyticsPage from "@/pages/dashboard/analytics";
 import SchoolSettingsPage from "@/pages/dashboard/settings";
+import BillingPage from "@/pages/dashboard/billing";
+import InvoicePage from "@/pages/dashboard/invoice";
 import LearnersPage from "@/pages/dashboard/learners";
 import InstructorsPage from "@/pages/dashboard/instructors";
 import SchedulesPage from "@/pages/dashboard/schedules";
@@ -47,10 +50,15 @@ import AdminUsersPage from "@/pages/admin/users";
 import AdminAnalyticsPage from "@/pages/admin/analytics";
 import AdminDataRequestsPage from "@/pages/admin/data-requests";
 import AdminMessagesPage from "@/pages/admin/messages";
+import AdminBillingPage from "@/pages/admin/billing";
+import AdminAuditPage from "@/pages/admin/audit";
+import SchoolAuditPage from "@/pages/dashboard/audit";
 
 import InstructorHomePage from "@/pages/instructor/index";
 import InstructorSessionsPage from "@/pages/instructor/sessions";
 import InstructorMessagesPage from "@/pages/instructor/messages";
+import InstructorLearnersPage from "@/pages/instructor/learners";
+import InstructorLeavePage from "@/pages/instructor/leave";
 
 import LearnerHomePage from "@/pages/learner/index";
 import LearnerProgressPage from "@/pages/learner/progress";
@@ -109,6 +117,9 @@ function Router() {
       <Route path="/dashboard/reviews">{() => schoolGuard(<DashboardReviewsPage />)}</Route>
       <Route path="/dashboard/analytics">{() => schoolGuard(<AnalyticsPage />)}</Route>
       <Route path="/dashboard/settings">{() => schoolGuard(<SchoolSettingsPage />)}</Route>
+      <Route path="/dashboard/audit">{() => schoolGuard(<SchoolAuditPage />)}</Route>
+      <Route path="/dashboard/billing">{() => schoolGuard(<BillingPage />)}</Route>
+      <Route path="/dashboard/billing/invoices/:id">{() => schoolGuard(<InvoicePage />)}</Route>
 
       <Route path="/admin">{() => <AuthGuard requireRole="admin"><AdminHomePage /></AuthGuard>}</Route>
       <Route path="/admin/schools">{() => <AuthGuard requireRole="admin"><AdminSchoolsPage /></AuthGuard>}</Route>
@@ -118,10 +129,15 @@ function Router() {
       <Route path="/admin/analytics">{() => <AuthGuard requireRole="admin"><AdminAnalyticsPage /></AuthGuard>}</Route>
       <Route path="/admin/data-requests">{() => <AuthGuard requireRole="admin"><AdminDataRequestsPage /></AuthGuard>}</Route>
       <Route path="/admin/messages">{() => <AuthGuard requireRole="admin"><AdminMessagesPage /></AuthGuard>}</Route>
+      <Route path="/admin/billing">{() => <AuthGuard requireRole="admin"><AdminBillingPage /></AuthGuard>}</Route>
+      <Route path="/admin/audit">{() => <AuthGuard requireRole="admin"><AdminAuditPage /></AuthGuard>}</Route>
 
       <Route path="/instructor">{() => <AuthGuard requireRole="instructor"><InstructorHomePage /></AuthGuard>}</Route>
       <Route path="/instructor/sessions">{() => <AuthGuard requireRole="instructor"><InstructorSessionsPage /></AuthGuard>}</Route>
       <Route path="/instructor/messages">{() => <AuthGuard requireRole="instructor"><InstructorMessagesPage /></AuthGuard>}</Route>
+      <Route path="/instructor/learners">{() => <AuthGuard requireRole="instructor"><InstructorLearnersPage /></AuthGuard>}</Route>
+      <Route path="/instructor/leave">{() => <AuthGuard requireRole="instructor"><InstructorLeavePage /></AuthGuard>}</Route>
+      {/* Old link: attendance is marked from the sessions calendar. */}
       <Route path="/instructor/attendance">{() => <AuthGuard requireRole="instructor"><InstructorSessionsPage /></AuthGuard>}</Route>
 
       <Route path="/learner">{() => <AuthGuard requireRole="learner"><LearnerHomePage /></AuthGuard>}</Route>
@@ -144,6 +160,7 @@ function App() {
             <Router />
           </WouterRouter>
           <CookieConsent />
+          <PlanRequiredListener />
           <Toaster />
           <SonnerToaster />
         </TooltipProvider>

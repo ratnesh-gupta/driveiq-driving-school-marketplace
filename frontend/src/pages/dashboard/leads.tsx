@@ -8,11 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useListInquiries, useUpdateInquiry, getListInquiriesQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Phone, Mail, NotebookPen, CalendarClock } from "lucide-react";
+import { MessageCircle, Phone, Mail, NotebookPen, CalendarClock, UserPlus } from "lucide-react";
 import { LeadTimelineSheet } from "@/components/lead-timeline-sheet";
-import { fetchSchoolSettings } from "@/lib/ops-api";
+import { convertInquiry, fetchSchoolSettings } from "@/lib/ops-api";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { formatDuration } from "@/lib/response-time";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 /** "Awaiting reply" badge for leads nobody has answered yet (DIQ-708). */
 function AwaitingBadge({ createdAt, thresholdMinutes }: { createdAt: string; thresholdMinutes: number }) {
@@ -54,6 +55,23 @@ export default function LeadsPage() {
   };
   const { data: inquiries, isLoading } = useListInquiries(params, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey(params) } });
   const updateInquiry = useUpdateInquiry();
+  // With the learner module, "Converted" is reached only by creating the learner (DIQ-905).
+  const canConvert = useEntitlements().has("learners");
+  const convert = useMutation({
+    mutationFn: (id: number) => convertInquiry(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).includes("inquiries") });
+      void queryClient.invalidateQueries({ queryKey: ["learners"] });
+      toast({
+        title: "Learner created",
+        description: "Assign a trainer and package from the Learners page.",
+      });
+    },
+    onError: (e: Error) => toast({ title: "Could not convert", description: e.message, variant: "destructive" }),
+  });
+  const handleConvert = (id: number, name: string) => {
+    if (window.confirm(`Create a learner record for ${name} and mark this lead converted?`)) convert.mutate(id);
+  };
 
   const handleStatusChange = (id: number, status: string) => {
     let lostReason: string | undefined;
@@ -174,6 +192,7 @@ export default function LeadsPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(inq.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
                     <Select
                       value={inq.status}
                       onValueChange={(v) => handleStatusChange(inq.id, v)}
@@ -182,11 +201,24 @@ export default function LeadsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {LEAD_STATUSES.map(s => (
+                        {LEAD_STATUSES.filter(s => !canConvert || s !== "converted" || inq.status === "converted").map(s => (
                           <SelectItem key={s} value={s} className="text-xs">{leadStatusLabel(s)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {canConvert && inq.status !== "converted" && inq.status !== "lost" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        disabled={convert.isPending}
+                        onClick={() => handleConvert(inq.id, inq.name)}
+                        data-testid={`button-convert-${inq.id}`}
+                      >
+                        <UserPlus className="h-3.5 w-3.5 mr-1" /> Convert
+                      </Button>
+                    )}
+                    </div>
                   </td>
                 </tr>
               ))}

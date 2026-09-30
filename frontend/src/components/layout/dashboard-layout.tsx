@@ -3,8 +3,11 @@ import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, User, Package as PkgIcon, Star, BarChart3, LogOut, Menu,
-  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound, Settings,
+  GraduationCap, Car, CalendarDays, MessageSquare, UserCog, IndianRupee, UsersRound, Settings, Lock, CreditCard, History,
 } from "lucide-react";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { ROUTE_FEATURE } from "@/lib/plan";
+import { TrialBanner } from "@/components/plan/trial-banner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RoleConsentGate } from "@/components/legal/role-consent-gate";
@@ -15,7 +18,9 @@ import { useT } from "@/i18n/use-locale";
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { logout } = useAuthStore();
+  const isOwner = useAuthStore((s) => s.schoolRole) !== "manager";
   const t = useT();
+  const { has } = useEntitlements();
 
   const links = [
     { href: "/dashboard", label: t("schoolNav.overview"), icon: LayoutDashboard },
@@ -31,7 +36,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/packages", label: t("schoolNav.packages"), icon: PkgIcon },
     { href: "/dashboard/reviews", label: t("schoolNav.reviews"), icon: Star },
     { href: "/dashboard/analytics", label: t("schoolNav.analytics"), icon: BarChart3 },
+    { href: "/dashboard/billing", label: t("schoolNav.billing"), icon: CreditCard },
     { href: "/dashboard/settings", label: t("schoolNav.settings"), icon: Settings },
+    // The activity log is owner-only (it records managers' actions too).
+    ...(isOwner ? [{ href: "/dashboard/audit", label: t("schoolNav.audit"), icon: History }] : []),
   ];
 
   const SidebarContent = () => (
@@ -51,6 +59,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               >
                 <Icon className="mr-2 h-4 w-4" />
                 {link.label}
+                {ROUTE_FEATURE[link.href] && !has(ROUTE_FEATURE[link.href]) && (
+                  <Lock className="ml-auto h-3.5 w-3.5 opacity-60" aria-label="Not on your plan" />
+                )}
               </Button>
             </Link>
           );
@@ -93,6 +104,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
           <main className="flex-1 overflow-auto p-4 md:p-8">
+            <TrialBanner />
             {children}
             <PortalLegalFooter />
           </main>

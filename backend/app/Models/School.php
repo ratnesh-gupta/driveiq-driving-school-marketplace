@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\SubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class School extends Model
 {
     use HasFactory;
+
+    /**
+     * Column defaults, mirrored so a new model computes the same profile
+     * completeness before and after it is reloaded from the database.
+     */
+    protected $attributes = [
+        'has_pickup' => false,
+        'women_instructor' => false,
+        'weekend_classes' => false,
+        'simulator_training' => false,
+        'ac_vehicle' => false,
+        'rto_assistance' => true,
+    ];
 
     protected $fillable = [
         'user_id', 'name', 'slug', 'locality_id', 'address', 'latitude', 'longitude', 'service_radius_km',
@@ -71,6 +85,10 @@ class School extends Model
         static::saving(function (School $school) {
             $school->profile_completeness = $school->calculateProfileCompleteness();
         });
+
+        // Every new school starts on a feature trial (DIQ-802), however it was
+        // created (registration, admin, seeder).
+        static::created(fn (School $school) => app(SubscriptionService::class)->startTrial($school->id));
     }
 
     /**
@@ -89,34 +107,52 @@ class School extends Model
         ]);
     }
 
+    /** Profile fields that count towards completeness, with the label shown to schools. */
+    private const PROFILE_FIELDS = [
+        'name' => 'name', 'phone' => 'phone', 'email' => 'email', 'description' => 'description',
+        'address' => 'address', 'timings' => 'timings', 'image_url' => 'photo',
+        'vehicle_types' => 'vehicle types', 'transmission' => 'transmission', 'price_from' => 'starting price',
+        'languages' => 'languages', 'batch_timings' => 'batch timings', 'service_areas' => 'service areas',
+        'established_year' => 'established year', 'total_vehicles' => 'number of vehicles',
+        'total_instructors' => 'number of trainers', 'accepted_payments' => 'payment methods',
+    ];
+
+    private const FEATURE_FLAGS = [
+        'has_pickup', 'women_instructor', 'weekend_classes',
+        'simulator_training', 'ac_vehicle', 'rto_assistance',
+    ];
+
     public function calculateProfileCompleteness(): int
     {
-        $fields = [
-            'name', 'phone', 'email', 'description', 'address', 'timings',
-            'image_url', 'vehicle_types', 'transmission', 'price_from',
-            'languages', 'batch_timings', 'service_areas',
-            'established_year', 'total_vehicles', 'total_instructors',
-            'accepted_payments',
-        ];
-        $booleanFields = [
-            'has_pickup', 'women_instructor', 'weekend_classes',
-            'simulator_training', 'ac_vehicle', 'rto_assistance',
-        ];
+        // The feature flags count as one item (see missingProfileFields()).
+        $total = count(self::PROFILE_FIELDS) + 1;
 
-        $filled = 0;
-        $total = count($fields) + count($booleanFields);
+        return (int) round((($total - count($this->missingProfileFields())) / $total) * 100);
+    }
 
-        foreach ($fields as $field) {
+    /**
+     * Labels of what is still missing from the public profile. The feature
+     * flags default to false, so "unanswered" and "no" look the same; they
+     * count as one "features" item, filled once any feature is ticked.
+     *
+     * @return list<string>
+     */
+    public function missingProfileFields(): array
+    {
+        $missing = [];
+        foreach (self::PROFILE_FIELDS as $field => $label) {
             $value = $this->getAttribute($field);
             // Numeric 0 is a column default (e.g. price_from), not a filled-in answer.
             $isZero = (is_int($value) || is_float($value)) && $value == 0;
-            if (! is_null($value) && $value !== '' && $value !== [] && ! $isZero) {
-                $filled++;
+            if (is_null($value) || $value === '' || $value === [] || $isZero) {
+                $missing[] = $label;
             }
         }
-        $filled += count($booleanFields);
+        if (! collect(self::FEATURE_FLAGS)->contains(fn ($f) => (bool) $this->getAttribute($f))) {
+            $missing[] = 'features';
+        }
 
-        return (int) round(($filled / $total) * 100);
+        return $missing;
     }
 
     public function owner(): BelongsTo

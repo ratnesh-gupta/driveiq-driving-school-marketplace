@@ -22,6 +22,7 @@ class LeadResponseTimeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->freezeSecond(); // durations are asserted to the second
         $this->owner = User::factory()->create(['role' => 'school']);
         $this->school = School::create(['name' => 'Fast School', 'slug' => 'fast-school', 'user_id' => $this->owner->id]);
         $this->owner->update(['school_id' => $this->school->id]);

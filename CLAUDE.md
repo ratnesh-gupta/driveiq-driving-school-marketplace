@@ -2,8 +2,8 @@
 
 **Status:** MVP Development in Progress  
 **Target Market:** Pune, India (Initial Phase)  
-**Current Phase:** M1–M5 done (security, RBAC, geo search, uploads, DPDP, lead engine); next: pilot launch readiness / monetization  
-**Last Updated:** 2026-09-29  
+**Current Phase:** M1–M7 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization, operations reconciliation of phases 3–8); next: pilot launch readiness  
+**Last Updated:** 2026-09-30  
 **Master Plan:** `docs/PROJECT-PLAN.md` — single source of truth for scope, phasing, and requirements
 
 ---
@@ -305,6 +305,7 @@ Created → Verified → Active → Assigned Learners → Performance Tracking
 | **Reviews Management** | ✅ API built | View reviews, respond (moderation needed) |
 | **Analytics Dashboard** | 🟡 Partial | View count, inquiry count; CTR/locality breakdowns missing |
 | **Photo Upload** | 🟡 Partial | Private document uploads built (DIQ-601); public school photos not yet |
+| **Operations (learners, trainers, schedules, fleet)** | ✅ Built | Learner sheet, trainer management + portal, schedule editing, leave with clash list, vehicle papers by expiry, owner activity log |
 | **WhatsApp Integration** | 🟡 Partial | Click-to-chat deeplinks work; automation/API integration future |
 
 ### 4.3 Admin Panel Features
@@ -314,7 +315,7 @@ Created → Verified → Active → Assigned Learners → Performance Tracking
 | **School Approval** | ✅ Route exists | Verification workflow partially defined |
 | **User Management** | ✅ Built | List/search/filter, deactivate/reactivate (revokes tokens) |
 | **Review Moderation** | ✅ Built | Admin-only moderation, abuse reports auto-hide at 3; no bulk actions yet |
-| **Featured Listing Controls** | 🟡 Not started | Monetization-aware ranking TBD |
+| **Featured Listing Controls** | ✅ Built | Capped, labelled sponsored slots; campaign windows (search/homepage/locality); admin console with MRR/churn |
 | **Analytics Dashboard** | 🟡 Partial | Platform-level insights (inquiry volume, top schools) |
 | **Locality SEO Management** | 🟡 Planned | Admin controls for SEO page content |
 
@@ -399,9 +400,9 @@ All core modules **verified** and transitioned from Express to Laravel APIs:
 **Goal:** Move from validation to revenue model execution.
 
 **Must-Have:**
-- [ ] Listing tiers: basic (free) / featured (Rs 999-2999/mo) / premium (Rs 4999/mo)
-- [ ] Premium ranking logic and sponsored placement inventory (premium rank boost done; sponsored inventory not yet)
-- [ ] Admin control plane for featured slots and campaign windows
+- [x] Listing tiers: basic (free) / featured (Rs 999-2999/mo) / premium (Rs 4999/mo)
+- [x] Premium ranking logic and sponsored placement inventory
+- [x] Admin control plane for featured slots and campaign windows
 - [x] School-side subscription status visibility
 
 **Exit Criteria:** Marketplace can run free and paid listings; premium visibility is configurable and auditable.
@@ -724,6 +725,8 @@ Current single-branch design naturally extends to this model.
 ✅ Private document uploads with 5-minute signed download links (`DOCUMENTS_DISK`)  
 ✅ DPDP: server-side consent records, data-subject requests, contact inbox, `driveiq:retention` (dry run by default)  
 ✅ Lead engine: queued new-lead emails to owner + managers, unanswered-lead reminders, response-time metrics and badges, lead notes/follow-ups/timeline  
+✅ Monetization: plan tiers gate modules (read-only when locked), 30-day trial, manual GST invoices, sponsored slots + campaigns, admin revenue console  
+✅ Operations (M7): school-scoped foreign IDs, payment status rules, locked bookings, real dashboard numbers; learner/trainer/fleet screens; trainer portal (roster, attendance, leave); `driveiq:ops-reminders` hourly (sessions, licence/vehicle paper expiry, missing documents)  
 ✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build in CI  
 
 ### Demo/Non-Production Behaviors
@@ -731,6 +734,7 @@ Current single-branch design naturally extends to this model.
 ⚠️ Lead alerts are email + in-app only (no SMS/WhatsApp API); emails need a queue worker and a real mailer  
 ⚠️ Some API client types were added by hand; regenerate from an OpenAPI spec  
 ⚠️ Demo accounts from `make seed` use `password123`; never seed production  
+⚠️ Plan payments are manual (UPI/bank, recorded by an admin); set `BILLING_*` before charging; Razorpay not integrated yet  
 
 ### Tech Stack Reality vs PRD
 **PRD proposed:** Next.js + Laravel + Sanctum + Redis queue  
@@ -974,10 +978,11 @@ public function test_user_can_only_see_own_schools_learners()
 ## 11. Known Limitations & Future Considerations
 
 ### Current Limitations
-- No production authentication (frontend-only role switching)
+- No OTP / mobile login (needs an SMS provider); logins are email + password
 - Geo-search ranking not tuned to Pune data
-- Notification system not implemented (no email/WhatsApp automation yet)
+- Notifications are in-app and email only (no SMS / WhatsApp API yet)
 - No advanced analytics (CTR, conversion funnel tracking)
+- No trainer working hours / capacity limits, learner ratings of trainers, attendance certificate or RTO directory yet
 - Mobile app not built (responsive web app is current MVP approach)
 - Instructor-specific features minimal (instructor rating, schedule management)
 
@@ -994,7 +999,7 @@ public function test_user_can_only_see_own_schools_learners()
 
 **Project Owner:** Ratnesh (ratnesh.k.gupta@icloud.com)  
 **Repository:** `/Volumes/RatneshED/Projects/Agies/driveiq-driving-school-marketplace/`  
-**Current Phase:** M1–M5 done; next: pilot launch readiness / monetization  
+**Current Phase:** M1–M7 done; next: pilot launch readiness  
 **Target Launch:** Marketplace MVP Week 12, Operations MVP Week 18 (see PROJECT-PLAN.md)
 
 ---

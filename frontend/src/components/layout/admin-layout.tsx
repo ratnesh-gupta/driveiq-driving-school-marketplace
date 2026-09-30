@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Store, Star, MapPin, Users, LogOut, Menu, BarChart3, Shield, Inbox } from "lucide-react";
+import { LayoutDashboard, Store, Star, MapPin, Users, LogOut, Menu, BarChart3, Shield, Inbox, IndianRupee, History } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RoleConsentGate } from "@/components/legal/role-consent-gate";
@@ -23,6 +23,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/users", label: t("adminNav.users"), icon: Users },
     { href: "/admin/data-requests", label: t("adminNav.dataRequests"), icon: Shield },
     { href: "/admin/messages", label: t("adminNav.messages"), icon: Inbox },
+    { href: "/admin/billing", label: t("adminNav.billing"), icon: IndianRupee },
+    { href: "/admin/audit", label: t("adminNav.audit"), icon: History },
   ];
 
   const SidebarContent = () => (

@@ -1,4 +1,5 @@
 import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
+import { announcePlanRequired, type PlanFeature } from "@/lib/plan";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)
@@ -27,6 +28,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
+      if (res.status === 402) announcePlanRequired(data);
       if (data.message) message = data.message;
       else if (data.errors) message = Object.values(data.errors).flat().join(" ");
     } catch {
@@ -104,14 +106,19 @@ export function fetchInstructorMe() {
   return request<{ instructor?: Record<string, unknown>; dashboard?: Record<string, unknown> } & Record<string, unknown>>(`/api/instructor/me`);
 }
 
-export function listInstructorSessions() {
-  return request<unknown[]>(`/api/instructor/sessions`);
-}
-
-export function listSchedules(schoolId: number, params?: { from?: string; to?: string }) {
+export function listInstructorSessions(params?: { from?: string; to?: string }) {
   const sp = new URLSearchParams();
   if (params?.from) sp.set("from", params.from);
   if (params?.to) sp.set("to", params.to);
+  const q = sp.toString() ? `?${sp}` : "";
+  return request<unknown[]>(`/api/instructor/sessions${q}`);
+}
+
+export function listSchedules(schoolId: number, params?: { from?: string; to?: string; instructorId?: number }) {
+  const sp = new URLSearchParams();
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  if (params?.instructorId) sp.set("instructorId", String(params.instructorId));
   const q = sp.toString() ? `?${sp}` : "";
   return request<unknown[]>(`/api/schools/${schoolId}/schedules${q}`);
 }
@@ -189,7 +196,7 @@ export function purchasePackage(
   schoolId: number,
   body: { learnerId: number; packageId: number; method?: string; markPaid?: boolean }
 ) {
-  return request<{ payment: PaymentRow; invoice: Record<string, unknown>; gateway: Record<string, unknown> | null }>(
+  return request<{ payment: PaymentRow; invoice: Record<string, unknown> }>(
     `/api/schools/${schoolId}/payments/package`,
     { method: "POST", body: JSON.stringify(body) }
   );
@@ -355,6 +362,8 @@ export type DocumentRow = {
   notes?: string | null;
   verifiedAt?: string | null;
   createdAt?: string | null;
+  /** Vehicle papers only: valid but lapsing within 30 days. */
+  expiringSoon?: boolean;
 };
 
 const DOCUMENT_BASE: Record<DocumentOwnerKind, string> = {
@@ -554,8 +563,499 @@ export type ResponseTimeSummary = {
   within24hRate: number;
 };
 
+export type DashboardTask = { type: string; count: number; label: string; href: string };
+
 export function fetchSchoolDashboard(schoolId: number) {
-  return request<{ schoolId: number; metrics: { responseTime: ResponseTimeSummary } & Record<string, unknown> }>(
-    `/api/schools/${schoolId}/dashboard`
-  );
+  return request<{
+    schoolId: number;
+    profileCompleteness: number;
+    missingProfileFields: string[];
+    pendingTasks: DashboardTask[];
+    metrics: {
+      responseTime: ResponseTimeSummary;
+      inquiriesThisMonth: number;
+      inquiriesLastMonth: number;
+      learnersThisMonth: number;
+      learnersLastMonth: number;
+    } & Record<string, unknown>;
+  }>(`/api/schools/${schoolId}/dashboard`);
+}
+
+// ── Plan entitlements (DIQ-802) ──
+
+export type Entitlements = {
+  schoolId: number;
+  plan: string;
+  planExpiresAt: string | null;
+  trial: { active: boolean; endsAt: string | null; plan: string };
+  features: PlanFeature[];
+  lockedFeatures: PlanFeature[];
+  enforced: boolean;
+};
+
+export function fetchEntitlements(schoolId: number) {
+  return request<Entitlements>(`/api/schools/${schoolId}/entitlements`);
+}
+
+// ── Plans & platform billing (DIQ-803/804) ──
+
+export type PlanRow = {
+  id: number;
+  code: string;
+  name: string;
+  priceMonthly: number;
+  features: Record<string, boolean> | null;
+  rankingBoost: number;
+  isSponsored: boolean;
+  homepageFeatured: boolean;
+};
+
+export type PlatformInvoice = {
+  id: number;
+  invoiceNumber: string;
+  schoolId: number | null;
+  schoolName: string;
+  billedToGstin: string | null;
+  planCode: string;
+  months: number;
+  subtotal: number;
+  gstRate: number;
+  gstAmount: number;
+  total: number;
+  currency: string;
+  status: "issued" | "paid" | "void";
+  issuedAt: string;
+  dueAt: string;
+  paymentReference: string | null;
+  paidAt: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  seller: { name?: string; address?: string; gstin?: string | null; email?: string };
+  paymentInstructions?: {
+    upi_id?: string;
+    bank_name?: string;
+    account_name?: string;
+    account_number?: string;
+    ifsc?: string;
+  };
+};
+
+export function listPlans() {
+  return request<PlanRow[]>(`/api/plans`);
+}
+
+export function listSchoolInvoices(schoolId: number) {
+  return request<PlatformInvoice[]>(`/api/schools/${schoolId}/billing/invoices`);
+}
+
+export function fetchSchoolInvoice(schoolId: number, invoiceId: number) {
+  return request<PlatformInvoice>(`/api/schools/${schoolId}/billing/invoices/${invoiceId}`);
+}
+
+export function requestPlanInvoice(schoolId: number, body: { planCode: string; months: number; gstin?: string }) {
+  return request<PlatformInvoice>(`/api/schools/${schoolId}/billing/invoices`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function cancelPlanInvoice(schoolId: number, invoiceId: number) {
+  return request<PlatformInvoice>(`/api/schools/${schoolId}/billing/invoices/${invoiceId}/cancel`, { method: "POST" });
+}
+
+// ── Admin monetization console (DIQ-806) ──
+
+export type MonetizationOverview = {
+  activeSubscriptions: number;
+  activePaid: number;
+  byTier: Record<string, number>;
+  mrr: number;
+  arr: number;
+  mrrByTier: Record<string, number>;
+  trials: number;
+  churn30d: { churned: number; paidAtStart: number; rate: number };
+  expiringSoon: { id: number; schoolId: number; schoolName: string | null; planCode: string | null; expiresAt: string | null }[];
+  trialsEndingSoon: { id: number; schoolId: number; schoolName: string | null; planCode: string | null; expiresAt: string | null }[];
+  sponsoredSlots: { perPage: number; eligibleSchools: number; utilization: number };
+  pendingInvoices: { count: number; total: number };
+};
+
+export type AdminSubscriptionRow = {
+  id: number;
+  schoolId: number;
+  schoolName: string | null;
+  planCode: string | null;
+  priceMonthly: number | null;
+  status: string;
+  startsAt: string | null;
+  expiresAt: string | null;
+  current: boolean;
+  notes: string | null;
+};
+
+export type PlacementRow = {
+  id: number;
+  schoolId: number;
+  schoolName: string | null;
+  placement: "search_top" | "homepage" | "locality";
+  localityId: number | null;
+  localityName: string | null;
+  startsAt: string;
+  endsAt: string;
+  live: boolean;
+  notes: string | null;
+};
+
+export const fetchMonetizationOverview = () => request<MonetizationOverview>(`/api/admin/subscriptions/overview`);
+
+export function listAdminInvoices(status?: string) {
+  return request<Paged<PlatformInvoice>>(`/api/admin/billing/invoices${status ? `?status=${status}` : ""}`);
+}
+
+export function recordInvoicePayment(id: number, body: { reference: string; paidAt?: string }) {
+  return request<PlatformInvoice>(`/api/admin/billing/invoices/${id}/record-payment`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function voidInvoice(id: number, reason?: string) {
+  return request<PlatformInvoice>(`/api/admin/billing/invoices/${id}/void`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
+export function listAdminSubscriptions(params: { status?: string; search?: string; page?: number }) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => v !== undefined && v !== "" && q.set(k, String(v)));
+  return request<Paged<AdminSubscriptionRow>>(`/api/admin/subscriptions?${q.toString()}`);
+}
+
+export function assignSubscription(body: { schoolId: number; planCode: string; months: number; notes?: string }) {
+  return request(`/api/admin/subscriptions`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function cancelSubscription(schoolId: number) {
+  return request(`/api/admin/subscriptions/${schoolId}/cancel`, { method: "POST" });
+}
+
+export const listPlacements = () => request<PlacementRow[]>(`/api/admin/placements`);
+
+export function createPlacement(body: {
+  schoolId: number;
+  placement: PlacementRow["placement"];
+  localityId?: number;
+  startsAt: string;
+  endsAt: string;
+  notes?: string;
+}) {
+  return request<PlacementRow>(`/api/admin/placements`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export const endPlacement = (id: number) => request<PlacementRow>(`/api/admin/placements/${id}/end`, { method: "POST" });
+
+export type MarketplaceSettings = { sponsored_slots_per_page: number; homepage_slots: number };
+
+export const fetchMarketplaceSettings = () => request<MarketplaceSettings>(`/api/admin/marketplace-settings`);
+
+export function saveMarketplaceSettings(body: Partial<MarketplaceSettings>) {
+  return request<MarketplaceSettings>(`/api/admin/marketplace-settings`, { method: "PUT", body: JSON.stringify(body) });
+}
+
+/* ---------- Learner detail (DIQ-906) ---------- */
+
+export type LearnerDetail = {
+  id: number;
+  schoolId: number;
+  name: string;
+  mobile?: string | null;
+  email?: string | null;
+  gender?: string | null;
+  dob?: string | null;
+  address?: string | null;
+  emergencyContact?: string | null;
+  vehicleType?: string | null;
+  status: string;
+  packageId?: number | null;
+  packageName?: string | null;
+  assignedInstructorId?: number | null;
+  instructorName?: string | null;
+  assignedVehicleId?: number | null;
+  vehicleRegistration?: string | null;
+  startDate?: string | null;
+  expectedCompletionDate?: string | null;
+  learnerLicenseNumber?: string | null;
+  licenseIssueDate?: string | null;
+  licenseExpiryDate?: string | null;
+  permanentLicenseStatus?: string | null;
+  notes?: string | null;
+  userId?: number | null;
+};
+
+export type AssignmentRow = {
+  id: number;
+  action: string;
+  instructorName: string | null;
+  vehicleRegistration: string | null;
+  assignedBy: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type DrivingTestRow = {
+  id: number;
+  learnerId: number;
+  testDate: string;
+  rtoName: string | null;
+  rtoLocation: string | null;
+  attemptNumber: number;
+  status: "scheduled" | "completed" | "passed" | "failed";
+  notes: string | null;
+};
+
+export type SessionHistoryRow = {
+  id: number;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  instructorName: string | null;
+  pickupLocation: string | null;
+  sessionSummary: string | null;
+  notes: string | null;
+  attendance: string | null;
+};
+
+export type SkillProgress = { skillName: string; percentage: number; notes?: string | null; updatedAt?: string | null };
+
+export function getLearner(id: number) {
+  return request<LearnerDetail>(`/api/learners/${id}`);
+}
+
+export function updateLearner(id: number, body: Record<string, unknown>) {
+  return request<LearnerDetail>(`/api/learners/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function listLearnerAssignments(id: number) {
+  return request<AssignmentRow[]>(`/api/learners/${id}/assignments`);
+}
+
+export function listTrainingSkills() {
+  return request<{ skills: { code: string; label: string }[] }>(`/api/training-skills`);
+}
+
+export function updateLearnerProgress(id: number, body: { skillName: string; percentage: number; notes?: string; sessionId?: number }) {
+  return request<{ overallCompletion: number; skills: SkillProgress[] }>(`/api/learners/${id}/progress`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export function listLearnerSessions(id: number) {
+  return request<SessionHistoryRow[]>(`/api/learners/${id}/sessions`);
+}
+
+export function listDrivingTests(learnerId: number) {
+  return request<DrivingTestRow[]>(`/api/learners/${learnerId}/driving-tests`);
+}
+
+export function createDrivingTest(learnerId: number, body: Record<string, unknown>) {
+  return request<DrivingTestRow>(`/api/learners/${learnerId}/driving-tests`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function updateDrivingTest(id: number, body: Record<string, unknown>) {
+  return request<DrivingTestRow>(`/api/driving-tests/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+/* ---------- Instructor management (DIQ-907) ---------- */
+
+export type InstructorDetail = {
+  id: number;
+  schoolId: number;
+  name: string;
+  status: "active" | "inactive" | "terminated";
+  gender?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  dob?: string | null;
+  address?: string | null;
+  employeeId?: string | null;
+  joiningDate?: string | null;
+  employmentType?: "full_time" | "part_time" | "contract" | null;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseExpiry?: string | null;
+  yearsExperience?: number;
+  skills?: string[];
+  languages?: string[];
+  womenInstructor?: boolean;
+  publicVisible?: boolean;
+  bio?: string | null;
+  totalLearnersTrained?: number;
+  hasLogin?: boolean;
+};
+
+export type InstructorPerformanceRow = {
+  instructorId: number;
+  name: string;
+  sessionsCompleted: number;
+  sessionsTotal: number;
+  learnersAssigned: number;
+  attendanceRate: number;
+  completionRate: number;
+  hoursThisWeek: number;
+  totalLearnersTrained: number;
+};
+
+export function updateInstructor(id: number, body: Record<string, unknown>) {
+  return request<InstructorDetail>(`/api/instructors/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function sendInstructorLogin(id: number, email?: string) {
+  return request<InstructorDetail>(`/api/instructors/${id}/login`, {
+    method: "POST",
+    body: JSON.stringify(email ? { email } : {}),
+  });
+}
+
+export function removeInstructor(id: number) {
+  return request<void>(`/api/instructors/${id}`, { method: "DELETE" });
+}
+
+/* ---------- Instructor portal (DIQ-908) ---------- */
+
+export type MyLearnerRow = {
+  id: number;
+  name: string;
+  mobile: string | null;
+  status: string;
+  vehicleType: string | null;
+  packageName: string | null;
+  assignedToMe: boolean;
+  overallCompletion: number;
+  nextSessionDate: string | null;
+};
+
+export type LeaveRow = {
+  id: number;
+  instructorId: number;
+  instructorName: string | null;
+  startDate: string;
+  endDate: string;
+  reason: string | null;
+  status: "pending" | "approved" | "rejected";
+  reviewedAt: string | null;
+};
+
+export function listMyLearners() {
+  return request<MyLearnerRow[]>(`/api/instructor/learners`);
+}
+
+export function listMyLeave() {
+  return request<LeaveRow[]>(`/api/instructor/leave-requests`);
+}
+
+export function requestMyLeave(body: { startDate: string; endDate: string; reason?: string }) {
+  return request<LeaveRow>(`/api/instructor/leave-requests`, { method: "POST", body: JSON.stringify(body) });
+}
+
+/* ---------- Scheduling & fleet (DIQ-909) ---------- */
+
+export type ScheduleRow = {
+  id: number;
+  learnerId: number | null;
+  learnerName: string | null;
+  instructorId: number;
+  instructorName: string | null;
+  vehicleId: number | null;
+  vehicleRegistration: string | null;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  pickupLocation: string | null;
+  status: string;
+  notes: string | null;
+  sessionSummary: string | null;
+  attendance: { status: string } | null;
+};
+
+export type VehicleRow = {
+  id: number;
+  registrationNumber: string;
+  type: string;
+  transmission: string | null;
+  fuelType: string | null;
+  status: "active" | "maintenance" | "retired";
+  makeModel: string | null;
+  year: number | null;
+  notes: string | null;
+  expiredDocuments?: number;
+  expiringDocuments?: number;
+};
+
+export function updateSchedule(id: number, body: Record<string, unknown>) {
+  return request<ScheduleRow>(`/api/schedules/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function listSchoolLeave(schoolId: number) {
+  return request<LeaveRow[]>(`/api/schools/${schoolId}/leave-requests`);
+}
+
+export function reviewLeave(id: number, status: "approved" | "rejected") {
+  return request<LeaveRow & { clashingSessions: ScheduleRow[] }>(`/api/leave-requests/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function createVehicle(schoolId: number, body: Record<string, unknown>) {
+  return request<VehicleRow>(`/api/schools/${schoolId}/vehicles`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function updateVehicle(id: number, body: Record<string, unknown>) {
+  return request<VehicleRow>(`/api/vehicles/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+/* ---------- Public trainers (DIQ-911) ---------- */
+
+export type PublicTrainer = {
+  id: number;
+  name: string;
+  photoUrl: string | null;
+  yearsExperience: number;
+  skills: string[];
+  languages: string[];
+  womenInstructor: boolean;
+  ratingAverage: number;
+  ratingCount: number;
+  bio: string | null;
+};
+
+export function fetchPublicTrainers(slug: string) {
+  return request<PublicTrainer[]>(`/api/schools/slug/${encodeURIComponent(slug)}/trainers`);
+}
+
+/* ---------- Audit trail (DIQ-912) ---------- */
+
+export type AuditEntry = {
+  id: number;
+  schoolId: number | null;
+  schoolName: string | null;
+  userId: number | null;
+  userName: string | null;
+  userRole: string | null;
+  action: string;
+  modelType: string;
+  modelId: number | null;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+};
+
+export type AuditPage = { data: AuditEntry[]; meta: { page: number; lastPage: number; total: number } };
+
+export function fetchAuditLogs(scope: { schoolId: number } | "admin", filters: { action?: string; modelType?: string; page?: number }) {
+  const sp = new URLSearchParams();
+  if (filters.action) sp.set("action", filters.action);
+  if (filters.modelType) sp.set("modelType", filters.modelType);
+  if (filters.page && filters.page > 1) sp.set("page", String(filters.page));
+  const q = sp.toString() ? `?${sp}` : "";
+  const base = scope === "admin" ? "/api/admin/audit-logs" : `/api/schools/${scope.schoolId}/audit-logs`;
+  return request<AuditPage>(`${base}${q}`);
 }

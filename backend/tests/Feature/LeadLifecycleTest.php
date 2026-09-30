@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Inquiry;
 use App\Models\School;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -39,15 +40,39 @@ class LeadLifecycleTest extends TestCase
     {
         $lead = $this->lead();
 
-        foreach (['contacted', 'follow_up', 'interested', 'converted'] as $status) {
+        foreach (['contacted', 'follow_up', 'interested', 'lost'] as $status) {
             $this->patchJson("/api/inquiries/{$lead->id}", ['status' => $status])
                 ->assertOk()->assertJsonPath('status', $status);
         }
 
         $this->assertSame(
-            ['contacted', 'follow_up', 'interested', 'converted'],
+            ['contacted', 'follow_up', 'interested', 'lost'],
             $lead->statusHistory()->reorder('id')->pluck('to_status')->all()
         );
+    }
+
+    /** DIQ-905: with the learner module, "converted" means a learner record exists. */
+    public function test_converted_goes_through_convert_to_learner_when_learners_are_on_the_plan(): void
+    {
+        $lead = $this->lead('interested');
+
+        $this->patchJson("/api/inquiries/{$lead->id}", ['status' => 'converted'])
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
+
+        $this->postJson("/api/inquiries/{$lead->id}/convert")->assertCreated()->assertJsonPath('convertedFromInquiryId', $lead->id);
+        $this->assertSame('converted', $lead->fresh()->status);
+        // Other edits on an already converted lead still work.
+        $this->patchJson("/api/inquiries/{$lead->id}", ['status' => 'converted', 'message' => 'Joined Monday'])->assertOk();
+    }
+
+    public function test_schools_without_the_learner_module_can_mark_offline_enrolments(): void
+    {
+        Subscription::withoutGlobalScope('school')->where('school_id', $this->school->id)
+            ->update(['expires_at' => now()->subMinute()]);
+        $lead = $this->lead('interested');
+
+        $this->patchJson("/api/inquiries/{$lead->id}", ['status' => 'converted'])->assertOk()->assertJsonPath('status', 'converted');
+        $this->postJson("/api/inquiries/{$lead->id}/convert")->assertStatus(402);
     }
 
     public function test_retired_statuses_are_rejected(): void

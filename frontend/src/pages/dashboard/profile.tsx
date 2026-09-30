@@ -49,6 +49,36 @@ interface FormState {
   totalInstructors: string;
   cancellationPolicy: string;
   pickupRadiusKm: string;
+  address: string;
+  vehicleTypes: string[];
+  transmission: string[];
+  serviceAreas: string[];
+  priceFrom: string;
+}
+
+const VEHICLE_TYPES = [
+  { value: "car", label: "Car" },
+  { value: "bike", label: "Bike" },
+  { value: "scooter", label: "Scooter" },
+  { value: "heavy", label: "Heavy vehicle" },
+];
+const TRANSMISSIONS = [
+  { value: "manual", label: "Manual" },
+  { value: "automatic", label: "Automatic" },
+];
+
+/** Toggle chip for multi-select lists (vehicle types, transmission). */
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function ProfilePage() {
@@ -67,7 +97,9 @@ export default function ProfilePage() {
     languages: [], batchTimings: DEFAULT_BATCH_TIMINGS, acceptedPayments: [],
     establishedYear: "", totalVehicles: "", totalInstructors: "",
     cancellationPolicy: "", pickupRadiusKm: "",
+    address: "", vehicleTypes: [], transmission: [], serviceAreas: [], priceFrom: "",
   });
+  const [newArea, setNewArea] = useState("");
 
   const [newLanguage, setNewLanguage] = useState("");
   const [newPayment, setNewPayment] = useState("");
@@ -102,6 +134,11 @@ export default function ProfilePage() {
         totalInstructors: school.totalInstructors != null ? String(school.totalInstructors) : "",
         cancellationPolicy: school.cancellationPolicy || "",
         pickupRadiusKm: school.pickupRadiusKm != null ? String(school.pickupRadiusKm) : "",
+        address: school.address || "",
+        vehicleTypes: school.vehicleTypes || [],
+        transmission: school.transmission || [],
+        serviceAreas: school.serviceAreas || [],
+        priceFrom: school.priceFrom ? String(school.priceFrom) : "",
       });
     }
   }, [school]);
@@ -115,6 +152,10 @@ export default function ProfilePage() {
     if (!form.totalVehicles) missing.push("total vehicles");
     if (!form.totalInstructors) missing.push("total instructors");
     if (!form.description) missing.push("description");
+    if (!form.vehicleTypes.length) missing.push("vehicle types");
+    if (!form.transmission.length) missing.push("transmission");
+    if (!form.serviceAreas.length) missing.push("service areas");
+    if (!form.address) missing.push("address");
     return missing;
   }, [form]);
 
@@ -140,6 +181,11 @@ export default function ProfilePage() {
       totalInstructors: form.totalInstructors ? Number(form.totalInstructors) : null,
       cancellationPolicy: form.cancellationPolicy || null,
       pickupRadiusKm: form.pickupRadiusKm ? Number(form.pickupRadiusKm) : null,
+      ...(form.address.trim() ? { address: form.address.trim() } : {}),
+      vehicleTypes: form.vehicleTypes,
+      transmission: form.transmission,
+      serviceAreas: form.serviceAreas,
+      ...(form.priceFrom ? { priceFrom: Number(form.priceFrom) } : {}),
     };
 
     updateSchool.mutate(
@@ -154,8 +200,14 @@ export default function ProfilePage() {
     );
   };
 
+  const toggleIn = (field: "vehicleTypes" | "transmission", value: string) =>
+    setForm((p) => ({
+      ...p,
+      [field]: p[field].includes(value) ? p[field].filter((v) => v !== value) : [...p[field], value],
+    }));
+
   const addTag = (
-    field: "languages" | "acceptedPayments",
+    field: "languages" | "acceptedPayments" | "serviceAreas",
     value: string,
     setter: (v: string) => void
   ) => {
@@ -165,7 +217,7 @@ export default function ProfilePage() {
     setter("");
   };
 
-  const removeTag = (field: "languages" | "acceptedPayments", value: string) => {
+  const removeTag = (field: "languages" | "acceptedPayments" | "serviceAreas", value: string) => {
     setForm((p) => ({ ...p, [field]: p[field].filter((t) => t !== value) }));
   };
 
@@ -264,6 +316,61 @@ export default function ProfilePage() {
                 <div>
                   <Label>Timings</Label>
                   <Input value={form.timings} onChange={(e) => setForm((p) => ({ ...p, timings: e.target.value }))} placeholder="e.g. Mon–Sat 7am–7pm" data-testid="input-school-timings" />
+                </div>
+                <div>
+                  <Label htmlFor="school-address">Address</Label>
+                  <Input id="school-address" value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} data-testid="input-school-address" />
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-card p-6 space-y-5 mt-6" data-testid="section-training-offered">
+                <h2 className="font-semibold text-lg">Training offered</h2>
+                <div className="space-y-2">
+                  <Label>Vehicle types</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {VEHICLE_TYPES.map((v) => (
+                      <Chip key={v.value} on={form.vehicleTypes.includes(v.value)} onClick={() => toggleIn("vehicleTypes", v.value)}>{v.label}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Transmission</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {TRANSMISSIONS.map((v) => (
+                      <Chip key={v.value} on={form.transmission.includes(v.value)} onClick={() => toggleIn("transmission", v.value)}>{v.label}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="price-from">Courses start from (₹)</Label>
+                  <Input id="price-from" type="number" min={0} className="w-40" value={form.priceFrom} onChange={(e) => setForm((p) => ({ ...p, priceFrom: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Service areas</Label>
+                  <p className="text-xs text-muted-foreground">Localities you train in or pick up from. These help learners nearby find you.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {form.serviceAreas.map((a) => (
+                      <Badge key={a} variant="secondary" className="gap-1 pr-1">
+                        {a}
+                        <button onClick={() => removeTag("serviceAreas", a)} className="ml-1 rounded-full p-0.5 hover:bg-muted" aria-label={`Remove ${a}`}>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newArea}
+                      onChange={(e) => setNewArea(e.target.value)}
+                      placeholder="e.g. Baner"
+                      className="max-w-[200px]"
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag("serviceAreas", newArea, setNewArea))}
+                      data-testid="input-service-area"
+                    />
+                    <Button size="sm" variant="outline" onClick={() => addTag("serviceAreas", newArea, setNewArea)} aria-label="Add service area">
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </TabsContent>

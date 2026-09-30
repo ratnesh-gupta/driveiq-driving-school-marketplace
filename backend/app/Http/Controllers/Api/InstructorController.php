@@ -3,16 +3,23 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\InstructorDocument;
+use App\Models\Learner;
+use App\Models\Schedule;
 use App\Models\School;
+use App\Models\TrainingProgress;
 use App\Models\User;
+use App\Notifications\StaffLoginInvite;
+use App\Services\NotificationService;
 use App\Support\DocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class InstructorController extends Controller
 {
@@ -67,34 +74,14 @@ class InstructorController extends Controller
             'createLogin' => ['nullable', 'boolean'],
         ]);
 
-        $userId = null;
+        $login = null;
         if (! empty($data['createLogin']) && ! empty($data['email'])) {
-            $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
-            if (! $user) {
-                $user = User::create([
-                    'name' => $data['name'],
-                    'email' => strtolower($data['email']),
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => 'instructor',
-                    'school_id' => $schoolId,
-                ]);
-            } else {
-                // Never repurpose someone else's account (another school's
-                // owner, a learner, an admin...). Only an instructor login of
-                // this school that has no profile yet can be attached.
-                $attachable = $user->isInstructor()
-                    && (int) $user->school_id === $schoolId
-                    && ! Instructor::withoutGlobalScope('school')->where('user_id', $user->id)->exists();
-
-                if (! $attachable) {
-                    return response()->json([
-                        'message' => 'Validation failed',
-                        'errors' => ['email' => ['This email already belongs to another DriveIQ account.']],
-                    ], 422);
-                }
+            $login = $this->loginFor($schoolId, $data['name'], $data['email']);
+            if ($login instanceof JsonResponse) {
+                return $login;
             }
-            $userId = $user->id;
         }
+        $userId = $login?->id;
 
         $instructor = Instructor::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
@@ -128,7 +115,84 @@ class InstructorController extends Controller
 
         AuditLog::log('create', 'Instructor', $instructor->id, [], ['name' => $instructor->name]);
 
+        if ($login?->wasRecentlyCreated) {
+            $login->notify(new StaffLoginInvite(School::find($schoolId)));
+        }
+
         return response()->json($this->serialize($instructor, full: true), 201);
+    }
+
+    /**
+     * Create (or resend) the trainer's portal login. A new account gets an
+     * email to set its password; nothing is ever shown to the school.
+     */
+    public function sendLogin(Request $request, int $id): JsonResponse
+    {
+        $instructor = Instructor::withoutGlobalScope('school')->find($id);
+        if (! $instructor) {
+            return response()->json(['message' => 'Instructor not found'], 404);
+        }
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id)) {
+            return $deny;
+        }
+
+        $data = $request->validate(['email' => ['nullable', 'email', 'max:255']]);
+        $schoolId = (int) $instructor->school_id;
+
+        if ($instructor->user_id) {
+            $user = User::find($instructor->user_id);
+        } else {
+            $email = $data['email'] ?? $instructor->email;
+            if (! $email) {
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => ['email' => ['Add the trainer\'s email first.']],
+                ], 422);
+            }
+            $user = $this->loginFor($schoolId, $instructor->name, $email);
+            if ($user instanceof JsonResponse) {
+                return $user;
+            }
+            $instructor->update(['user_id' => $user->id, 'email' => $instructor->email ?: strtolower($email)]);
+        }
+
+        $user->notify(new StaffLoginInvite(School::find($schoolId)));
+        AuditLog::log('send_login', 'Instructor', $instructor->id, [], ['user_id' => $user->id], $schoolId);
+
+        return response()->json($this->serialize($instructor->fresh(), full: true));
+    }
+
+    /**
+     * The login to attach to a trainer: a new instructor account, or an
+     * existing instructor login of this school that has no profile yet.
+     * Never repurposes anyone else's account (another school's owner, a
+     * learner, an admin...).
+     */
+    private function loginFor(int $schoolId, string $name, string $email): User|JsonResponse
+    {
+        $user = User::whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
+        if (! $user) {
+            return User::create([
+                'name' => $name,
+                'email' => strtolower($email),
+                'password' => Hash::make(Str::random(40)),
+                'role' => 'instructor',
+                'school_id' => $schoolId,
+            ]);
+        }
+
+        $attachable = $user->isInstructor()
+            && (int) $user->school_id === $schoolId
+            && ! Instructor::withoutGlobalScope('school')->where('user_id', $user->id)->exists();
+
+        if (! $attachable) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['email' => ['This email already belongs to another DriveIQ account.']],
+            ], 422);
+        }
+
+        return $user;
     }
 
     public function show(Request $request, int $id): JsonResponse
@@ -275,14 +339,95 @@ class InstructorController extends Controller
 
         return response()->json([
             'instructor' => $this->serialize($instructor, full: true),
-            'dashboard' => [
-                'status' => $instructor->status,
-                'assignedLearners' => (int) $instructor->total_learners_trained,
-                'ratingAverage' => (float) $instructor->rating_average,
-                'todaySessions' => 0, // Phase 6 scheduling
-                'upcomingSessions' => 0,
-            ],
+            'dashboard' => $this->dashboardFor($instructor),
         ]);
+    }
+
+    /**
+     * The trainer's own roster (DIQ-908): learners assigned to them or with
+     * a session with them, the same rule that grants progress access.
+     */
+    public function myLearners(Request $request): JsonResponse
+    {
+        $instructor = Instructor::withoutGlobalScope('school')->where('user_id', $request->user()->id)->first();
+        if (! $instructor) {
+            return response()->json(['message' => 'Instructor profile not found'], 404);
+        }
+
+        $sessionLearnerIds = Schedule::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereNotNull('learner_id')
+            ->distinct()
+            ->pluck('learner_id');
+
+        $learners = Learner::withoutGlobalScope('school')
+            ->with('package:id,name')
+            ->where('school_id', $instructor->school_id)
+            ->where(fn ($q) => $q->where('assigned_instructor_id', $instructor->id)->orWhereIn('id', $sessionLearnerIds))
+            ->orderByRaw("case when status = 'active' then 0 else 1 end")
+            ->orderBy('name')
+            ->limit(200)
+            ->get();
+
+        $ids = $learners->pluck('id');
+        $progress = TrainingProgress::withoutGlobalScope('school')
+            ->whereIn('learner_id', $ids)
+            ->selectRaw('learner_id, sum(percentage) as total')
+            ->groupBy('learner_id')
+            ->pluck('total', 'learner_id');
+        $next = Schedule::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereIn('learner_id', $ids)
+            ->whereIn('status', ['scheduled', 'rescheduled'])
+            ->where('session_date', '>=', now()->toDateString())
+            ->selectRaw('learner_id, min(session_date) as next_date')
+            ->groupBy('learner_id')
+            ->pluck('next_date', 'learner_id');
+        $skills = count(TrainingProgress::SKILLS);
+
+        return response()->json($learners->map(fn (Learner $l) => [
+            'id' => $l->id,
+            'name' => $l->name,
+            'mobile' => $l->mobile,
+            'status' => $l->status,
+            'vehicleType' => $l->vehicle_type,
+            'packageName' => $l->package?->name,
+            'assignedToMe' => (int) $l->assigned_instructor_id === (int) $instructor->id,
+            'overallCompletion' => (int) round(((float) ($progress[$l->id] ?? 0)) / $skills),
+            'nextSessionDate' => isset($next[$l->id]) ? substr((string) $next[$l->id], 0, 10) : null,
+        ])->values());
+    }
+
+    /** Today's and the next seven days' sessions, current learners and attendance record. */
+    private function dashboardFor(Instructor $instructor): array
+    {
+        $today = now()->toDateString();
+        $open = fn () => Schedule::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereIn('status', ['scheduled', 'rescheduled']);
+
+        $marked = Attendance::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereIn('status', ['present', 'absent'])
+            ->selectRaw("count(*) as total, sum(case when status = 'present' then 1 else 0 end) as present")
+            ->first();
+
+        return [
+            'status' => $instructor->status,
+            'assignedLearners' => Learner::withoutGlobalScope('school')
+                ->where('assigned_instructor_id', $instructor->id)
+                ->where('status', 'active')
+                ->count(),
+            'learnersTrained' => (int) $instructor->total_learners_trained,
+            'ratingAverage' => (float) $instructor->rating_average,
+            'todaySessions' => $open()->where('session_date', $today)->count(),
+            'upcomingSessions' => $open()
+                ->where('session_date', '>', $today)
+                ->where('session_date', '<=', now()->addDays(7)->toDateString())
+                ->count(),
+            // Share of marked sessions the learner attended; null until any are marked.
+            'attendanceRate' => $marked->total > 0 ? round($marked->present / $marked->total, 4) : null,
+        ];
     }
 
     public function listDocuments(Request $request, int $id): JsonResponse
@@ -370,10 +515,13 @@ class InstructorController extends Controller
         $isStaff = ! $request->user()->isInstructor();
 
         $data = $request->validate([
-            'status' => [$isStaff ? 'required_without:file' : 'prohibited', 'string', 'in:pending,uploaded,verified,rejected'],
+            // pending/uploaded follow from the file; staff only verify or reject.
+            'status' => [$isStaff ? 'required_without:file' : 'prohibited', 'string', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:500'],
             'file' => [$isStaff ? 'nullable' : 'required', ...DocumentStorage::FILE_RULE],
         ]);
+
+        $previous = $doc->status;
 
         if ($file = $request->file('file')) {
             $old = $doc->file_path;
@@ -390,12 +538,33 @@ class InstructorController extends Controller
             'notes' => $data['notes'] ?? $doc->notes,
         ]);
 
-        if (in_array($data['status'] ?? null, ['verified', 'rejected'], true)) {
+        if (($data['status'] ?? null) === 'verified' && $doc->file_path === null) {
+            throw ValidationException::withMessages(['status' => 'Upload the file before verifying it.']);
+        }
+
+        if (isset($data['status'])) {
             $doc->verified_by = $request->user()->id;
             $doc->verified_at = now();
         }
 
         $doc->save();
+
+        if ($doc->status !== $previous) {
+            AuditLog::log('document_'.$doc->status, 'InstructorDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);
+
+            // DIQ-913: the trainer hears when the school verifies or rejects their document.
+            if (in_array($doc->status, ['verified', 'rejected'], true) && $instructor->user_id && ($user = User::find($instructor->user_id))) {
+                $label = str_replace('_', ' ', $doc->type);
+                app(NotificationService::class)->notify(
+                    $user,
+                    'document.'.$doc->status,
+                    $doc->status === 'verified' ? "Your {$label} was verified" : "Your {$label} needs another upload",
+                    $doc->status === 'verified' ? null : trim('Please upload a clearer or valid copy. '.($doc->notes ?? '')),
+                    ['documentType' => $doc->type],
+                    (int) $doc->school_id
+                );
+            }
+        }
 
         return response()->json($this->serializeDoc($doc));
     }
@@ -436,6 +605,7 @@ class InstructorController extends Controller
             'licenseCategory' => $i->license_category,
             'licenseExpiry' => $i->license_expiry?->toDateString(),
             'totalLearnersTrained' => (int) $i->total_learners_trained,
+            'hasLogin' => $i->user_id !== null,
         ]);
     }
 

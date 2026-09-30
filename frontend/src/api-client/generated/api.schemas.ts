@@ -44,6 +44,11 @@ export interface School {
   locationVerified?: boolean;
   premiumVerified?: boolean;
   planCode?: string;
+  /** added manually, include in next OpenAPI spec regen (DIQ-805) */
+  listingTier?: string;
+  isSponsored?: boolean;
+  isFeatured?: boolean;
+  isPinned?: boolean;
   hasPickup: boolean;
   womenInstructor: boolean;
   weekendClasses: boolean;

@@ -27,6 +27,9 @@ class Subscription extends Model
             'starts_at' => 'datetime',
             'expires_at' => 'datetime',
             'auto_renew' => 'boolean',
+            'reminded_7d_at' => 'datetime',
+            'reminded_1d_at' => 'datetime',
+            'ended_notified_at' => 'datetime',
         ];
     }
 

@@ -9,6 +9,7 @@ use App\Models\Instructor;
 use App\Models\Learner;
 use App\Models\Schedule;
 use App\Services\ProgressService;
+use App\Support\SchoolScopedIds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -57,7 +58,7 @@ class ProgressController extends Controller
         $data = $request->validate([
             'skillName' => ['required', 'string', 'in:vehicle_controls,parking,reverse,traffic_navigation,night_driving,highway_driving'],
             'percentage' => ['required', 'integer', 'min:0', 'max:100'],
-            'sessionId' => ['nullable', 'integer'],
+            'sessionId' => ['nullable', 'integer', SchoolScopedIds::learnerSession((int) $learner->school_id, $learner->id)],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 

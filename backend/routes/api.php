@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\AdminMonetizationController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ConsentController;
 use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
@@ -127,9 +129,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/messages/threads/{id}/read', [MessageController::class, 'markRead'])->whereNumber('id');
     });
 
-    Route::middleware('role:instructor,school,admin')->group(function (): void {
+    // plan.features runs after the role check (DIQ-802; routes in config/plans.php).
+    Route::middleware(['role:instructor,school,admin', 'plan.features'])->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
         Route::get('/instructor/sessions', [ScheduleController::class, 'instructorSessions']);
+        Route::get('/instructor/learners', [InstructorController::class, 'myLearners']);
+        Route::get('/instructor/leave-requests', [ScheduleController::class, 'myLeave']);
+        Route::post('/instructor/leave-requests', [ScheduleController::class, 'requestMyLeave']);
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
         Route::put('/learners/{id}/progress', [ProgressController::class, 'update'])->whereNumber('id');
 
@@ -140,7 +146,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
             ->whereNumber(['id', 'docId']);
     });
 
-    Route::middleware('role:learner,school,admin,instructor')->group(function (): void {
+    Route::middleware(['role:learner,school,admin,instructor', 'plan.features'])->group(function (): void {
         Route::get('/learner/me', [LearnerController::class, 'me']);
         Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
         Route::post('/learners/{id}/documents', [LearnerController::class, 'addDocument'])->whereNumber('id');
@@ -162,6 +168,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
 
         Route::get('/admin/subscriptions/overview', [SubscriptionController::class, 'overview']);
+        Route::get('/admin/subscriptions', [AdminMonetizationController::class, 'subscriptions']);
+        Route::get('/admin/placements', [AdminMonetizationController::class, 'placements']);
+        Route::post('/admin/placements', [AdminMonetizationController::class, 'storePlacement']);
+        Route::post('/admin/placements/{id}/end', [AdminMonetizationController::class, 'endPlacement'])->whereNumber('id');
+        Route::get('/admin/marketplace-settings', [AdminMonetizationController::class, 'settings']);
+        Route::put('/admin/marketplace-settings', [AdminMonetizationController::class, 'updateSettings']);
+        Route::get('/admin/billing/invoices', [BillingController::class, 'adminIndex']);
+        Route::post('/admin/billing/invoices/{id}/record-payment', [BillingController::class, 'recordPayment'])->whereNumber('id');
+        Route::post('/admin/billing/invoices/{id}/void', [BillingController::class, 'void'])->whereNumber('id');
         Route::post('/admin/subscriptions', [SubscriptionController::class, 'assign']);
         Route::post('/admin/subscriptions/{schoolId}/cancel', [SubscriptionController::class, 'cancel'])
             ->whereNumber('schoolId');
@@ -179,7 +194,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
     });
 
-    Route::middleware('role:school,admin')->group(function (): void {
+    Route::middleware(['role:school,admin', 'plan.features'])->group(function (): void {
         Route::patch('/schools/{id}', [SchoolController::class, 'update'])->whereNumber('id');
 
         Route::get('/inquiries', [InquiryController::class, 'index']);
@@ -203,6 +218,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/schools/{id}/team/{memberId}', [SchoolTeamController::class, 'remove'])
             ->whereNumber(['id', 'memberId']);
 
+        Route::get('/schools/{id}/entitlements', [SubscriptionController::class, 'entitlements'])->whereNumber('id');
+        Route::get('/schools/{id}/billing/invoices', [BillingController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/billing/invoices', [BillingController::class, 'store'])->whereNumber('id');
+        Route::get('/schools/{id}/billing/invoices/{invoiceId}', [BillingController::class, 'show'])
+            ->whereNumber(['id', 'invoiceId']);
+        Route::post('/schools/{id}/billing/invoices/{invoiceId}/cancel', [BillingController::class, 'cancel'])
+            ->whereNumber(['id', 'invoiceId']);
         Route::get('/schools/{id}/subscription', [SubscriptionController::class, 'showForSchool'])
             ->whereNumber('id');
 
@@ -211,6 +233,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/instructors/{id}', [InstructorController::class, 'show'])->whereNumber('id');
         Route::patch('/instructors/{id}', [InstructorController::class, 'update'])->whereNumber('id');
         Route::delete('/instructors/{id}', [InstructorController::class, 'destroy'])->whereNumber('id');
+        Route::post('/instructors/{id}/login', [InstructorController::class, 'sendLogin'])->whereNumber('id');
 
         Route::get('/schools/{id}/vehicles', [VehicleController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/vehicles', [VehicleController::class, 'store'])->whereNumber('id');
@@ -231,6 +254,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/learners/{id}', [LearnerController::class, 'show'])->whereNumber('id');
         Route::patch('/learners/{id}', [LearnerController::class, 'update'])->whereNumber('id');
         Route::post('/learners/{id}/assign', [LearnerController::class, 'assign'])->whereNumber('id');
+        Route::get('/learners/{id}/assignments', [LearnerController::class, 'assignments'])->whereNumber('id');
         Route::patch('/learners/{id}/documents/{docId}', [LearnerController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
 

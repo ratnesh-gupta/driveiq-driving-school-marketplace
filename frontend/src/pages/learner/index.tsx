@@ -4,7 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchLearnerMe } from "@/lib/ops-api";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Phone } from "lucide-react";
+import { DrivingTestsPanel } from "@/components/learners/driving-tests-panel";
 
 export default function LearnerHomePage() {
   const { data, isLoading } = useQuery({
@@ -38,7 +39,14 @@ export default function LearnerHomePage() {
           <div className="rounded-xl border bg-card p-6 grid sm:grid-cols-2 gap-3 text-sm">
             <div><span className="text-muted-foreground">Name:</span> {String(learner.name)}</div>
             <div><span className="text-muted-foreground">Status:</span> {String(learner.status)}</div>
-            <div><span className="text-muted-foreground">Trainer:</span> {String(learner.instructorName ?? "Not assigned")}</div>
+            <div>
+              <span className="text-muted-foreground">Trainer:</span> {String(learner.instructorName ?? "Not assigned")}
+              {typeof learner.instructorMobile === "string" && learner.instructorMobile && (
+                <a href={`tel:${learner.instructorMobile}`} className="ml-2 inline-flex items-center gap-1 text-primary underline" data-testid="link-call-trainer">
+                  <Phone className="h-3.5 w-3.5" /> {learner.instructorMobile}
+                </a>
+              )}
+            </div>
             <div><span className="text-muted-foreground">Vehicle:</span> {String(learner.vehicleRegistration ?? "—")}</div>
             <div><span className="text-muted-foreground">Package:</span> {String(learner.packageName ?? "—")}</div>
             <div><span className="text-muted-foreground">Start:</span> {String(learner.startDate ?? "—")}</div>
@@ -58,6 +66,11 @@ export default function LearnerHomePage() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="rounded-xl border bg-card">
+            <div className="px-5 py-3 border-b font-semibold text-sm">Driving tests</div>
+            <div className="p-5"><DrivingTestsPanel learnerId={Number(learner.id)} canEdit={false} /></div>
           </div>
         </div>
       )}
