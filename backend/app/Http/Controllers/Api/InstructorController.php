@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\InstructorDocument;
+use App\Models\Learner;
+use App\Models\Schedule;
 use App\Models\School;
 use App\Models\User;
 use App\Support\DocumentStorage;
@@ -276,14 +279,40 @@ class InstructorController extends Controller
 
         return response()->json([
             'instructor' => $this->serialize($instructor, full: true),
-            'dashboard' => [
-                'status' => $instructor->status,
-                'assignedLearners' => (int) $instructor->total_learners_trained,
-                'ratingAverage' => (float) $instructor->rating_average,
-                'todaySessions' => 0, // Phase 6 scheduling
-                'upcomingSessions' => 0,
-            ],
+            'dashboard' => $this->dashboardFor($instructor),
         ]);
+    }
+
+    /** Today's and the next seven days' sessions, current learners and attendance record. */
+    private function dashboardFor(Instructor $instructor): array
+    {
+        $today = now()->toDateString();
+        $open = fn () => Schedule::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereIn('status', ['scheduled', 'rescheduled']);
+
+        $marked = Attendance::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereIn('status', ['present', 'absent'])
+            ->selectRaw("count(*) as total, sum(case when status = 'present' then 1 else 0 end) as present")
+            ->first();
+
+        return [
+            'status' => $instructor->status,
+            'assignedLearners' => Learner::withoutGlobalScope('school')
+                ->where('assigned_instructor_id', $instructor->id)
+                ->where('status', 'active')
+                ->count(),
+            'learnersTrained' => (int) $instructor->total_learners_trained,
+            'ratingAverage' => (float) $instructor->rating_average,
+            'todaySessions' => $open()->where('session_date', $today)->count(),
+            'upcomingSessions' => $open()
+                ->where('session_date', '>', $today)
+                ->where('session_date', '<=', now()->addDays(7)->toDateString())
+                ->count(),
+            // Share of marked sessions the learner attended; null until any are marked.
+            'attendanceRate' => $marked->total > 0 ? round($marked->present / $marked->total, 4) : null,
+        ];
     }
 
     public function listDocuments(Request $request, int $id): JsonResponse

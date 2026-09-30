@@ -162,7 +162,22 @@ class LearnerController extends Controller
         $payload = $this->mapLearnerPayload($data);
 
         $old = $learner->only(array_keys($payload));
-        $learner->fill($payload)->save();
+        $learner->fill($payload);
+        $reassigned = $learner->isDirty(['assigned_instructor_id', 'assigned_vehicle_id']);
+        $learner->save();
+
+        // Editing the trainer or vehicle here is an assignment too; keep its history.
+        if ($reassigned) {
+            LearnerAssignmentHistory::withoutGlobalScope('school')->create([
+                'learner_id' => $learner->id,
+                'school_id' => $learner->school_id,
+                'instructor_id' => $learner->assigned_instructor_id,
+                'vehicle_id' => $learner->assigned_vehicle_id,
+                'assigned_by' => $request->user()->id,
+                'action' => 'reassign',
+            ]);
+            Instructor::refreshLearnerCount($learner->assigned_instructor_id);
+        }
 
         AuditLog::log('update', 'Learner', $learner->id, $old, $payload);
 
@@ -242,9 +257,7 @@ class LearnerController extends Controller
                 );
             }
 
-            Instructor::withoutGlobalScope('school')
-                ->where('id', $instructorId)
-                ->increment('total_learners_trained');
+            Instructor::refreshLearnerCount($instructorId);
         }
 
         AuditLog::log('assign', 'Learner', $learner->id, [], [
@@ -448,6 +461,7 @@ class LearnerController extends Controller
                 'assigned_by' => $actor->id,
                 'action' => 'assign',
             ]);
+            Instructor::refreshLearnerCount($learner->assigned_instructor_id);
         }
 
         AuditLog::log('create', 'Learner', $learner->id, [], ['name' => $learner->name]);

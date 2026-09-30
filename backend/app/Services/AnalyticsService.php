@@ -63,9 +63,14 @@ class AnalyticsService
             ? round($completedLearners / $totalLearners, 4)
             : 0.0;
 
-        $avgProgress = (float) (TrainingProgress::withoutGlobalScope('school')
+        // Skills never touched count as 0%, matching the learner progress view.
+        $progress = TrainingProgress::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
-            ->avg('percentage') ?? 0);
+            ->selectRaw('coalesce(sum(percentage), 0) as total, count(distinct learner_id) as learners')
+            ->first();
+        $avgProgress = $progress->learners > 0
+            ? (float) $progress->total / ($progress->learners * count(TrainingProgress::SKILLS))
+            : 0.0;
 
         $sessionsThisWeek = Schedule::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
@@ -296,32 +301,31 @@ class AnalyticsService
         ];
     }
 
-    private function inquiryTrend(int $schoolId, $now): array
+    /**
+     * Enquiries per month for the last six months (oldest first), including
+     * months with none, so charts never skip a month.
+     *
+     * @return list<array{month: string, count: int}>
+     */
+    public function inquiryTrend(int $schoolId, $now = null): array
     {
+        $now = $now ? $now->copy() : now();
         $since = $now->copy()->subMonths(5)->startOfMonth();
 
-        if (DB::getDriverName() === 'pgsql') {
-            return Inquiry::withoutGlobalScope('school')
-                ->where('school_id', $schoolId)
-                ->where('created_at', '>=', $since)
-                ->selectRaw("to_char(created_at, 'YYYY-MM') as month, count(*) as count")
-                ->groupBy('month')
-                ->orderBy('month')
-                ->get()
-                ->map(fn ($r) => ['month' => $r->month, 'count' => (int) $r->count])
-                ->values()
-                ->all();
-        }
-
-        return Inquiry::withoutGlobalScope('school')
+        $counts = Inquiry::withoutGlobalScope('school')
             ->where('school_id', $schoolId)
             ->where('created_at', '>=', $since)
-            ->get()
-            ->groupBy(fn ($i) => $i->created_at?->format('Y-m') ?? 'unknown')
-            ->map(fn ($g, $m) => ['month' => $m, 'count' => $g->count()])
-            ->sortKeys()
-            ->values()
-            ->all();
+            ->selectRaw("to_char(created_at, 'YYYY-MM') as month, count(*) as count")
+            ->groupBy('month')
+            ->pluck('count', 'month');
+
+        $out = [];
+        for ($m = $since->copy(); $m->lte($now); $m->addMonth()) {
+            $key = $m->format('Y-m');
+            $out[] = ['month' => $key, 'count' => (int) ($counts[$key] ?? 0)];
+        }
+
+        return $out;
     }
 
     private function instructorBreakdown(int $schoolId): array

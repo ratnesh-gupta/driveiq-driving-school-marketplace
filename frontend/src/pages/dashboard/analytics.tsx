@@ -13,12 +13,13 @@ export default function AnalyticsPage() {
   const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) } });
   const { data: reviews } = useListReviews({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey({ schoolId: schoolId! }) } });
 
-  // Build monthly inquiries chart data (mock from real data counts)
-  const monthlyData = [
-    { month: "Jan", inquiries: 2 }, { month: "Feb", inquiries: 3 },
-    { month: "Mar", inquiries: 4 }, { month: "Apr", inquiries: 2 },
-    { month: "May", inquiries: stats?.thisMonthInquiries ?? 3 }, { month: "Jun", inquiries: 0 },
-  ];
+  // Last six months from the API, oldest first; months with no enquiries are included as 0.
+  // `monthlyInquiries` is not in the generated SchoolStats type yet.
+  const trend = (stats as { monthlyInquiries?: { month: string; count: number }[] } | undefined)?.monthlyInquiries ?? [];
+  const monthlyData = trend.map((m) => {
+    const [y, mo] = m.month.split("-").map(Number);
+    return { month: new Date(y, mo - 1, 1).toLocaleString("en-IN", { month: "short" }), inquiries: m.count };
+  });
 
   const ratingData = [
     { rating: "5 stars", count: (reviews || []).filter(r => r.rating === 5).length },

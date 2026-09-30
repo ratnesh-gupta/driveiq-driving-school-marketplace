@@ -12,6 +12,19 @@ class School extends Model
 {
     use HasFactory;
 
+    /**
+     * Column defaults, mirrored so a new model computes the same profile
+     * completeness before and after it is reloaded from the database.
+     */
+    protected $attributes = [
+        'has_pickup' => false,
+        'women_instructor' => false,
+        'weekend_classes' => false,
+        'simulator_training' => false,
+        'ac_vehicle' => false,
+        'rto_assistance' => true,
+    ];
+
     protected $fillable = [
         'user_id', 'name', 'slug', 'locality_id', 'address', 'latitude', 'longitude', 'service_radius_km',
         'phone', 'whatsapp', 'email', 'description', 'image_url', 'rating', 'review_count',
@@ -109,7 +122,9 @@ class School extends Model
         ];
 
         $filled = 0;
-        $total = count($fields) + count($booleanFields);
+        // The feature flags default to false, so "unanswered" and "no" look the
+        // same. They count as one item, filled once any feature is ticked.
+        $total = count($fields) + 1;
 
         foreach ($fields as $field) {
             $value = $this->getAttribute($field);
@@ -119,7 +134,9 @@ class School extends Model
                 $filled++;
             }
         }
-        $filled += count($booleanFields);
+        if (collect($booleanFields)->contains(fn ($f) => (bool) $this->getAttribute($f))) {
+            $filled++;
+        }
 
         return (int) round(($filled / $total) * 100);
     }
