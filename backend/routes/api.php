@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\LearnerController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OutboundMessageController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProgressController;
@@ -191,6 +192,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/admin/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
+        Route::get('/admin/outbound-messages', [OutboundMessageController::class, 'index']);
         Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);

@@ -2,7 +2,7 @@
 
 **Status:** MVP Development in Progress  
 **Target Market:** Pune, India (Initial Phase)  
-**Current Phase:** M1–M7 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization, operations reconciliation of phases 3–8); next: pilot launch readiness  
+**Current Phase:** M1–M8 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization, operations reconciliation of phases 3–8, WhatsApp driver layer); next: pilot launch readiness  
 **Last Updated:** 2026-09-30  
 **Master Plan:** `docs/PROJECT-PLAN.md` — single source of truth for scope, phasing, and requirements
 
@@ -727,11 +727,12 @@ Current single-branch design naturally extends to this model.
 ✅ Lead engine: queued new-lead emails to owner + managers, unanswered-lead reminders, response-time metrics and badges, lead notes/follow-ups/timeline  
 ✅ Monetization: plan tiers gate modules (read-only when locked), 30-day trial, manual GST invoices, sponsored slots + campaigns, admin revenue console  
 ✅ Operations (M7): school-scoped foreign IDs, payment status rules, locked bookings, real dashboard numbers; learner/trainer/fleet screens; trainer portal (roster, attendance, leave); `driveiq:ops-reminders` hourly (sessions, licence/vehicle paper expiry, missing documents)  
+✅ WhatsApp (M8): provider-neutral driver layer (`log`/`null`), opt-in recorded as consent, lead alerts/reminders to staff, enquiry confirmations, session reminders; masked outbound log for admins  
 ✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build in CI  
 
 ### Demo/Non-Production Behaviors
 ⚠️ Mail defaults to the `log` driver; configure `MAIL_*` before launch (password reset, invites, review links)  
-⚠️ Lead alerts are email + in-app only (no SMS/WhatsApp API); emails need a queue worker and a real mailer  
+⚠️ WhatsApp/SMS go through `MESSAGING_DRIVER` (default `log`: nothing is actually sent). Plug in a provider driver and register the DLT/WhatsApp templates before launch. Emails need a queue worker and a real mailer.  
 ⚠️ Some API client types were added by hand; regenerate from an OpenAPI spec  
 ⚠️ Demo accounts from `make seed` use `password123`; never seed production  
 ⚠️ Plan payments are manual (UPI/bank, recorded by an admin); set `BILLING_*` before charging; Razorpay not integrated yet  
@@ -980,7 +981,7 @@ public function test_user_can_only_see_own_schools_learners()
 ### Current Limitations
 - No OTP / mobile login (needs an SMS provider); logins are email + password
 - Geo-search ranking not tuned to Pune data
-- Notifications are in-app and email only (no SMS / WhatsApp API yet)
+- WhatsApp/SMS use a provider-neutral driver layer with no real provider yet; no inbound replies or delivery receipts
 - No advanced analytics (CTR, conversion funnel tracking)
 - No trainer working hours / capacity limits, learner ratings of trainers, attendance certificate or RTO directory yet
 - Mobile app not built (responsive web app is current MVP approach)
@@ -999,7 +1000,7 @@ public function test_user_can_only_see_own_schools_learners()
 
 **Project Owner:** Ratnesh (ratnesh.k.gupta@icloud.com)  
 **Repository:** `/Volumes/RatneshED/Projects/Agies/driveiq-driving-school-marketplace/`  
-**Current Phase:** M1–M7 done; next: pilot launch readiness  
+**Current Phase:** M1–M8 done; next: pilot launch readiness  
 **Target Launch:** Marketplace MVP Week 12, Operations MVP Week 18 (see PROJECT-PLAN.md)
 
 ---

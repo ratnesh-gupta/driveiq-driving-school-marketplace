@@ -119,7 +119,8 @@ _Updated 2026-09-30 after remediation milestones M1–M7 (PRs #23–#28). Phases
 |-----|-------|
 | Admin review moderation has no bulk actions | 2 |
 | "Near me" entry point on the homepage (search page has it) | 1 |
-| SMS / WhatsApp API delivery (email + in-app done; `NewLeadNotification::via()` is the hook) | Lead engine |
+| A real WhatsApp/SMS provider driver, plus inbound replies (STOP) and delivery receipts. The driver layer, opt-ins and four message types are built (M8). | Messaging |
+| OTP / mobile login | Auth |
 | Lead auto-assignment to a specific manager | Lead engine |
 | Online plan payments (Razorpay checkout + webhook); GST e-invoicing (IRN) | Monetization |
 | Training-record and account erasure automation (retention job covers leads, messages, contact, closed requests) | DPDP |
@@ -749,7 +750,7 @@ Schedules prevent conflicts; leave management operational; session history track
 - [x] View training progress
 
 #### 7.7 Notifications
-- [x] Session reminders (24h, 2h before; in-app)
+- [x] Session reminders (24h, 2h before; in-app, and WhatsApp for people who opted in)
 - [x] Missing document alerts
 - [x] Document verification status updates
 - [ ] Package expiry warnings (packages have no validity period yet)
