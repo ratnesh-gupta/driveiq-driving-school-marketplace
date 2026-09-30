@@ -444,7 +444,10 @@ class LearnerController extends Controller
             ->get(['id', 'session_date', 'start_time', 'end_time', 'status', 'pickup_location', 'instructor_id']);
 
         return response()->json([
-            'learner' => $this->serialize($learner, full: true, withDocs: true),
+            // The learner may call their own trainer; staff contacts are not exposed.
+            'learner' => $this->serialize($learner, full: true, withDocs: true) + [
+                'instructorMobile' => $learner->instructor?->mobile,
+            ],
             'upcomingSessions' => $sessions->map(fn (Schedule $s) => [
                 'id' => $s->id,
                 'sessionDate' => $s->session_date?->toDateString(),
