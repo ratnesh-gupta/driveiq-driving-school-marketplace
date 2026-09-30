@@ -191,7 +191,7 @@ export function purchasePackage(
   schoolId: number,
   body: { learnerId: number; packageId: number; method?: string; markPaid?: boolean }
 ) {
-  return request<{ payment: PaymentRow; invoice: Record<string, unknown>; gateway: Record<string, unknown> | null }>(
+  return request<{ payment: PaymentRow; invoice: Record<string, unknown> }>(
     `/api/schools/${schoolId}/payments/package`,
     { method: "POST", body: JSON.stringify(body) }
   );
