@@ -9,6 +9,7 @@ use App\Models\Instructor;
 use App\Models\LeaveRequest;
 use App\Models\Schedule;
 use App\Services\ScheduleService;
+use App\Support\SchoolScopedIds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -74,7 +75,7 @@ class ScheduleController extends Controller
         $data = $request->validate([
             'instructorId' => ['required', 'integer'],
             'vehicleId' => ['nullable', 'integer'],
-            'learnerId' => ['nullable', 'integer'],
+            'learnerId' => ['nullable', 'integer', SchoolScopedIds::learner($schoolId)],
             'learnerName' => ['nullable', 'string', 'max:255'],
             'sessionDate' => ['required', 'date'],
             'startTime' => ['required', 'date_format:H:i'],
@@ -121,7 +122,7 @@ class ScheduleController extends Controller
         $data = $request->validate([
             'instructorId' => ['sometimes', 'integer'],
             'vehicleId' => ['nullable', 'integer'],
-            'learnerId' => ['nullable', 'integer'],
+            'learnerId' => ['nullable', 'integer', SchoolScopedIds::learner((int) $schedule->school_id)],
             'learnerName' => ['nullable', 'string', 'max:255'],
             'sessionDate' => ['sometimes', 'date'],
             'startTime' => ['sometimes', 'date_format:H:i'],

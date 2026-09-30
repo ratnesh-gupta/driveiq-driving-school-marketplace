@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\NotificationService;
 use App\Support\DocumentStorage;
+use App\Support\SchoolScopedIds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -55,7 +56,7 @@ class LearnerController extends Controller
         }
 
         // createLearner() expects snake_case (same mapping as update()).
-        $data = $this->mapLearnerPayload($this->validateLearner($request));
+        $data = $this->mapLearnerPayload($this->validateLearner($request, $schoolId));
         $learner = $this->createLearner($schoolId, $data, $request->user());
 
         return response()->json($this->serialize($learner->load(['instructor', 'vehicle', 'package']), full: true), 201);
@@ -84,10 +85,11 @@ class LearnerController extends Controller
             ], 422);
         }
 
+        $schoolId = (int) $inquiry->school_id;
         $extra = $request->validate([
-            'packageId' => ['nullable', 'integer'],
-            'assignedInstructorId' => ['nullable', 'integer'],
-            'assignedVehicleId' => ['nullable', 'integer'],
+            'packageId' => ['nullable', 'integer', SchoolScopedIds::package($schoolId)],
+            'assignedInstructorId' => ['nullable', 'integer', SchoolScopedIds::instructor($schoolId)],
+            'assignedVehicleId' => ['nullable', 'integer', SchoolScopedIds::vehicle($schoolId)],
             'startDate' => ['nullable', 'date'],
             'createLogin' => ['nullable', 'boolean'],
         ]);
@@ -156,7 +158,7 @@ class LearnerController extends Controller
             return $deny;
         }
 
-        $data = $this->validateLearner($request, partial: true);
+        $data = $this->validateLearner($request, (int) $learner->school_id, partial: true);
         $payload = $this->mapLearnerPayload($data);
 
         $old = $learner->only(array_keys($payload));
@@ -496,7 +498,7 @@ class LearnerController extends Controller
         ]);
     }
 
-    private function validateLearner(Request $request, bool $partial = false): array
+    private function validateLearner(Request $request, int $schoolId, bool $partial = false): array
     {
         $req = $partial ? 'sometimes' : 'required';
 
@@ -509,11 +511,11 @@ class LearnerController extends Controller
             'address' => ['nullable', 'string', 'max:500'],
             'emergencyContact' => ['nullable', 'string', 'max:100'],
             'vehicleType' => ['nullable', 'string', 'max:50'],
-            'packageId' => ['nullable', 'integer'],
+            'packageId' => ['nullable', 'integer', SchoolScopedIds::package($schoolId)],
             'startDate' => ['nullable', 'date'],
             'expectedCompletionDate' => ['nullable', 'date'],
-            'assignedInstructorId' => ['nullable', 'integer'],
-            'assignedVehicleId' => ['nullable', 'integer'],
+            'assignedInstructorId' => ['nullable', 'integer', SchoolScopedIds::instructor($schoolId)],
+            'assignedVehicleId' => ['nullable', 'integer', SchoolScopedIds::vehicle($schoolId)],
             'learnerLicenseNumber' => ['nullable', 'string', 'max:50'],
             'licenseIssueDate' => ['nullable', 'date'],
             'licenseExpiryDate' => ['nullable', 'date'],
