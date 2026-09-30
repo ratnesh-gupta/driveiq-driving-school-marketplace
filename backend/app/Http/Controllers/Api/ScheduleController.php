@@ -12,10 +12,40 @@ use App\Services\ScheduleService;
 use App\Support\SchoolScopedIds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class ScheduleController extends Controller
 {
+    /** A month view holds at most ~6 weeks; this cap only guards against abuse. */
+    private const RANGE_LIMIT = 1000;
+
+    private const MAX_RANGE_DAYS = 70;
+
     public function __construct(private readonly ScheduleService $schedules) {}
+
+    /**
+     * The calendar asks for the dates it shows (from/to, inclusive). Without
+     * them, the last week and the next eight weeks are returned.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function range(Request $request): array
+    {
+        $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
+
+        $from = $request->filled('from') ? Carbon::parse($request->query('from')) : now()->subWeek();
+        $to = $request->filled('to') ? Carbon::parse($request->query('to')) : $from->copy()->addWeeks(9);
+
+        if ($from->diffInDays($to) > self::MAX_RANGE_DAYS) {
+            throw ValidationException::withMessages(['to' => 'Ask for at most '.self::MAX_RANGE_DAYS.' days at a time.']);
+        }
+
+        return [$from->toDateString(), $to->toDateString()];
+    }
 
     public function index(Request $request, int $schoolId): JsonResponse
     {
@@ -23,21 +53,18 @@ class ScheduleController extends Controller
             return $deny;
         }
 
+        [$from, $to] = $this->range($request);
+
         $query = Schedule::withoutGlobalScope('school')
             ->with(['instructor:id,name', 'vehicle:id,registration_number,type', 'attendance'])
-            ->where('school_id', $schoolId);
+            ->where('school_id', $schoolId)
+            ->whereBetween('session_date', [$from, $to]);
 
-        if ($request->filled('from')) {
-            $query->where('session_date', '>=', $request->query('from'));
-        }
-        if ($request->filled('to')) {
-            $query->where('session_date', '<=', $request->query('to'));
-        }
         if ($request->filled('instructorId')) {
             $query->where('instructor_id', $request->query('instructorId'));
         }
 
-        $items = $query->orderBy('session_date')->orderBy('start_time')->limit(200)->get()
+        $items = $query->orderBy('session_date')->orderBy('start_time')->limit(self::RANGE_LIMIT)->get()
             ->map(fn (Schedule $s) => $this->serialize($s));
 
         return response()->json($items);
@@ -54,12 +81,15 @@ class ScheduleController extends Controller
             return response()->json(['message' => 'Instructor profile not found'], 404);
         }
 
+        [$from, $to] = $this->range($request);
+
         $items = Schedule::withoutGlobalScope('school')
             ->with(['vehicle:id,registration_number,type', 'attendance'])
             ->where('instructor_id', $instructor->id)
+            ->whereBetween('session_date', [$from, $to])
             ->orderBy('session_date')
             ->orderBy('start_time')
-            ->limit(100)
+            ->limit(self::RANGE_LIMIT)
             ->get()
             ->map(fn (Schedule $s) => $this->serialize($s));
 
@@ -153,7 +183,10 @@ class ScheduleController extends Controller
             }
         }
 
+        $old = $schedule->only(array_keys($payload));
         $schedule = $this->schedules->update($schedule, $payload);
+
+        AuditLog::log('update', 'Schedule', $schedule->id, $this->plain($old), $this->plain($schedule->only(array_keys($payload))), (int) $schedule->school_id);
 
         return response()->json($this->serialize($schedule));
     }
@@ -194,10 +227,16 @@ class ScheduleController extends Controller
             'cancelled' => 'cancelled',
         };
 
+        $previous = $schedule->status;
         $schedule->update([
             'status' => $sessionStatus,
             'session_summary' => $data['sessionSummary'] ?? $schedule->session_summary,
         ]);
+
+        AuditLog::log('attendance', 'Schedule', $schedule->id, ['status' => $previous], [
+            'attendance' => $attendance->status,
+            'status' => $sessionStatus,
+        ], (int) $schedule->school_id);
 
         return response()->json([
             'id' => $attendance->id,
@@ -286,17 +325,26 @@ class ScheduleController extends Controller
             'status' => ['required', 'string', 'in:approved,rejected'],
         ]);
 
+        $previous = $leave->status;
         $leave->update([
             'status' => $data['status'],
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
 
+        AuditLog::log('review', 'LeaveRequest', $leave->id, ['status' => $previous], ['status' => $leave->status], (int) $leave->school_id);
+
         return response()->json([
             'id' => $leave->id,
             'status' => $leave->status,
             'reviewedAt' => $leave->reviewed_at?->toISOString(),
         ]);
+    }
+
+    /** Dates and times as plain strings for the audit trail. */
+    private function plain(array $values): array
+    {
+        return array_map(fn ($v) => $v instanceof \DateTimeInterface ? $v->format('Y-m-d') : $v, $values);
     }
 
     private function serialize(Schedule $s): array

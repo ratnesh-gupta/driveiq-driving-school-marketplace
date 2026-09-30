@@ -332,18 +332,28 @@ class LearnerController extends Controller
         }
 
         $data = $request->validate([
-            'status' => ['required_without:file', 'string', 'in:pending,uploaded,verified,rejected'],
+            // pending/uploaded follow from the file; staff only verify or reject.
+            'status' => ['required_without:file', 'string', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:500'],
             'file' => ['nullable', ...DocumentStorage::FILE_RULE],
             'expiryDate' => ['nullable', 'date'],
         ]);
+
+        $previous = $doc->status;
 
         if ($file = $request->file('file')) {
             $old = $doc->file_path;
             $doc->file_path = $storage->store($file, (int) $doc->school_id, 'learners', $learner->id);
             $doc->file_name = DocumentStorage::displayName($file);
             $doc->status = 'uploaded';
+            // A new file has not been checked by anyone yet.
+            $doc->verified_by = null;
+            $doc->verified_at = null;
             $storage->delete($old, (int) $doc->school_id);
+        }
+
+        if (($data['status'] ?? null) === 'verified' && $doc->file_path === null) {
+            throw ValidationException::withMessages(['status' => 'Upload the file before verifying it.']);
         }
 
         $doc->fill([
@@ -352,12 +362,16 @@ class LearnerController extends Controller
             'expiry_date' => $data['expiryDate'] ?? $doc->expiry_date,
         ]);
 
-        if (in_array($data['status'] ?? null, ['verified', 'rejected'], true)) {
+        if (isset($data['status'])) {
             $doc->verified_by = $request->user()->id;
             $doc->verified_at = now();
         }
 
         $doc->save();
+
+        if ($doc->status !== $previous) {
+            AuditLog::log('document_'.$doc->status, 'LearnerDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);
+        }
 
         return response()->json($this->serializeDoc($doc));
     }

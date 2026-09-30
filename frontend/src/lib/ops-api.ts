@@ -106,8 +106,12 @@ export function fetchInstructorMe() {
   return request<{ instructor?: Record<string, unknown>; dashboard?: Record<string, unknown> } & Record<string, unknown>>(`/api/instructor/me`);
 }
 
-export function listInstructorSessions() {
-  return request<unknown[]>(`/api/instructor/sessions`);
+export function listInstructorSessions(params?: { from?: string; to?: string }) {
+  const sp = new URLSearchParams();
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  const q = sp.toString() ? `?${sp}` : "";
+  return request<unknown[]>(`/api/instructor/sessions${q}`);
 }
 
 export function listSchedules(schoolId: number, params?: { from?: string; to?: string }) {

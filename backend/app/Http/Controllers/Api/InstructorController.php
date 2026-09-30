@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class InstructorController extends Controller
 {
@@ -370,10 +371,13 @@ class InstructorController extends Controller
         $isStaff = ! $request->user()->isInstructor();
 
         $data = $request->validate([
-            'status' => [$isStaff ? 'required_without:file' : 'prohibited', 'string', 'in:pending,uploaded,verified,rejected'],
+            // pending/uploaded follow from the file; staff only verify or reject.
+            'status' => [$isStaff ? 'required_without:file' : 'prohibited', 'string', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:500'],
             'file' => [$isStaff ? 'nullable' : 'required', ...DocumentStorage::FILE_RULE],
         ]);
+
+        $previous = $doc->status;
 
         if ($file = $request->file('file')) {
             $old = $doc->file_path;
@@ -390,12 +394,20 @@ class InstructorController extends Controller
             'notes' => $data['notes'] ?? $doc->notes,
         ]);
 
-        if (in_array($data['status'] ?? null, ['verified', 'rejected'], true)) {
+        if (($data['status'] ?? null) === 'verified' && $doc->file_path === null) {
+            throw ValidationException::withMessages(['status' => 'Upload the file before verifying it.']);
+        }
+
+        if (isset($data['status'])) {
             $doc->verified_by = $request->user()->id;
             $doc->verified_at = now();
         }
 
         $doc->save();
+
+        if ($doc->status !== $previous) {
+            AuditLog::log('document_'.$doc->status, 'InstructorDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);
+        }
 
         return response()->json($this->serializeDoc($doc));
     }

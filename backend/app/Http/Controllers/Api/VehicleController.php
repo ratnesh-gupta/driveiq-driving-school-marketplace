@@ -9,6 +9,8 @@ use App\Models\VehicleDocument;
 use App\Support\DocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 
 class VehicleController extends Controller
 {
@@ -33,8 +35,9 @@ class VehicleController extends Controller
             return $deny;
         }
 
+        $this->normalizeRegistration($request);
         $data = $request->validate([
-            'registrationNumber' => ['required', 'string', 'max:32'],
+            'registrationNumber' => ['required', 'string', 'max:32', $this->uniqueRegistration($schoolId)],
             'type' => ['nullable', 'string', 'in:car,bike,scooter,heavy'],
             'transmission' => ['nullable', 'string', 'in:manual,automatic'],
             'fuelType' => ['nullable', 'string', 'in:petrol,diesel,electric,cng'],
@@ -71,8 +74,9 @@ class VehicleController extends Controller
             return $deny;
         }
 
+        $this->normalizeRegistration($request);
         $data = $request->validate([
-            'registrationNumber' => ['sometimes', 'string', 'max:32'],
+            'registrationNumber' => ['sometimes', 'string', 'max:32', $this->uniqueRegistration((int) $vehicle->school_id, $vehicle->id)],
             'type' => ['nullable', 'string', 'in:car,bike,scooter,heavy'],
             'transmission' => ['nullable', 'string', 'in:manual,automatic'],
             'fuelType' => ['nullable', 'string', 'in:petrol,diesel,electric,cng'],
@@ -100,7 +104,10 @@ class VehicleController extends Controller
             }
         }
 
+        $old = $vehicle->only(array_keys($payload));
         $vehicle->fill($payload)->save();
+
+        AuditLog::log('update', 'Vehicle', $vehicle->id, $old, $payload, (int) $vehicle->school_id);
 
         return response()->json($this->serialize($vehicle));
     }
@@ -155,6 +162,19 @@ class VehicleController extends Controller
         ]);
 
         return response()->json($this->serializeDoc($doc), 201);
+    }
+
+    /** Registrations are stored upper-case, so compare them that way too. */
+    private function normalizeRegistration(Request $request): void
+    {
+        if (is_string($request->input('registrationNumber'))) {
+            $request->merge(['registrationNumber' => strtoupper(trim($request->input('registrationNumber')))]);
+        }
+    }
+
+    private function uniqueRegistration(int $schoolId, ?int $ignoreId = null): Unique
+    {
+        return Rule::unique('vehicles', 'registration_number')->where('school_id', $schoolId)->ignore($ignoreId);
     }
 
     private function serializeDoc(VehicleDocument $d): array

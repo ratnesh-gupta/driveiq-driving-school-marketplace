@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { PlanGateBanner } from "@/components/plan/plan-gate-banner";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SessionCalendar, type CalendarSession } from "@/components/schedule/session-calendar";
+import { SessionCalendar, initialCalendarRange, type CalendarRange, type CalendarSession } from "@/components/schedule/session-calendar";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { createSchedule, listInstructors, listLearners, listSchedules } from "@/lib/ops-api";
 import { Plus } from "lucide-react";
@@ -27,10 +27,13 @@ export default function SchedulesPage() {
   const [endTime, setEndTime] = useState("08:00");
   const [pickup, setPickup] = useState("");
 
+  const [range, setRange] = useState<CalendarRange>(initialCalendarRange);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["schedules", schoolId],
-    queryFn: () => listSchedules(schoolId!) as Promise<CalendarSession[]>,
+    queryKey: ["schedules", schoolId, range.from, range.to],
+    queryFn: () => listSchedules(schoolId!, range) as Promise<CalendarSession[]>,
     enabled: !!schoolId,
+    placeholderData: keepPreviousData,
   });
 
   const learners = useQuery({
@@ -120,7 +123,7 @@ export default function SchedulesPage() {
       {isLoading ? (
         <Skeleton className="h-[420px] rounded-xl" />
       ) : (
-        <SessionCalendar sessions={data ?? []} />
+        <SessionCalendar sessions={data ?? []} onRangeChange={setRange} />
       )}
     </DashboardLayout>
   );

@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { InstructorLayout } from "@/components/layout/instructor-layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SessionCalendar, type CalendarSession } from "@/components/schedule/session-calendar";
+import { SessionCalendar, initialCalendarRange, type CalendarRange, type CalendarSession } from "@/components/schedule/session-calendar";
 import { listInstructorSessions, markAttendance } from "@/lib/ops-api";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -11,9 +11,12 @@ export default function InstructorSessionsPage() {
   const qc = useQueryClient();
   const [picked, setPicked] = useState<CalendarSession | null>(null);
 
+  const [range, setRange] = useState<CalendarRange>(initialCalendarRange);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["instructor", "sessions"],
-    queryFn: () => listInstructorSessions() as Promise<CalendarSession[]>,
+    queryKey: ["instructor", "sessions", range.from, range.to],
+    queryFn: () => listInstructorSessions(range) as Promise<CalendarSession[]>,
+    placeholderData: keepPreviousData,
   });
 
   const attend = useMutation({
@@ -36,7 +39,7 @@ export default function InstructorSessionsPage() {
       {isLoading ? (
         <Skeleton className="h-[420px] rounded-xl" />
       ) : (
-        <SessionCalendar sessions={data ?? []} onSelectSession={setPicked} />
+        <SessionCalendar sessions={data ?? []} onSelectSession={setPicked} onRangeChange={setRange} />
       )}
 
       {picked && picked.status === "scheduled" && (
