@@ -901,3 +901,40 @@ export function sendInstructorLogin(id: number, email?: string) {
 export function removeInstructor(id: number) {
   return request<void>(`/api/instructors/${id}`, { method: "DELETE" });
 }
+
+/* ---------- Instructor portal (DIQ-908) ---------- */
+
+export type MyLearnerRow = {
+  id: number;
+  name: string;
+  mobile: string | null;
+  status: string;
+  vehicleType: string | null;
+  packageName: string | null;
+  assignedToMe: boolean;
+  overallCompletion: number;
+  nextSessionDate: string | null;
+};
+
+export type LeaveRow = {
+  id: number;
+  instructorId: number;
+  instructorName: string | null;
+  startDate: string;
+  endDate: string;
+  reason: string | null;
+  status: "pending" | "approved" | "rejected";
+  reviewedAt: string | null;
+};
+
+export function listMyLearners() {
+  return request<MyLearnerRow[]>(`/api/instructor/learners`);
+}
+
+export function listMyLeave() {
+  return request<LeaveRow[]>(`/api/instructor/leave-requests`);
+}
+
+export function requestMyLeave(body: { startDate: string; endDate: string; reason?: string }) {
+  return request<LeaveRow>(`/api/instructor/leave-requests`, { method: "POST", body: JSON.stringify(body) });
+}

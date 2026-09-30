@@ -224,6 +224,8 @@ const en = {
     sessions: "Sessions",
     messages: "Messages",
     attendance: "Attendance",
+    learners: "My learners",
+    leave: "Leave",
     title: "Instructor Portal",
     brand: "DriveIQ Trainer",
   },

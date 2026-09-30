@@ -10,6 +10,7 @@ use App\Models\InstructorDocument;
 use App\Models\Learner;
 use App\Models\Schedule;
 use App\Models\School;
+use App\Models\TrainingProgress;
 use App\Models\User;
 use App\Notifications\StaffLoginInvite;
 use App\Support\DocumentStorage;
@@ -339,6 +340,61 @@ class InstructorController extends Controller
             'instructor' => $this->serialize($instructor, full: true),
             'dashboard' => $this->dashboardFor($instructor),
         ]);
+    }
+
+    /**
+     * The trainer's own roster (DIQ-908): learners assigned to them or with
+     * a session with them, the same rule that grants progress access.
+     */
+    public function myLearners(Request $request): JsonResponse
+    {
+        $instructor = Instructor::withoutGlobalScope('school')->where('user_id', $request->user()->id)->first();
+        if (! $instructor) {
+            return response()->json(['message' => 'Instructor profile not found'], 404);
+        }
+
+        $sessionLearnerIds = Schedule::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereNotNull('learner_id')
+            ->distinct()
+            ->pluck('learner_id');
+
+        $learners = Learner::withoutGlobalScope('school')
+            ->with('package:id,name')
+            ->where('school_id', $instructor->school_id)
+            ->where(fn ($q) => $q->where('assigned_instructor_id', $instructor->id)->orWhereIn('id', $sessionLearnerIds))
+            ->orderByRaw("case when status = 'active' then 0 else 1 end")
+            ->orderBy('name')
+            ->limit(200)
+            ->get();
+
+        $ids = $learners->pluck('id');
+        $progress = TrainingProgress::withoutGlobalScope('school')
+            ->whereIn('learner_id', $ids)
+            ->selectRaw('learner_id, sum(percentage) as total')
+            ->groupBy('learner_id')
+            ->pluck('total', 'learner_id');
+        $next = Schedule::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->whereIn('learner_id', $ids)
+            ->whereIn('status', ['scheduled', 'rescheduled'])
+            ->where('session_date', '>=', now()->toDateString())
+            ->selectRaw('learner_id, min(session_date) as next_date')
+            ->groupBy('learner_id')
+            ->pluck('next_date', 'learner_id');
+        $skills = count(TrainingProgress::SKILLS);
+
+        return response()->json($learners->map(fn (Learner $l) => [
+            'id' => $l->id,
+            'name' => $l->name,
+            'mobile' => $l->mobile,
+            'status' => $l->status,
+            'vehicleType' => $l->vehicle_type,
+            'packageName' => $l->package?->name,
+            'assignedToMe' => (int) $l->assigned_instructor_id === (int) $instructor->id,
+            'overallCompletion' => (int) round(((float) ($progress[$l->id] ?? 0)) / $skills),
+            'nextSessionDate' => isset($next[$l->id]) ? substr((string) $next[$l->id], 0, 10) : null,
+        ])->values());
     }
 
     /** Today's and the next seven days' sessions, current learners and attendance record. */

@@ -133,6 +133,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::middleware(['role:instructor,school,admin', 'plan.features'])->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
         Route::get('/instructor/sessions', [ScheduleController::class, 'instructorSessions']);
+        Route::get('/instructor/learners', [InstructorController::class, 'myLearners']);
+        Route::get('/instructor/leave-requests', [ScheduleController::class, 'myLeave']);
+        Route::post('/instructor/leave-requests', [ScheduleController::class, 'requestMyLeave']);
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
         Route::put('/learners/{id}/progress', [ProgressController::class, 'update'])->whereNumber('id');
 

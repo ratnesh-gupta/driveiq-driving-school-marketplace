@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\LeaveRequest;
 use App\Models\Schedule;
+use App\Services\NotificationService;
 use App\Services\ScheduleService;
 use App\Support\SchoolScopedIds;
 use Illuminate\Http\JsonResponse;
@@ -22,7 +23,10 @@ class ScheduleController extends Controller
 
     private const MAX_RANGE_DAYS = 70;
 
-    public function __construct(private readonly ScheduleService $schedules) {}
+    public function __construct(
+        private readonly ScheduleService $schedules,
+        private readonly NotificationService $notifications,
+    ) {}
 
     /**
      * The calendar asks for the dates it shows (from/to, inclusive). Without
@@ -259,17 +263,79 @@ class ScheduleController extends Controller
             ->orderByDesc('id')
             ->limit(100)
             ->get()
-            ->map(fn (LeaveRequest $l) => [
-                'id' => $l->id,
-                'instructorId' => $l->instructor_id,
-                'instructorName' => $l->instructor?->name,
-                'startDate' => $l->start_date?->toDateString(),
-                'endDate' => $l->end_date?->toDateString(),
-                'reason' => $l->reason,
-                'status' => $l->status,
-            ]);
+            ->map(fn (LeaveRequest $l) => $this->serializeLeave($l));
 
         return response()->json($items);
+    }
+
+    /** The signed-in trainer's own leave requests (DIQ-908). */
+    public function myLeave(Request $request): JsonResponse
+    {
+        $instructor = $this->myInstructor($request);
+        if (! $instructor) {
+            return response()->json(['message' => 'Instructor profile not found'], 404);
+        }
+
+        return response()->json(LeaveRequest::withoutGlobalScope('school')
+            ->where('instructor_id', $instructor->id)
+            ->orderByDesc('start_date')
+            ->limit(50)
+            ->get()
+            ->map(fn (LeaveRequest $l) => $this->serializeLeave($l)));
+    }
+
+    /** A trainer asks for leave for themself only; the school approves it. */
+    public function requestMyLeave(Request $request): JsonResponse
+    {
+        $instructor = $this->myInstructor($request);
+        if (! $instructor) {
+            return response()->json(['message' => 'Instructor profile not found'], 404);
+        }
+
+        $data = $request->validate([
+            'startDate' => ['required', 'date', 'after_or_equal:today'],
+            'endDate' => ['required', 'date', 'after_or_equal:startDate'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $leave = LeaveRequest::withoutGlobalScope('school')->create([
+            'instructor_id' => $instructor->id,
+            'school_id' => $instructor->school_id,
+            'start_date' => $data['startDate'],
+            'end_date' => $data['endDate'],
+            'reason' => $data['reason'] ?? null,
+            'status' => 'pending',
+        ]);
+
+        AuditLog::log('request', 'LeaveRequest', $leave->id, [], ['start' => $data['startDate'], 'end' => $data['endDate']], (int) $instructor->school_id);
+        $this->notifications->notifySchool(
+            (int) $instructor->school_id,
+            'leave_requested',
+            'Leave request',
+            "{$instructor->name} asked for leave {$leave->start_date->toDateString()} to {$leave->end_date->toDateString()}.",
+            ['leaveRequestId' => $leave->id]
+        );
+
+        return response()->json($this->serializeLeave($leave->load('instructor:id,name')), 201);
+    }
+
+    private function myInstructor(Request $request): ?Instructor
+    {
+        return Instructor::withoutGlobalScope('school')->where('user_id', $request->user()->id)->first();
+    }
+
+    private function serializeLeave(LeaveRequest $l): array
+    {
+        return [
+            'id' => $l->id,
+            'instructorId' => $l->instructor_id,
+            'instructorName' => $l->instructor?->name,
+            'startDate' => $l->start_date?->toDateString(),
+            'endDate' => $l->end_date?->toDateString(),
+            'reason' => $l->reason,
+            'status' => $l->status,
+            'reviewedAt' => $l->reviewed_at?->toISOString(),
+        ];
     }
 
     public function requestLeave(Request $request, int $schoolId): JsonResponse

@@ -55,6 +55,8 @@ import AdminBillingPage from "@/pages/admin/billing";
 import InstructorHomePage from "@/pages/instructor/index";
 import InstructorSessionsPage from "@/pages/instructor/sessions";
 import InstructorMessagesPage from "@/pages/instructor/messages";
+import InstructorLearnersPage from "@/pages/instructor/learners";
+import InstructorLeavePage from "@/pages/instructor/leave";
 
 import LearnerHomePage from "@/pages/learner/index";
 import LearnerProgressPage from "@/pages/learner/progress";
@@ -129,6 +131,9 @@ function Router() {
       <Route path="/instructor">{() => <AuthGuard requireRole="instructor"><InstructorHomePage /></AuthGuard>}</Route>
       <Route path="/instructor/sessions">{() => <AuthGuard requireRole="instructor"><InstructorSessionsPage /></AuthGuard>}</Route>
       <Route path="/instructor/messages">{() => <AuthGuard requireRole="instructor"><InstructorMessagesPage /></AuthGuard>}</Route>
+      <Route path="/instructor/learners">{() => <AuthGuard requireRole="instructor"><InstructorLearnersPage /></AuthGuard>}</Route>
+      <Route path="/instructor/leave">{() => <AuthGuard requireRole="instructor"><InstructorLeavePage /></AuthGuard>}</Route>
+      {/* Old link: attendance is marked from the sessions calendar. */}
       <Route path="/instructor/attendance">{() => <AuthGuard requireRole="instructor"><InstructorSessionsPage /></AuthGuard>}</Route>
 
       <Route path="/learner">{() => <AuthGuard requireRole="learner"><LearnerHomePage /></AuthGuard>}</Route>

@@ -221,6 +221,8 @@ const mr: TranslationTree = {
     sessions: "सत्रे",
     messages: "संदेश",
     attendance: "हजेरी",
+    learners: "माझे शिकाऊ",
+    leave: "रजा",
     title: "प्रशिक्षक पोर्टल",
     brand: "DriveIQ ट्रेनर",
   },

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, CalendarDays, MessageSquare, LogOut, Menu, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, CalendarDays, MessageSquare, LogOut, Menu, Users, Plane } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RoleConsentGate } from "@/components/legal/role-consent-gate";
@@ -17,8 +17,9 @@ export function InstructorLayout({ children }: { children: React.ReactNode }) {
   const links = [
     { href: "/instructor", label: t("instructorNav.overview"), icon: LayoutDashboard },
     { href: "/instructor/sessions", label: t("instructorNav.sessions"), icon: CalendarDays },
+    { href: "/instructor/learners", label: t("instructorNav.learners"), icon: Users },
+    { href: "/instructor/leave", label: t("instructorNav.leave"), icon: Plane },
     { href: "/instructor/messages", label: t("instructorNav.messages"), icon: MessageSquare },
-    { href: "/instructor/attendance", label: t("instructorNav.attendance"), icon: ClipboardCheck },
   ];
 
   const SidebarContent = () => (

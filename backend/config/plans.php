@@ -58,6 +58,7 @@ return [
         'api/schools/{id}/schedules' => 'schedules',
         'api/schedules/{id}' => 'schedules',
         'api/schedules/{id}/attendance' => 'schedules',
+        'api/instructor/leave-requests' => 'schedules',
         'api/schools/{id}/leave-requests' => 'schedules',
         'api/leave-requests/{id}' => 'schedules',
         'api/schools/{id}/payments' => 'payments',
