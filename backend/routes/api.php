@@ -250,6 +250,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/learners/{id}', [LearnerController::class, 'show'])->whereNumber('id');
         Route::patch('/learners/{id}', [LearnerController::class, 'update'])->whereNumber('id');
         Route::post('/learners/{id}/assign', [LearnerController::class, 'assign'])->whereNumber('id');
+        Route::get('/learners/{id}/assignments', [LearnerController::class, 'assignments'])->whereNumber('id');
         Route::patch('/learners/{id}/documents/{docId}', [LearnerController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
 

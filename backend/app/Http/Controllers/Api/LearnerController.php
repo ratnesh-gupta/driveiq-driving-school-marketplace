@@ -268,6 +268,40 @@ class LearnerController extends Controller
         return response()->json($this->serialize($learner->fresh(['instructor', 'vehicle', 'package']), full: true));
     }
 
+    /** Trainer and vehicle assignment history, newest first (DIQ-906). */
+    public function assignments(Request $request, int $id): JsonResponse
+    {
+        $learner = Learner::withoutGlobalScope('school')->find($id);
+        if (! $learner) {
+            return response()->json(['message' => 'Learner not found'], 404);
+        }
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
+            return $deny;
+        }
+
+        $rows = LearnerAssignmentHistory::withoutGlobalScope('school')
+            ->where('learner_id', $learner->id)
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
+
+        $instructors = Instructor::withoutGlobalScope('school')->whereIn('id', $rows->pluck('instructor_id')->filter())->pluck('name', 'id');
+        $vehicles = Vehicle::withoutGlobalScope('school')->whereIn('id', $rows->pluck('vehicle_id')->filter())->pluck('registration_number', 'id');
+        $users = User::whereIn('id', $rows->pluck('assigned_by')->filter())->pluck('name', 'id');
+
+        return response()->json($rows->map(fn (LearnerAssignmentHistory $h) => [
+            'id' => $h->id,
+            'action' => $h->action,
+            'instructorId' => $h->instructor_id,
+            'instructorName' => $instructors[$h->instructor_id] ?? null,
+            'vehicleId' => $h->vehicle_id,
+            'vehicleRegistration' => $vehicles[$h->vehicle_id] ?? null,
+            'assignedBy' => $users[$h->assigned_by] ?? null,
+            'notes' => $h->notes,
+            'createdAt' => $h->created_at?->toISOString(),
+        ])->values());
+    }
+
     public function listDocuments(Request $request, int $id): JsonResponse
     {
         $learner = Learner::withoutGlobalScope('school')->find($id);

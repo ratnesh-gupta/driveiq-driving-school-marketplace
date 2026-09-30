@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DocumentsDialog } from "@/components/documents-panel";
+import { LearnerDetailSheet } from "@/components/learners/learner-detail-sheet";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { createLearner, listLearners } from "@/lib/ops-api";
-import { GraduationCap, Plus } from "lucide-react";
+import { ChevronRight, GraduationCap, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 type LearnerRow = {
@@ -32,6 +32,7 @@ export default function LearnersPage() {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
+  const [openId, setOpenId] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["learners", schoolId],
@@ -84,7 +85,13 @@ export default function LearnersPage() {
       ) : (
         <div className="rounded-xl border bg-card divide-y">
           {data.map((l) => (
-            <div key={l.id} className="flex items-center justify-between px-5 py-3.5">
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => setOpenId(l.id)}
+              className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-muted/40 transition-colors"
+              data-testid={`row-learner-${l.id}`}
+            >
               <div>
                 <div className="font-medium text-sm">{l.name}</div>
                 <div className="text-xs text-muted-foreground">
@@ -92,12 +99,20 @@ export default function LearnersPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{l.status}</span>
-                <DocumentsDialog kind="learner" ownerId={l.id} canReview title={`Documents · ${l.name}`} />
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium capitalize">{l.status}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </div>
-            </div>
+            </button>
           ))}
         </div>
+      )}
+      {schoolId && (
+        <LearnerDetailSheet
+          learnerId={openId}
+          schoolId={schoolId}
+          canWrite={canWrite}
+          onOpenChange={(o) => { if (!o) setOpenId(null); }}
+        />
       )}
     </DashboardLayout>
   );

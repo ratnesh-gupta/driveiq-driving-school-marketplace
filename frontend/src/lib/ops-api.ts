@@ -741,3 +741,108 @@ export const fetchMarketplaceSettings = () => request<MarketplaceSettings>(`/api
 export function saveMarketplaceSettings(body: Partial<MarketplaceSettings>) {
   return request<MarketplaceSettings>(`/api/admin/marketplace-settings`, { method: "PUT", body: JSON.stringify(body) });
 }
+
+/* ---------- Learner detail (DIQ-906) ---------- */
+
+export type LearnerDetail = {
+  id: number;
+  schoolId: number;
+  name: string;
+  mobile?: string | null;
+  email?: string | null;
+  gender?: string | null;
+  dob?: string | null;
+  address?: string | null;
+  emergencyContact?: string | null;
+  vehicleType?: string | null;
+  status: string;
+  packageId?: number | null;
+  packageName?: string | null;
+  assignedInstructorId?: number | null;
+  instructorName?: string | null;
+  assignedVehicleId?: number | null;
+  vehicleRegistration?: string | null;
+  startDate?: string | null;
+  expectedCompletionDate?: string | null;
+  learnerLicenseNumber?: string | null;
+  licenseIssueDate?: string | null;
+  licenseExpiryDate?: string | null;
+  permanentLicenseStatus?: string | null;
+  notes?: string | null;
+  userId?: number | null;
+};
+
+export type AssignmentRow = {
+  id: number;
+  action: string;
+  instructorName: string | null;
+  vehicleRegistration: string | null;
+  assignedBy: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type DrivingTestRow = {
+  id: number;
+  learnerId: number;
+  testDate: string;
+  rtoName: string | null;
+  rtoLocation: string | null;
+  attemptNumber: number;
+  status: "scheduled" | "completed" | "passed" | "failed";
+  notes: string | null;
+};
+
+export type SessionHistoryRow = {
+  id: number;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  instructorName: string | null;
+  pickupLocation: string | null;
+  sessionSummary: string | null;
+  notes: string | null;
+  attendance: string | null;
+};
+
+export type SkillProgress = { skillName: string; percentage: number; notes?: string | null; updatedAt?: string | null };
+
+export function getLearner(id: number) {
+  return request<LearnerDetail>(`/api/learners/${id}`);
+}
+
+export function updateLearner(id: number, body: Record<string, unknown>) {
+  return request<LearnerDetail>(`/api/learners/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function listLearnerAssignments(id: number) {
+  return request<AssignmentRow[]>(`/api/learners/${id}/assignments`);
+}
+
+export function listTrainingSkills() {
+  return request<{ skills: { code: string; label: string }[] }>(`/api/training-skills`);
+}
+
+export function updateLearnerProgress(id: number, body: { skillName: string; percentage: number; notes?: string; sessionId?: number }) {
+  return request<{ overallCompletion: number; skills: SkillProgress[] }>(`/api/learners/${id}/progress`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export function listLearnerSessions(id: number) {
+  return request<SessionHistoryRow[]>(`/api/learners/${id}/sessions`);
+}
+
+export function listDrivingTests(learnerId: number) {
+  return request<DrivingTestRow[]>(`/api/learners/${learnerId}/driving-tests`);
+}
+
+export function createDrivingTest(learnerId: number, body: Record<string, unknown>) {
+  return request<DrivingTestRow>(`/api/learners/${learnerId}/driving-tests`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function updateDrivingTest(id: number, body: Record<string, unknown>) {
+  return request<DrivingTestRow>(`/api/driving-tests/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
