@@ -97,4 +97,31 @@ class WhatsAppLeadAlertsTest extends TestCase
         $this->assertCount(1, $this->fake->sent);
         Mail::assertNothingOutgoing();
     }
+
+    /** DIQ-1004 */
+    public function test_enquirer_who_opted_in_gets_a_confirmation_with_the_school_chat_link(): void
+    {
+        $this->school->update(['whatsapp' => '9822222222']);
+        $this->whatsapp(true);
+        $payload = fn (bool $optIn) => [
+            'schoolId' => $this->school->id, 'name' => 'Rohan', 'phone' => '98111 11111', 'vehicleType' => 'car',
+            'whatsappOptIn' => $optIn, 'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
+        ];
+
+        $this->postJson('/api/inquiries', $payload(false))->assertCreated();
+        $this->assertSame([], array_filter($this->fake->sent, fn ($m) => $m['to'] === '+919811111111'));
+
+        $this->postJson('/api/inquiries', $payload(true))->assertCreated();
+        $toLead = array_values(array_filter($this->fake->sent, fn ($m) => $m['to'] === '+919811111111'));
+        $this->assertCount(1, $toLead);
+        $this->assertStringContainsString('Hi Rohan, Alert School has received your enquiry', $toLead[0]['text']);
+        $this->assertStringContainsString('https://wa.me/919822222222', $toLead[0]['text']);
+        $this->assertStringNotContainsString('review', strtolower($toLead[0]['text']));
+
+        // School switch off: opt-in alone sends nothing.
+        $this->whatsapp(false);
+        $this->fake->sent = [];
+        $this->postJson('/api/inquiries', $payload(true))->assertCreated();
+        $this->assertSame([], $this->fake->sent);
+    }
 }
