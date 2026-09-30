@@ -10,9 +10,11 @@ use App\Http\Resources\InquiryResource;
 use App\Models\AuditLog;
 use App\Models\Inquiry;
 use App\Models\LeadStatusHistory;
+use App\Support\Entitlements;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class InquiryController extends Controller
 {
@@ -83,6 +85,16 @@ class InquiryController extends Controller
 
         $oldValues = $inquiry->only(['status', 'lost_reason', 'message', 'channel']);
         $previousStatus = $inquiry->status;
+
+        // Where the learner module is on the plan, "converted" means a learner
+        // record exists, so it is only reached through Convert to learner.
+        // Schools without the module may still mark offline enrolments.
+        if ($request->input('status') === 'converted' && $previousStatus !== 'converted'
+            && app(Entitlements::class)->allows((int) $inquiry->school_id, 'learners')) {
+            throw ValidationException::withMessages([
+                'status' => 'Use "Convert to learner" so the learner record is created.',
+            ]);
+        }
 
         $inquiry->fill($request->toSnakeCase());
         // A reason only belongs to a lost lead; a closed lead needs no follow-up.
