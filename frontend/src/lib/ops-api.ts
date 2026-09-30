@@ -998,3 +998,22 @@ export function createVehicle(schoolId: number, body: Record<string, unknown>) {
 export function updateVehicle(id: number, body: Record<string, unknown>) {
   return request<VehicleRow>(`/api/vehicles/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 }
+
+/* ---------- Public trainers (DIQ-911) ---------- */
+
+export type PublicTrainer = {
+  id: number;
+  name: string;
+  photoUrl: string | null;
+  yearsExperience: number;
+  skills: string[];
+  languages: string[];
+  womenInstructor: boolean;
+  ratingAverage: number;
+  ratingCount: number;
+  bio: string | null;
+};
+
+export function fetchPublicTrainers(slug: string) {
+  return request<PublicTrainer[]>(`/api/schools/slug/${encodeURIComponent(slug)}/trainers`);
+}
