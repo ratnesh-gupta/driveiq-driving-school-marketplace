@@ -98,6 +98,7 @@ export default function SchoolDetailPage() {
   // Anti-spam (DIQ-404): when the form was opened, and a honeypot field people never see.
   const inquiryStartedAt = useRef(Date.now());
   const [honeypot, setHoneypot] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const openInquiry = (open: boolean) => {
     if (open) inquiryStartedAt.current = Date.now();
     setInquiryOpen(open);
@@ -107,11 +108,12 @@ export default function SchoolDetailPage() {
   const handleInquiry = async () => {
     if (!school) return;
     // The generated InquiryInput type predates the anti-spam fields; the API requires them.
-    const payload: InquiryInput & { formStartedAt: number; website: string } = {
+    const payload: InquiryInput & { formStartedAt: number; website: string; whatsappOptIn: boolean } = {
       ...inquiryForm,
       schoolId: school.id,
       formStartedAt: inquiryStartedAt.current,
       website: honeypot,
+      whatsappOptIn,
     };
     createInquiry.mutate(
       { data: payload },
@@ -120,6 +122,7 @@ export default function SchoolDetailPage() {
           toast({ title: "Inquiry sent!", description: "The school will contact you shortly." });
           setInquiryOpen(false);
           setInquiryForm({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
+          setWhatsappOptIn(false);
         },
         onError: (err: unknown) => {
           const data = (err as { status?: number; data?: { message?: string; errors?: Record<string, string[]> } })?.data;
@@ -477,6 +480,16 @@ export default function SchoolDetailPage() {
                         <Label>Message (optional)</Label>
                         <Textarea value={inquiryForm.message} onChange={e => setInquiryForm(p => ({ ...p, message: e.target.value }))} placeholder="Any specific requirements..." rows={3} data-testid="textarea-inquiry-message" />
                       </div>
+                      <label className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4"
+                          checked={whatsappOptIn}
+                          onChange={e => setWhatsappOptIn(e.target.checked)}
+                          data-testid="checkbox-inquiry-whatsapp"
+                        />
+                        <span>Send me updates about this enquiry on WhatsApp <span className="text-muted-foreground">(optional)</span></span>
+                      </label>
                       <Button onClick={handleInquiry} disabled={createInquiry.isPending} className="w-full" data-testid="button-submit-inquiry">
                         {createInquiry.isPending ? "Sending..." : "Send Inquiry"}
                       </Button>

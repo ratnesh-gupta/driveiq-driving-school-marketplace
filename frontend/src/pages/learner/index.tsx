@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Phone } from "lucide-react";
 import { DrivingTestsPanel } from "@/components/learners/driving-tests-panel";
+import { WhatsAppOptInCard } from "@/components/whatsapp-opt-in-card";
 
 export default function LearnerHomePage() {
   const { data, isLoading } = useQuery({
@@ -67,6 +68,8 @@ export default function LearnerHomePage() {
               </div>
             )}
           </div>
+
+          <WhatsAppOptInCard audience="learner" />
 
           <div className="rounded-xl border bg-card">
             <div className="px-5 py-3 border-b font-semibold text-sm">Driving tests</div>

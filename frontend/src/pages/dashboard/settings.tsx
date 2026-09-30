@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { WhatsAppOptInCard } from "@/components/whatsapp-opt-in-card";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { fetchSchoolSettings, saveSchoolSettings, type SchoolSettings } from "@/lib/ops-api";
 
@@ -65,6 +66,7 @@ export default function SchoolSettingsPage() {
           new_inquiry: notif!.new_inquiry,
           new_review: notif!.new_review,
           sms: notif!.sms,
+          whatsapp: notif!.whatsapp,
           reminder_after_minutes: notif!.reminder_after_minutes,
         },
         timezone,
@@ -118,8 +120,17 @@ export default function SchoolSettingsPage() {
                 onChange={(v) => set("in_app", v)}
                 disabled={!notif.new_inquiry}
               />
+              <Row
+                id="set-whatsapp"
+                title="On WhatsApp"
+                hint="Lead alerts and reminders to team members who turned on WhatsApp alerts below. Learners who opted in also get enquiry confirmations and session reminders."
+                checked={notif.whatsapp}
+                onChange={(v) => set("whatsapp", v)}
+              />
             </div>
           </section>
+
+          <WhatsAppOptInCard audience="staff" />
 
           <section className="rounded-xl border bg-card p-5">
             <h2 className="font-semibold flex items-center gap-2"><Mail className="h-4 w-4" /> Unanswered lead reminder</h2>

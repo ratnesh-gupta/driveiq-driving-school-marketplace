@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\SchoolTeamController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\WhatsAppPreferenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', fn () => response()->json([
@@ -107,6 +108,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
     Route::get('/consents', [ConsentController::class, 'index']);
+    Route::get('/me/whatsapp', [WhatsAppPreferenceController::class, 'show']);
+    Route::put('/me/whatsapp', [WhatsAppPreferenceController::class, 'update'])->middleware('throttle:30,1');
     Route::delete('/consents/{purpose}', [ConsentController::class, 'destroy']);
 
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])

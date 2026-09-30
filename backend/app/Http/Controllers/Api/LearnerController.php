@@ -104,6 +104,8 @@ class LearnerController extends Controller
             'assigned_vehicle_id' => $extra['assignedVehicleId'] ?? null,
             'start_date' => $extra['startDate'] ?? now()->toDateString(),
             'converted_from_inquiry_id' => $inquiry->id,
+            // The enquirer's own WhatsApp opt-in follows them (DIQ-1002); a school never sets it.
+            'whatsapp_opt_in_at' => $inquiry->whatsapp_opt_in_at,
             'status' => 'active',
             'create_login' => (bool) ($extra['createLogin'] ?? false),
             // Only the account that submitted this enquiry itself may be linked.
@@ -505,6 +507,7 @@ class LearnerController extends Controller
             'permanent_license_status' => $data['permanent_license_status'] ?? null,
             'status' => $data['status'] ?? 'active',
             'notes' => $data['notes'] ?? null,
+            'whatsapp_opt_in_at' => $data['whatsapp_opt_in_at'] ?? null,
         ]);
 
         if ($learner->assigned_instructor_id || $learner->assigned_vehicle_id) {

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'password',
         'role',
         'school_id',
+        'phone',
     ];
 
     protected $hidden = [
@@ -35,6 +36,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'deactivated_at' => 'datetime',
+            'whatsapp_opt_in_at' => 'datetime',
         ];
     }
 
@@ -81,5 +83,14 @@ class User extends Authenticatable
     public function isLearner(): bool
     {
         return $this->role === 'learner';
+    }
+
+    /**
+     * Number for the "whatsapp" notification channel (DIQ-1002): only for an
+     * active account that opted in itself.
+     */
+    public function routeNotificationForWhatsapp(): ?string
+    {
+        return $this->whatsapp_opt_in_at && $this->phone && $this->deactivated_at === null ? $this->phone : null;
     }
 }

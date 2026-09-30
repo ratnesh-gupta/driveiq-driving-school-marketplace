@@ -529,6 +529,7 @@ export type SchoolSettings = {
   notifications: {
     email: boolean;
     sms: boolean;
+    whatsapp: boolean;
     in_app: boolean;
     new_inquiry: boolean;
     new_review: boolean;
@@ -1058,4 +1059,16 @@ export function fetchAuditLogs(scope: { schoolId: number } | "admin", filters: {
   const q = sp.toString() ? `?${sp}` : "";
   const base = scope === "admin" ? "/api/admin/audit-logs" : `/api/schools/${scope.schoolId}/audit-logs`;
   return request<AuditPage>(`${base}${q}`);
+}
+
+/* ---------- WhatsApp opt-in (DIQ-1002) ---------- */
+
+export type WhatsAppPreference = { phone: string | null; optedIn: boolean; optedInAt: string | null };
+
+export function fetchMyWhatsApp() {
+  return request<WhatsAppPreference>(`/api/me/whatsapp`);
+}
+
+export function saveMyWhatsApp(body: { phone?: string | null; optIn: boolean }) {
+  return request<WhatsAppPreference>(`/api/me/whatsapp`, { method: "PUT", body: JSON.stringify(body) });
 }
