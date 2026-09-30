@@ -184,6 +184,7 @@ Two background processes are required outside tests (both are services in `docke
   - public reply-time badges (`driveiq:response-badges`), hourly
   - token pruning and the retention report, daily
   - plan lifecycle (`driveiq:subscriptions`): trial/plan ending reminders and expiry, daily
+  - operations reminders (`driveiq:ops-reminders`): session reminders 24h and 2h before, learner licence and vehicle paper expiry, missing learner documents; hourly, each sent once
 
 Schools choose who is alerted about new leads, and when to be reminded, at `/dashboard/settings`.
 

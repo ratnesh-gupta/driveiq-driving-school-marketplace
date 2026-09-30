@@ -2,8 +2,8 @@
 
 **Status:** MVP Development in Progress  
 **Target Market:** Pune, India (Initial Phase)  
-**Current Phase:** M1–M6 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization); next: pilot launch readiness  
-**Last Updated:** 2026-09-29  
+**Current Phase:** M1–M7 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization, operations reconciliation of phases 3–8); next: pilot launch readiness  
+**Last Updated:** 2026-09-30  
 **Master Plan:** `docs/PROJECT-PLAN.md` — single source of truth for scope, phasing, and requirements
 
 ---
@@ -305,6 +305,7 @@ Created → Verified → Active → Assigned Learners → Performance Tracking
 | **Reviews Management** | ✅ API built | View reviews, respond (moderation needed) |
 | **Analytics Dashboard** | 🟡 Partial | View count, inquiry count; CTR/locality breakdowns missing |
 | **Photo Upload** | 🟡 Partial | Private document uploads built (DIQ-601); public school photos not yet |
+| **Operations (learners, trainers, schedules, fleet)** | ✅ Built | Learner sheet, trainer management + portal, schedule editing, leave with clash list, vehicle papers by expiry, owner activity log |
 | **WhatsApp Integration** | 🟡 Partial | Click-to-chat deeplinks work; automation/API integration future |
 
 ### 4.3 Admin Panel Features
@@ -725,6 +726,7 @@ Current single-branch design naturally extends to this model.
 ✅ DPDP: server-side consent records, data-subject requests, contact inbox, `driveiq:retention` (dry run by default)  
 ✅ Lead engine: queued new-lead emails to owner + managers, unanswered-lead reminders, response-time metrics and badges, lead notes/follow-ups/timeline  
 ✅ Monetization: plan tiers gate modules (read-only when locked), 30-day trial, manual GST invoices, sponsored slots + campaigns, admin revenue console  
+✅ Operations (M7): school-scoped foreign IDs, payment status rules, locked bookings, real dashboard numbers; learner/trainer/fleet screens; trainer portal (roster, attendance, leave); `driveiq:ops-reminders` hourly (sessions, licence/vehicle paper expiry, missing documents)  
 ✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build in CI  
 
 ### Demo/Non-Production Behaviors
@@ -976,10 +978,11 @@ public function test_user_can_only_see_own_schools_learners()
 ## 11. Known Limitations & Future Considerations
 
 ### Current Limitations
-- No production authentication (frontend-only role switching)
+- No OTP / mobile login (needs an SMS provider); logins are email + password
 - Geo-search ranking not tuned to Pune data
-- Notification system not implemented (no email/WhatsApp automation yet)
+- Notifications are in-app and email only (no SMS / WhatsApp API yet)
 - No advanced analytics (CTR, conversion funnel tracking)
+- No trainer working hours / capacity limits, learner ratings of trainers, attendance certificate or RTO directory yet
 - Mobile app not built (responsive web app is current MVP approach)
 - Instructor-specific features minimal (instructor rating, schedule management)
 
@@ -996,7 +999,7 @@ public function test_user_can_only_see_own_schools_learners()
 
 **Project Owner:** Ratnesh (ratnesh.k.gupta@icloud.com)  
 **Repository:** `/Volumes/RatneshED/Projects/Agies/driveiq-driving-school-marketplace/`  
-**Current Phase:** M1–M6 done; next: pilot launch readiness  
+**Current Phase:** M1–M7 done; next: pilot launch readiness  
 **Target Launch:** Marketplace MVP Week 12, Operations MVP Week 18 (see PROJECT-PLAN.md)
 
 ---
