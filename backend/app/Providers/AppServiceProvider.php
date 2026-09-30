@@ -21,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // WhatsApp / SMS driver (DIQ-1001), chosen by MESSAGING_DRIVER.
         $this->app->bind(MessageSender::class, function () {
-            $driver = config('messaging.driver', 'log');
+            // env() turns MESSAGING_DRIVER=null into a real null: that means the null driver.
+            $driver = config('messaging.driver') ?? 'null';
             $class = config("messaging.drivers.{$driver}")
                 ?? throw new \InvalidArgumentException("Unknown MESSAGING_DRIVER [{$driver}]");
 

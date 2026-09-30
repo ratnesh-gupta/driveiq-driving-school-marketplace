@@ -2,17 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Messaging\MessageSender;
 use App\Models\AppNotification;
 use App\Models\Instructor;
 use App\Models\Learner;
 use App\Models\LearnerDocument;
 use App\Models\Schedule;
 use App\Models\School;
+use App\Models\SchoolSetting;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\FakeMessageSender;
 use Tests\TestCase;
 
 /** DIQ-913: scheduled operational reminders, each sent once. */
@@ -125,5 +128,41 @@ class OpsRemindersTest extends TestCase
 
         $n = AppNotification::where('type', 'document.rejected')->where('user_id', $this->learnerUser->id)->firstOrFail();
         $this->assertStringContainsString('Photo is blurry', $n->body);
+    }
+
+    /** DIQ-1005 */
+    public function test_session_reminders_also_go_on_whatsapp_to_people_who_opted_in(): void
+    {
+        $fake = new FakeMessageSender;
+        $this->app->instance(MessageSender::class, $fake);
+        SchoolSetting::withoutGlobalScope('school')->updateOrCreate(
+            ['school_id' => $this->school->id], ['settings' => ['notifications' => ['whatsapp' => true]]]
+        );
+        $this->learnerUser->forceFill(['phone' => '+919876511111', 'whatsapp_opt_in_at' => now()])->save();
+        // The trainer has a number but did not opt in.
+        $this->trainerUser->forceFill(['phone' => '+919876522222'])->save();
+
+        Schedule::withoutGlobalScope('school')->create([
+            'school_id' => $this->school->id, 'instructor_id' => $this->ravi->id, 'learner_id' => $this->asha->id, 'learner_name' => 'Asha',
+            'session_date' => '2026-10-06', 'start_time' => '09:00', 'end_time' => '10:00', 'status' => 'scheduled', 'pickup_location' => 'Baner gate',
+        ]);
+
+        $this->artisan('driveiq:ops-reminders');
+        $this->artisan('driveiq:ops-reminders');
+        $this->travelTo('2026-10-06 02:00:00');
+        $this->artisan('driveiq:ops-reminders');
+
+        $this->assertSame(['+919876511111', '+919876511111'], array_column($fake->sent, 'to'));
+        $this->assertStringContainsString('Session tomorrow: driving session Tue 6 Oct, 9:00 AM with Remind School. Pickup: Baner gate.', $fake->texts()[0]);
+        $this->assertStringContainsString('Session in under 2 hours', $fake->texts()[1]);
+
+        // Opting out stops further messages.
+        $this->learnerUser->forceFill(['whatsapp_opt_in_at' => null])->save();
+        Schedule::withoutGlobalScope('school')->create([
+            'school_id' => $this->school->id, 'instructor_id' => $this->ravi->id, 'learner_id' => $this->asha->id,
+            'session_date' => '2026-10-06', 'start_time' => '10:30', 'end_time' => '11:30', 'status' => 'scheduled',
+        ]);
+        $this->artisan('driveiq:ops-reminders');
+        $this->assertCount(2, $fake->sent);
     }
 }
