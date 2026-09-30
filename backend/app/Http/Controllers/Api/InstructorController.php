@@ -13,6 +13,7 @@ use App\Models\School;
 use App\Models\TrainingProgress;
 use App\Models\User;
 use App\Notifications\StaffLoginInvite;
+use App\Services\NotificationService;
 use App\Support\DocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -550,6 +551,19 @@ class InstructorController extends Controller
 
         if ($doc->status !== $previous) {
             AuditLog::log('document_'.$doc->status, 'InstructorDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);
+
+            // DIQ-913: the trainer hears when the school verifies or rejects their document.
+            if (in_array($doc->status, ['verified', 'rejected'], true) && $instructor->user_id && ($user = User::find($instructor->user_id))) {
+                $label = str_replace('_', ' ', $doc->type);
+                app(NotificationService::class)->notify(
+                    $user,
+                    'document.'.$doc->status,
+                    $doc->status === 'verified' ? "Your {$label} was verified" : "Your {$label} needs another upload",
+                    $doc->status === 'verified' ? null : trim('Please upload a clearer or valid copy. '.($doc->notes ?? '')),
+                    ['documentType' => $doc->type],
+                    (int) $doc->school_id
+                );
+            }
         }
 
         return response()->json($this->serializeDoc($doc));

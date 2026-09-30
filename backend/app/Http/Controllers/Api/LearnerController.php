@@ -418,9 +418,27 @@ class LearnerController extends Controller
 
         if ($doc->status !== $previous) {
             AuditLog::log('document_'.$doc->status, 'LearnerDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);
+            $this->tellOwnerAboutReview($learner->user_id, $doc->type, $doc->status, $doc->notes, (int) $doc->school_id);
         }
 
         return response()->json($this->serializeDoc($doc));
+    }
+
+    /** DIQ-913: the learner hears when the school verifies or rejects a document. */
+    private function tellOwnerAboutReview(?int $userId, string $type, string $status, ?string $notes, int $schoolId): void
+    {
+        if (! in_array($status, ['verified', 'rejected'], true) || ! $userId || ! ($user = User::find($userId))) {
+            return;
+        }
+        $label = str_replace('_', ' ', $type);
+        $this->notifications->notify(
+            $user,
+            'document.'.$status,
+            $status === 'verified' ? "Your {$label} was verified" : "Your {$label} needs another upload",
+            $status === 'verified' ? null : trim('Please upload a clearer or valid copy. '.($notes ?? '')),
+            ['documentType' => $type],
+            $schoolId
+        );
     }
 
     public function me(Request $request): JsonResponse

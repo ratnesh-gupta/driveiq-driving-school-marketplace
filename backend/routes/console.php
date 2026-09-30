@@ -57,3 +57,6 @@ Schedule::call(fn () => app(LeadResponseStats::class)->refreshSchoolBadges())
 
 // Plan / trial reminders and expiry (DIQ-807).
 Schedule::command('driveiq:subscriptions')->dailyAt('03:15')->withoutOverlapping();
+
+// Session reminders, licence / vehicle paper expiry, missing documents (DIQ-913).
+Schedule::command('driveiq:ops-reminders')->hourly()->withoutOverlapping();
