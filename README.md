@@ -188,6 +188,37 @@ Two background processes are required outside tests (both are services in `docke
 
 Schools choose who is alerted about new leads, and when to be reminded, at `/dashboard/settings`.
 
+## WhatsApp / SMS
+
+Lead alerts, lead reminders, enquiry confirmations and session reminders can also go out on WhatsApp (M8). Three things must all be true for a message to go out:
+
+1. The school switched **On WhatsApp** on under `/dashboard/settings`.
+2. The person opted in themselves:
+   - staff, trainers and learners on the "My WhatsApp updates" card;
+   - enquirers with the optional checkbox on the enquiry form.
+
+   Each opt-in is recorded as a `whatsapp_updates` consent.
+3. The number is a valid mobile number, stored as E.164.
+
+Delivery goes through a provider-neutral driver:
+
+| Env | Meaning |
+|-----|---------|
+| `MESSAGING_DRIVER` | `log` (default: writes the rendered text to the log), `null` (sends nothing), or a provider driver you register |
+| `MESSAGING_SMS_FALLBACK` | Also try SMS when WhatsApp fails (needs DLT template ids) |
+| `MSG_TPL_*` / `DLT_TPL_*` | Provider (WhatsApp) and TRAI DLT template ids, one pair per template in `config/messaging.php` |
+
+**To add a provider** (MSG91, Gupshup, Twilio…):
+1. Implement `App\Messaging\MessageSender`. `send()` receives the channel, the E.164 number, the template definition with its ids, the positional variables and the rendered text.
+2. Register the class under `messaging.drivers` and set `MESSAGING_DRIVER`.
+3. Register each template in `config/messaging.php` with WhatsApp Business and on the DLT portal, and put the approved ids in the env vars above.
+
+**Guarantees:**
+- Every attempt is logged in `outbound_messages`, with the number masked.
+- Admins can see the log under Admin → Messages.
+- The log is deleted after 90 days by `driveiq:retention`.
+- The same message about the same thing is never sent to the same number twice.
+
 ## Plans & billing
 
 | | Basic (free) | Featured Rs 1,999/mo | Premium Rs 4,999/mo | Enterprise Rs 14,999/mo |

@@ -2,9 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Messaging\Message;
+use App\Messaging\Messenger;
 use App\Models\Learner;
 use App\Models\LearnerDocument;
 use App\Models\Schedule;
+use App\Models\School;
 use App\Models\SchoolSetting;
 use App\Models\User;
 use App\Models\VehicleDocument;
@@ -14,7 +17,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * DIQ-913: operational reminders, each sent once (in-app).
- * - Sessions: 24 hours and 2 hours before, to the learner and the trainer.
+ * - Sessions: 24 hours and 2 hours before, to the learner and the trainer;
+ *   also on WhatsApp where the school uses it and the person opted in (DIQ-1005).
  * - Learner licence expiring within 30 days: learner and school staff.
  * - Vehicle insurance / PUC / permit expiring within 15 days: school staff.
  * - Active learners still missing required documents after 3 days: learner.
@@ -39,8 +43,15 @@ class OpsRemindersCommand extends Command
     /** @var array<int, string> school id => timezone */
     private array $timezones = [];
 
-    public function handle(NotificationService $notifications): int
+    private Messenger $messenger;
+
+    /** @var array<int, bool> */
+    private array $whatsappSchools = [];
+
+    public function handle(NotificationService $notifications, Messenger $messenger): int
     {
+        $this->messenger = $messenger;
+
         $counts = [
             'sessions' => $this->sessionReminders($notifications),
             'licences' => $this->licenceExpiry($notifications),
@@ -92,6 +103,23 @@ class OpsRemindersCommand extends Command
                     if ($trainer = $s->instructor?->user) {
                         $notifications->notify($trainer, 'session.reminder', $title,
                             'Session with '.($s->learner_name ?: 'your learner')." {$when}.", $data, (int) $s->school_id);
+                    }
+
+                    // WhatsApp copies (DIQ-1005): school uses WhatsApp and the person opted in.
+                    if ($this->schoolUsesWhatsApp((int) $s->school_id)) {
+                        $slot = $window === 'reminded_2h_at' ? 'Schedule.2h' : 'Schedule.24h';
+                        $school = School::whereKey($s->school_id)->value('name');
+                        $pickup = $s->pickup_location ? " Pickup: {$s->pickup_location}." : '';
+                        if ($learner = $s->learner_id ? Learner::withoutGlobalScope('school')->find($s->learner_id) : null) {
+                            $this->messenger->send($learner->whatsappNumber(), new Message('session_reminder', [
+                                'title' => $title, 'when' => $when, 'with' => $school ?: 'your driving school', 'pickup' => $pickup,
+                            ], $slot, $s->id, (int) $s->school_id));
+                        }
+                        if ($trainerPhone = $s->instructor?->user?->routeNotificationForWhatsapp()) {
+                            $this->messenger->send($trainerPhone, new Message('session_reminder', [
+                                'title' => $title, 'when' => $when, 'with' => $s->learner_name ?: 'your learner', 'pickup' => $pickup,
+                            ], $slot, $s->id, (int) $s->school_id));
+                        }
                     }
 
                     // A 2-hour reminder also closes the 24-hour one.
@@ -211,6 +239,11 @@ class OpsRemindersCommand extends Command
         $userId = Learner::withoutGlobalScope('school')->whereKey($learnerId)->value('user_id');
 
         return $userId ? User::find($userId) : null;
+    }
+
+    private function schoolUsesWhatsApp(int $schoolId): bool
+    {
+        return $this->whatsappSchools[$schoolId] ??= (bool) (SchoolSetting::forSchool($schoolId)['notifications']['whatsapp'] ?? false);
     }
 
     private function timezone(int $schoolId): string

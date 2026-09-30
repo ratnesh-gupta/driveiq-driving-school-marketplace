@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { InstructorLayout } from "@/components/layout/instructor-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentsPanel } from "@/components/documents-panel";
+import { WhatsAppOptInCard } from "@/components/whatsapp-opt-in-card";
 import { fetchInstructorMe } from "@/lib/ops-api";
 import { CalendarClock, CalendarDays, CheckCircle2, User, Users } from "lucide-react";
 
@@ -67,6 +68,10 @@ export default function InstructorHomePage() {
           </div>
         </div>
         </>
+      )}
+
+      {typeof instructor?.id === "number" && (
+        <div className="mt-6"><WhatsAppOptInCard audience="trainer" /></div>
       )}
 
       {typeof instructor?.id === "number" && (

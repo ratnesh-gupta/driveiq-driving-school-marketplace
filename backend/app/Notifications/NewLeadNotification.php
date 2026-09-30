@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Messaging\Message;
 use App\Models\Inquiry;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,21 +11,58 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Tells a school's staff about a new lead (DIQ-704). Also used for the
- * "still unanswered" reminder (DIQ-705). via() is the single place to add
- * SMS / WhatsApp delivery later.
+ * "still unanswered" reminder (DIQ-705). Goes by email and/or WhatsApp
+ * (DIQ-1003) as the school's settings allow; WhatsApp only reaches staff who
+ * opted in themselves (User::routeNotificationForWhatsapp()).
  */
 class NewLeadNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /** @param list<string> $channels from channelsFor() */
     public function __construct(
         public readonly Inquiry $inquiry,
         public readonly bool $reminder = false,
+        public readonly array $channels = ['mail'],
     ) {}
+
+    /**
+     * Channels a school's notification settings allow for lead alerts.
+     *
+     * @return list<string>
+     */
+    public static function channelsFor(array $prefs): array
+    {
+        return array_values(array_filter([
+            ($prefs['email'] ?? true) ? 'mail' : null,
+            ($prefs['whatsapp'] ?? false) ? 'whatsapp' : null,
+        ]));
+    }
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->channels;
+    }
+
+    public function toWhatsApp(object $notifiable): Message
+    {
+        $lead = $this->inquiry;
+        $link = config('app.frontend_url').'/dashboard/leads';
+
+        if ($this->reminder) {
+            return new Message('lead_reminder', [
+                'name' => $lead->name,
+                'ago' => $lead->created_at?->diffForHumans() ?? 'earlier',
+                'link' => $link,
+            ], 'Inquiry', $lead->id, $lead->school_id);
+        }
+
+        return new Message('lead_new', [
+            'school' => $lead->school?->name ?? 'your school',
+            'name' => $lead->name,
+            'details' => implode(', ', array_filter([$lead->vehicle_type, $lead->area, $lead->preferred_timing, $lead->phone])),
+            'link' => $link,
+        ], 'Inquiry', $lead->id, $lead->school_id);
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -41,6 +41,8 @@ class SchoolSetting extends Model
             'notifications' => [
                 'email' => true,
                 'sms' => false,
+                // WhatsApp copies of lead alerts and reminders (DIQ-1002); each person must also opt in.
+                'whatsapp' => false,
                 'in_app' => true,
                 'new_inquiry' => true,
                 'new_review' => true,

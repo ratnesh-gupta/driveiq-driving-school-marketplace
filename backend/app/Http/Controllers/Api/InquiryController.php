@@ -8,6 +8,7 @@ use App\Http\Requests\Api\StoreInquiryRequest;
 use App\Http\Requests\Api\UpdateInquiryRequest;
 use App\Http\Resources\InquiryResource;
 use App\Models\AuditLog;
+use App\Models\Consent;
 use App\Models\Inquiry;
 use App\Models\LeadStatusHistory;
 use App\Support\Entitlements;
@@ -68,6 +69,17 @@ class InquiryController extends Controller
 
         $inquiry = Inquiry::withoutGlobalScope('school')->create($data);
         $inquiry->load('school');
+
+        if ($user && $inquiry->whatsapp_opt_in_at) {
+            Consent::create([
+                'user_id' => $user->id,
+                'purpose' => 'whatsapp_updates',
+                'version' => WhatsAppPreferenceController::CONSENT_VERSION,
+                'granted_at' => now(),
+                'ip_address' => $request->ip(),
+                'user_agent' => mb_substr((string) $request->userAgent(), 0, 255),
+            ]);
+        }
 
         event(new InquiryCreated($inquiry));
 

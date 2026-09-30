@@ -3,6 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { toast } from "sonner";
 import { Inbox, Mail } from "lucide-react";
 import { AdminLayout } from "@/components/layout/admin-layout";
+import { OutboundMessageLog } from "@/components/admin/outbound-message-log";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listContactMessages, updateContactMessage, type ContactMessageRow } from "@/lib/ops-api";
@@ -123,6 +124,7 @@ export default function AdminMessagesPage() {
           </div>
         </div>
       )}
+      <OutboundMessageLog />
     </AdminLayout>
   );
 }

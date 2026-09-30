@@ -529,6 +529,7 @@ export type SchoolSettings = {
   notifications: {
     email: boolean;
     sms: boolean;
+    whatsapp: boolean;
     in_app: boolean;
     new_inquiry: boolean;
     new_review: boolean;
@@ -1058,4 +1059,42 @@ export function fetchAuditLogs(scope: { schoolId: number } | "admin", filters: {
   const q = sp.toString() ? `?${sp}` : "";
   const base = scope === "admin" ? "/api/admin/audit-logs" : `/api/schools/${scope.schoolId}/audit-logs`;
   return request<AuditPage>(`${base}${q}`);
+}
+
+/* ---------- WhatsApp opt-in (DIQ-1002) ---------- */
+
+export type WhatsAppPreference = { phone: string | null; optedIn: boolean; optedInAt: string | null };
+
+export function fetchMyWhatsApp() {
+  return request<WhatsAppPreference>(`/api/me/whatsapp`);
+}
+
+export function saveMyWhatsApp(body: { phone?: string | null; optIn: boolean }) {
+  return request<WhatsAppPreference>(`/api/me/whatsapp`, { method: "PUT", body: JSON.stringify(body) });
+}
+
+/* ---------- Outbound WhatsApp / SMS log (DIQ-1006) ---------- */
+
+export type OutboundMessageRow = {
+  id: number;
+  schoolName: string | null;
+  channel: "whatsapp" | "sms";
+  template: string;
+  to: string;
+  relatedType: string | null;
+  relatedId: number | null;
+  status: "sending" | "sent" | "failed";
+  error: string | null;
+  createdAt: string;
+};
+
+export function listOutboundMessages(params: { status?: string; page?: number }) {
+  const sp = new URLSearchParams();
+  if (params.status) sp.set("status", params.status);
+  if (params.page && params.page > 1) sp.set("page", String(params.page));
+  const q = sp.toString() ? `?${sp}` : "";
+  return request<{
+    data: OutboundMessageRow[];
+    meta: { page: number; lastPage: number; total: number; driver: string; last24h: Record<string, number> };
+  }>(`/api/admin/outbound-messages${q}`);
 }

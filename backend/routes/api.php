@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\LearnerController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OutboundMessageController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProgressController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Api\SchoolTeamController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\WhatsAppPreferenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', fn () => response()->json([
@@ -107,6 +109,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
     Route::get('/consents', [ConsentController::class, 'index']);
+    Route::get('/me/whatsapp', [WhatsAppPreferenceController::class, 'show']);
+    Route::put('/me/whatsapp', [WhatsAppPreferenceController::class, 'update'])->middleware('throttle:30,1');
     Route::delete('/consents/{purpose}', [ConsentController::class, 'destroy']);
 
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])
@@ -188,6 +192,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/admin/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
+        Route::get('/admin/outbound-messages', [OutboundMessageController::class, 'index']);
         Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);

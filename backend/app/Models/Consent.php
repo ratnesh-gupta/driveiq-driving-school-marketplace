@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Consent extends Model
 {
-    public const PURPOSES = ['terms', 'privacy', 'processing', 'role_portal', 'cookies_optional'];
+    public const PURPOSES = ['terms', 'privacy', 'processing', 'role_portal', 'cookies_optional', 'whatsapp_updates'];
 
     /** Purposes that may be recorded without an account (cookie banner). */
     public const ANONYMOUS_PURPOSES = ['cookies_optional'];

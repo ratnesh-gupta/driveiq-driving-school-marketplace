@@ -38,6 +38,9 @@ class RetentionCommand extends Command
             'contact_messages' => fn () => DB::table('contact_messages')
                 ->where('status', 'closed')
                 ->where('updated_at', '<', now()->subMonths($months['contact_messages'])),
+            // WhatsApp / SMS attempt log (DIQ-1006): numbers are masked, kept briefly.
+            'outbound_messages' => fn () => DB::table('outbound_messages')
+                ->where('created_at', '<', now()->subDays((int) config('messaging.log_retention_days', 90))),
             'data_subject_requests' => fn () => DB::table('data_subject_requests')
                 ->whereIn('status', ['completed', 'rejected'])
                 ->where('handled_at', '<', now()->subMonths($months['data_subject_requests'])),
