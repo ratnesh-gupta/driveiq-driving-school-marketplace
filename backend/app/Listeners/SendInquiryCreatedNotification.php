@@ -10,7 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * Tells the school's staff about a new lead, in-app and by email, as their
+ * Tells the school's staff about a new lead, in-app, by email and on WhatsApp, as their
  * notification settings allow (DIQ-704). Queued so the public enquiry form
  * never waits on mail delivery.
  */
@@ -47,8 +47,11 @@ class SendInquiryCreatedNotification implements ShouldQueue
             );
         }
 
-        if ($prefs['email'] ?? true) {
-            Notification::send($this->notifications->schoolStaff($inquiry->school_id), new NewLeadNotification($inquiry));
+        if ($channels = NewLeadNotification::channelsFor($prefs)) {
+            Notification::send(
+                $this->notifications->schoolStaff($inquiry->school_id),
+                new NewLeadNotification($inquiry->loadMissing('school'), channels: $channels)
+            );
         }
     }
 }

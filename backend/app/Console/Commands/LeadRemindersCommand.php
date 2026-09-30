@@ -52,8 +52,8 @@ class LeadRemindersCommand extends Command
                             ['inquiryId' => $lead->id, 'name' => $lead->name]
                         );
                     }
-                    if ($prefs['email'] ?? true) {
-                        Notification::send($notifications->schoolStaff($lead->school_id), new NewLeadNotification($lead, reminder: true));
+                    if ($channels = NewLeadNotification::channelsFor($prefs)) {
+                        Notification::send($notifications->schoolStaff($lead->school_id), new NewLeadNotification($lead, reminder: true, channels: $channels));
                     }
 
                     $lead->forceFill(['reminder_sent_at' => now()])->save();
