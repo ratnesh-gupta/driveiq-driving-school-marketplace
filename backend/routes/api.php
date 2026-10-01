@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAcquisitionController;
 use App\Http\Controllers\Api\AdminMonetizationController;
 use App\Http\Controllers\Api\AdminOutreachController;
 use App\Http\Controllers\Api\AdminProspectController;
@@ -227,7 +228,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
         Route::get('/admin/outbound-messages', [OutboundMessageController::class, 'index']);
 
-        // School and trainer acquisition (DIQ-1103).
+        // School and trainer acquisition (DIQ-1103, funnel DIQ-1109).
+        Route::get('/admin/acquisition', AdminAcquisitionController::class);
         Route::get('/admin/prospects', [AdminProspectController::class, 'index']);
         Route::post('/admin/prospects', [AdminProspectController::class, 'store']);
         Route::post('/admin/prospects/import', [AdminProspectController::class, 'import']);

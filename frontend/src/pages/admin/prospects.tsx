@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useListLocalities } from "@/api-client";
+import { AcquisitionPanel } from "@/components/admin/acquisition-panel";
 import {
   STAGES,
   createProspect,
@@ -160,6 +161,8 @@ export default function AdminProspectsPage() {
           <Button onClick={() => openEdit("new")} data-testid="button-add-prospect"><Plus className="h-4 w-4 mr-1" /> Add prospect</Button>
         </div>
       </div>
+
+      <AcquisitionPanel />
 
       <div className="flex flex-wrap gap-2 mb-4" role="tablist">
         {[{ value: "" as const, label: "All", n: all }, ...STAGES.map((s) => ({ ...s, n: counts?.[s.value] ?? 0 }))].map((s) => (

@@ -87,12 +87,12 @@ Learner Management (Training Lifecycle)
 
 ## 2. Current State
 
-_Updated 2026-09-30 after remediation milestones M1–M7 (PRs #23–#28). Phases 3–8 were re-audited against the code in M7; partial items say what is missing._
+_Updated 2026-10-02 after milestones M1–M9 (PRs #23–#29 and the M9 PR). Phases 3–8 were re-audited against the code in M7; partial items say what is missing._
 
 ### What's Implemented
 
 **Backend (Laravel 13 + PostgreSQL 16/PostGIS), 34 models, 26 API controllers, 40 migrations:**
-- Registration is **School (owner) or Learner** only; admins via `php artisan driveiq:create-admin`. School managers are invite-only (owner invites, invitee accepts). Instructors get logins from their school.
+- Registration is **Driving School (owner), Independent Trainer (owner of a trainer listing) or Learner**; admins via `php artisan driveiq:create-admin`. School managers are invite-only (owner invites, invitee accepts). Instructors get logins from their school.
 - Sanctum tokens expire (`SANCTUM_EXPIRATION`, default 7 days); logout, password reset, and admin **deactivation** (revokes tokens, blocks login).
 - Authorization through one `SchoolAccess` service: school isolation (`BelongsToSchool` fails closed), owner vs manager, instructors limited to their assigned learners and their own documents.
 - Append-only `audit_logs` (model guard + PostgreSQL trigger); school profile diffs, admin actions, deactivations are logged.
@@ -106,7 +106,9 @@ _Updated 2026-09-30 after remediation milestones M1–M7 (PRs #23–#28). Phases
 - Lead engine (M5): one lifecycle (New → Contacted → Follow-up → Interested → Converted / Lost), queued email to owner + managers on each new lead (per-school settings), one reminder for unanswered leads, first-response tracking with median / within-1h metrics, notes with follow-up dates and a lead timeline, public "usually replies within" badge.
 - Operations integrity (M7a): foreign IDs are checked against the school, payments only move pending → paid/failed, bookings lock the trainer/vehicle/learner and reject learner double-booking, calendars load by date range, dashboards show real numbers.
 - Operations screens and alerts (M7b): learner detail sheet (profile, licence, assignment history, progress, driving tests, documents); instructor management with set-password login emails and a performance table; trainer portal roster, four-way attendance with session summaries, self-service leave; schedule editing, leave approval with clash list, vehicle add/edit/retire with expiry-driven paper status; learner session history with feedback; public "Meet our trainers"; overview to-dos and completeness; owner and admin audit pages; hourly `driveiq:ops-reminders` (session 24h/2h, licence and vehicle paper expiry, missing documents) and document review notices.
-- PHPUnit on PostgreSQL/PostGIS in CI (240 tests) and Pint lint.
+- WhatsApp/SMS driver layer (M8): opt-ins as consent, lead alerts and reminders to staff, enquiry confirmations, session reminders; masked outbound log.
+- Supply acquisition (M9): listings are unclaimed / draft / published / suspended and only published ones are public; drafts go live once the owner's email is confirmed and phone, locality and map location are set; independent-trainer listings (Basic/Featured plans); admin prospects CRM with CSV import and duplicate checks; pre-built unclaimed listings claimed with a one-time code (email, SMS, or the Google account that manages the business); outreach email campaigns (sequences, daily cap, IST sending hours, RFC 8058 unsubscribe, suppression list, click/claim tracking); Google Ads lead-form webhook; Google Business Profile import and verification; `/for-schools` and `/for-trainers` landing pages with UTM attribution; acquisition funnel and supply-by-locality for admins.
+- PHPUnit on PostgreSQL/PostGIS in CI (305 tests) and Pint lint.
 
 **Frontend (React 19 + Vite + Tailwind 4), 47 pages:**
 - Public: home, search (radius, distance badges, verified filter), school detail (lazy Google Map, JSON-LD), locality pages (FAQ/Breadcrumb JSON-LD), compare, driving rules, contact, privacy/terms/data requests, review-by-link, invite acceptance, password reset.
@@ -118,7 +120,10 @@ _Updated 2026-09-30 after remediation milestones M1–M7 (PRs #23–#28). Phases
 | Gap | Phase |
 |-----|-------|
 | Admin review moderation has no bulk actions | 2 |
-| "Near me" entry point on the homepage (search page has it) | 1 |
+| "Near me" entry point on the homepage (search page has it) | 1 (M10) |
+| Production launch readiness: images, reverse proxy/TLS, trusted proxies, security headers, Spaces, backups, deep health check, deploy job, production seed (audit 2026-09-30) | M10 |
+| Outreach: automatic bounce/complaint handling (needs the mailbox's bounce feed); reply detection (admins mark "Replied") | M9 follow-up |
+| Google Business: review sync and replies, posts | Growth |
 | A real WhatsApp/SMS provider driver, plus inbound replies (STOP) and delivery receipts. The driver layer, opt-ins and four message types are built (M8). | Messaging |
 | OTP / mobile login | Auth |
 | Lead auto-assignment to a specific manager | Lead engine |
@@ -1048,6 +1053,9 @@ Phase 10: Analytics (depends on Phase 5-8)
 ---
 
 ## 18. Go-to-Market Strategy
+
+### Supply first (M9)
+Before learners are invited, schools and independent trainers are brought on board: prospects are listed (by hand, CSV, or Google Ads lead forms), a hidden listing is prepared for each, and a short outreach email sequence invites the owner to claim it. Google Business Profile owners can prove ownership and import their details in one step. Track it in Admin → Prospects (funnel, supply by locality) and Admin → Outreach.
 
 ### Launch 1: Marketplace MVP (Week 12)
 **Target:** Schools looking for lead generation  

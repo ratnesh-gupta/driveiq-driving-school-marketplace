@@ -91,6 +91,7 @@ class School extends Model
             'total_instructors' => 'integer',
             'profile_completeness' => 'integer',
             'claimed_at' => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 
@@ -102,6 +103,9 @@ class School extends Model
             // A draft goes live by itself once nothing blocks it (DIQ-1101/1102).
             if ($school->listing_status === 'draft' && $school->publishBlockers() === []) {
                 $school->listing_status = 'published';
+            }
+            if ($school->listing_status === 'published' && ! $school->published_at) {
+                $school->published_at = now();
             }
         });
 

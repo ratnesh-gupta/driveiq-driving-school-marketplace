@@ -21,14 +21,15 @@ class ListingOnboarding
     public function register(User $owner, string $type, array $extra = []): School
     {
         $utm = array_filter($extra['attribution'] ?? [], fn ($v) => is_string($v) && $v !== '');
-        $school = School::create([
+        $school = new School([
             'user_id' => $owner->id,
             'name' => $owner->name,
             'slug' => $this->slug($owner->name),
             'email' => $owner->email,
             'women_instructor' => (bool) ($extra['women_instructor'] ?? false),
         ]);
-        // Not fillable: only the platform decides a listing's type, status and attribution.
+        // Not fillable: only the platform decides a listing's type, status and
+        // attribution. Set before the first save, so it is never briefly live.
         $school->forceFill([
             'listing_type' => $type,
             'listing_status' => 'draft',

@@ -257,3 +257,25 @@ export function disconnectGoogleBusiness(schoolId: number) {
 export function claimWithGoogle(token: string) {
   return request<{ url: string }>(`/api/claims/${encodeURIComponent(token)}/google`);
 }
+
+// ── Acquisition funnel (DIQ-1109) ──
+
+export type AcquisitionStats = {
+  days: number;
+  prospects: { total: number; byStage: Record<ProspectStage, number>; bySource: Record<string, number> };
+  outreach: { sent: number; clicked: number; claimed: number; unsubscribed: number };
+  ads: { leads: number; signedUp: number };
+  listings: {
+    joined: number;
+    claimed: number;
+    bySource: Record<string, number>;
+    published: { schools: number; trainers: number };
+    waitingToPublish: number;
+    medianHoursToPublish: number | null;
+  };
+  supply: { localityId: number; locality: string; schools: number; trainers: number }[];
+};
+
+export function getAcquisitionStats(days: number) {
+  return request<AcquisitionStats>(`/api/admin/acquisition?days=${days}`);
+}
