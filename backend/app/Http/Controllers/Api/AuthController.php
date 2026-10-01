@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Requests\Api\RegisterRequest;
 use App\Models\User;
+use App\Notifications\VerifyOwnerEmail;
 use App\Services\ListingOnboarding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ class AuthController extends Controller
                 'women_instructor' => $request->boolean('womenInstructor'),
             ])->id;
             $user->refresh();
+            $user->notify(new VerifyOwnerEmail);
         }
 
         $token = $user->createToken('api-token')->plainTextToken;

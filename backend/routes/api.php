@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ConsentController;
 use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LeadNoteController;
@@ -44,6 +45,13 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth');
+    // DIQ-1102: the link in the email; the signature is the authentication.
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->whereNumber('id')
+        ->middleware(['signed', 'throttle:public-lookups'])
+        ->name('verification.verify');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])
+        ->middleware(['auth:sanctum', 'throttle:6,1']);
 });
 
 Route::prefix('schools')->group(function (): void {
