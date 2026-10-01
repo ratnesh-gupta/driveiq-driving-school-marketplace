@@ -46,6 +46,8 @@ class RetentionCommand extends Command
             'prospects' => fn () => DB::table('prospects')
                 ->where('stage', '!=', 'claimed')
                 ->where('updated_at', '<', now()->subMonths($months['prospects'])),
+            'outreach_messages' => fn () => DB::table('outreach_messages')
+                ->where('created_at', '<', now()->subMonths($months['outreach_messages'])),
             'data_subject_requests' => fn () => DB::table('data_subject_requests')
                 ->whereIn('status', ['completed', 'rejected'])
                 ->where('handled_at', '<', now()->subMonths($months['data_subject_requests'])),

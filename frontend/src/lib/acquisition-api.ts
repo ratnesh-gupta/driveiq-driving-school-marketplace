@@ -136,3 +136,76 @@ export function declineClaim(token: string) {
 export function issueClaimLink(prospectId: number) {
   return request<{ url: string; expiresAt: string }>(`/api/admin/prospects/${prospectId}/claim-link`, { method: "POST" });
 }
+
+// ── Outreach email (DIQ-1105) ──
+
+export type OutreachStep = { subject: string; body: string; delayDays?: number };
+
+export type OutreachCampaign = {
+  id: number;
+  name: string;
+  audience: ListingType;
+  status: "draft" | "active" | "paused";
+  steps: OutreachStep[];
+  startedAt: string | null;
+  createdAt: string;
+  stats: { enrolled: number; active: number; sent: number; failed: number; clicked: number; claimed: number; unsubscribed: number };
+};
+
+export type OutreachOverview = {
+  dailyCap: number;
+  sentToday: number;
+  withinSendingHours: boolean;
+  sendingHours: string;
+  mailer: string;
+  from: string;
+  placeholders: string[];
+};
+
+export type OutreachLogRow = {
+  id: number;
+  campaign: string | null;
+  prospect: { id: number; name: string; stage: ProspectStage } | null;
+  step: number;
+  to: string;
+  status: "sending" | "sent" | "failed" | "bounced";
+  error: string | null;
+  clickedAt: string | null;
+  sentAt: string;
+};
+
+export function getOutreachOverview() {
+  return request<OutreachOverview>("/api/admin/outreach");
+}
+
+export function listCampaigns() {
+  return request<OutreachCampaign[]>("/api/admin/outreach/campaigns");
+}
+
+export function saveCampaign(id: number | null, body: Partial<Pick<OutreachCampaign, "name" | "audience" | "steps" | "status">>) {
+  return id
+    ? request<OutreachCampaign>(`/api/admin/outreach/campaigns/${id}`, { method: "PATCH", body: JSON.stringify(body) })
+    : request<OutreachCampaign>("/api/admin/outreach/campaigns", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function enrollCampaign(id: number, body: { stages: string[]; localityId?: number; source?: string; dryRun?: boolean }) {
+  return request<{ count: number }>(`/api/admin/outreach/campaigns/${id}/enroll`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function sendCampaignTest(id: number, step: number) {
+  return request<{ message: string }>(`/api/admin/outreach/campaigns/${id}/test`, { method: "POST", body: JSON.stringify({ step }) });
+}
+
+export function listOutreachMessages(params: { campaignId?: number; status?: string; page?: number }) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => v !== undefined && v !== "" && q.set(k, String(v)));
+  return request<{ data: OutreachLogRow[]; meta: { page: number; lastPage: number; total: number } }>(`/api/admin/outreach/messages?${q}`);
+}
+
+export function markUndeliverable(id: number, reason: "bounced" | "complaint") {
+  return request(`/api/admin/outreach/messages/${id}/undeliverable`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
+export function unsubscribe(token: string) {
+  return request<{ message: string }>(`/api/outreach/unsubscribe/${encodeURIComponent(token)}`, { method: "POST" });
+}

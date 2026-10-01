@@ -41,6 +41,8 @@ import PaymentsPage from "@/pages/dashboard/payments";
 import TeamPage from "@/pages/dashboard/team";
 import TeamAcceptPage from "@/pages/team-accept";
 import ClaimPage from "@/pages/claim";
+import UnsubscribePage from "@/pages/unsubscribe";
+import AdminOutreachPage from "@/pages/admin/outreach";
 import ReviewViaLinkPage from "@/pages/review-via-link";
 
 import AdminHomePage from "@/pages/admin/index";
@@ -104,6 +106,7 @@ function Router() {
       <Route path="/compare" component={ComparePage} />
       <Route path="/team/accept" component={TeamAcceptPage} />
       <Route path="/claim/:token" component={ClaimPage} />
+      <Route path="/unsubscribe/:token" component={UnsubscribePage} />
       <Route path="/review" component={ReviewViaLinkPage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>
@@ -134,6 +137,7 @@ function Router() {
       <Route path="/admin/messages">{() => <AuthGuard requireRole="admin"><AdminMessagesPage /></AuthGuard>}</Route>
       <Route path="/admin/billing">{() => <AuthGuard requireRole="admin"><AdminBillingPage /></AuthGuard>}</Route>
       <Route path="/admin/prospects">{() => <AuthGuard requireRole="admin"><AdminProspectsPage /></AuthGuard>}</Route>
+      <Route path="/admin/outreach">{() => <AuthGuard requireRole="admin"><AdminOutreachPage /></AuthGuard>}</Route>
       <Route path="/admin/audit">{() => <AuthGuard requireRole="admin"><AdminAuditPage /></AuthGuard>}</Route>
 
       <Route path="/instructor">{() => <AuthGuard requireRole="instructor"><InstructorHomePage /></AuthGuard>}</Route>

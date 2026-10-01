@@ -215,6 +215,7 @@ const mr: TranslationTree = {
     messages: "संदेश",
     billing: "उत्पन्न आणि बिलिंग",
     prospects: "संभाव्य शाळा",
+    outreach: "आउटरीच ईमेल",
     audit: "ऑडिट नोंद",
     title: "अॅडमिन पोर्टल",
     brand: "DriveIQ अॅडमिन",

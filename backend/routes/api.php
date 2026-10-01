@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminMonetizationController;
+use App\Http\Controllers\Api\AdminOutreachController;
 use App\Http\Controllers\Api\AdminProspectController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
@@ -93,6 +94,9 @@ Route::prefix('claims/{token}')->group(function (): void {
     Route::post('/complete', [ListingClaimController::class, 'complete'])->middleware('throttle:public-forms');
     Route::post('/decline', [ListingClaimController::class, 'decline'])->middleware('throttle:public-forms');
 });
+
+// One-click unsubscribe from outreach email (DIQ-1105, RFC 8058).
+Route::post('/outreach/unsubscribe/{token}', [AdminOutreachController::class, 'unsubscribe'])->middleware('throttle:public-lookups');
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
     ->middleware('throttle:public-forms');
@@ -220,6 +224,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/admin/prospects/{id}', [AdminProspectController::class, 'update'])->whereNumber('id');
         Route::post('/admin/prospects/{id}/listing', [AdminProspectController::class, 'createListing'])->whereNumber('id');
         Route::post('/admin/prospects/{id}/claim-link', [ListingClaimController::class, 'adminLink'])->whereNumber('id');
+
+        // Outreach email (DIQ-1105).
+        Route::get('/admin/outreach', [AdminOutreachController::class, 'overview']);
+        Route::get('/admin/outreach/campaigns', [AdminOutreachController::class, 'index']);
+        Route::post('/admin/outreach/campaigns', [AdminOutreachController::class, 'store']);
+        Route::patch('/admin/outreach/campaigns/{id}', [AdminOutreachController::class, 'update'])->whereNumber('id');
+        Route::post('/admin/outreach/campaigns/{id}/enroll', [AdminOutreachController::class, 'enroll'])->whereNumber('id');
+        Route::post('/admin/outreach/campaigns/{id}/test', [AdminOutreachController::class, 'test'])->whereNumber('id');
+        Route::get('/admin/outreach/messages', [AdminOutreachController::class, 'messages']);
+        Route::post('/admin/outreach/messages/{id}/undeliverable', [AdminOutreachController::class, 'undeliverable'])->whereNumber('id');
         Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);

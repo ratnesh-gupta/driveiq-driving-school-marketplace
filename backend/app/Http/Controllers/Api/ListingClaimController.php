@@ -7,6 +7,7 @@ use App\Models\ListingClaim;
 use App\Models\Prospect;
 use App\Models\School;
 use App\Services\ListingClaimService;
+use App\Services\OutreachService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -25,8 +26,10 @@ class ListingClaimController extends Controller
         if (! $claim->isUsable()) {
             return response()->json(['message' => 'This listing has already been claimed or the link has expired.'], 410);
         }
-        $claim->opened_at ??= now();
-        $claim->save();
+        if (! $claim->opened_at) {
+            $claim->forceFill(['opened_at' => now()])->save();
+            OutreachService::markClicked($claim->outreach_message_id);
+        }
 
         $school = $claim->school->load('locality:id,name');
 

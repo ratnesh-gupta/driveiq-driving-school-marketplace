@@ -60,3 +60,6 @@ Schedule::command('driveiq:subscriptions')->dailyAt('03:15')->withoutOverlapping
 
 // Session reminders, licence / vehicle paper expiry, missing documents (DIQ-913).
 Schedule::command('driveiq:ops-reminders')->hourly()->withoutOverlapping();
+
+// School / trainer outreach emails (DIQ-1105): sends only within sending hours and the daily cap.
+Schedule::command('driveiq:outreach')->everyFifteenMinutes()->withoutOverlapping();

@@ -37,6 +37,19 @@ return [
 
     'mailers' => [
 
+        // School / trainer outreach (DIQ-1105): a separate mailbox on its own
+        // subdomain (e.g. Google Workspace), so outreach can never hurt the
+        // delivery of password resets and lead alerts. See config/outreach.php.
+        'outreach' => [
+            'transport' => 'smtp',
+            'scheme' => env('OUTREACH_MAIL_SCHEME'),
+            'host' => env('OUTREACH_MAIL_HOST', 'smtp.gmail.com'),
+            'port' => env('OUTREACH_MAIL_PORT', 587),
+            'username' => env('OUTREACH_MAIL_USERNAME'),
+            'password' => env('OUTREACH_MAIL_PASSWORD'),
+            'timeout' => 30,
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
