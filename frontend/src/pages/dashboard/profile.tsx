@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { Save, ShieldCheck, X, Plus, LocateFixed } from "lucide-react";
 import { ProfileCompleteness } from "@/features/comparison/components/profile-completeness";
+import { GoogleBusinessCard } from "@/components/google-business-card";
 
 interface BatchTiming {
   slot: string;
@@ -311,6 +312,8 @@ export default function ProfilePage() {
             completeness={school?.profileCompleteness ?? 0}
             missingFields={missingFields}
           />
+
+          {schoolId && <GoogleBusinessCard schoolId={schoolId} />}
 
           <Tabs defaultValue="basic" className="space-y-6">
             <TabsList className="w-full justify-start overflow-x-auto">

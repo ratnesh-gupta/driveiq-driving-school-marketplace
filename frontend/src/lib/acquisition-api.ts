@@ -107,7 +107,7 @@ export function importProspects(file: File, type: ListingType, preview: boolean)
 
 export type ClaimPreview = {
   listing: { name: string; type: ListingType; locality: string | null; address: string | null };
-  channels: { email?: string; sms?: string };
+  channels: { email?: string; sms?: string; google?: string };
   expiresAt: string;
 };
 
@@ -208,4 +208,52 @@ export function markUndeliverable(id: number, reason: "bounced" | "complaint") {
 
 export function unsubscribe(token: string) {
   return request<{ message: string }>(`/api/outreach/unsubscribe/${encodeURIComponent(token)}`, { method: "POST" });
+}
+
+// ── Google Business Profile (DIQ-1107) ──
+
+export type GoogleBusinessStatus = {
+  enabled: boolean;
+  connected: boolean;
+  location: { title: string; placeId: string | null } | null;
+  rating: number | null;
+  reviewCount: number | null;
+  importedAt: string | null;
+};
+
+export type GoogleLocation = {
+  name: string;
+  title: string;
+  address: string | null;
+  phone: string | null;
+  placeId: string | null;
+  verified: boolean;
+  hours: string | null;
+};
+
+export function getGoogleBusiness(schoolId: number) {
+  return request<GoogleBusinessStatus>(`/api/schools/${schoolId}/google-business`);
+}
+
+export function connectGoogleBusiness(schoolId: number) {
+  return request<{ url: string }>(`/api/schools/${schoolId}/google-business/connect`, { method: "POST" });
+}
+
+export function listGoogleLocations(schoolId: number) {
+  return request<GoogleLocation[]>(`/api/schools/${schoolId}/google-business/locations`);
+}
+
+export function importGoogleLocation(schoolId: number, location: string) {
+  return request<{ verified: boolean; rating: number | null; reviewCount: number | null }>(`/api/schools/${schoolId}/google-business/import`, {
+    method: "POST",
+    body: JSON.stringify({ location }),
+  });
+}
+
+export function disconnectGoogleBusiness(schoolId: number) {
+  return request<void>(`/api/schools/${schoolId}/google-business`, { method: "DELETE" });
+}
+
+export function claimWithGoogle(token: string) {
+  return request<{ url: string }>(`/api/claims/${encodeURIComponent(token)}/google`);
 }

@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { setStoredToken } from "@/lib/auth-api";
 import { useAuthStore } from "@/lib/store";
 import { saveRegisterConsent, setRoleConsent } from "@/lib/consent";
-import { completeClaim, declineClaim, getClaim, sendClaimCode } from "@/lib/acquisition-api";
+import { claimWithGoogle, completeClaim, declineClaim, getClaim, sendClaimCode } from "@/lib/acquisition-api";
 
 /**
  * DIQ-1104: the owner of a listing we built opens the link from our email,
@@ -23,8 +23,15 @@ export default function ClaimPage() {
   const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
 
   const preview = useQuery({ queryKey: ["claim", token], queryFn: () => getClaim(token), retry: false });
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState("");
+  // Back from Google (DIQ-1107): a verified match comes with a one-time code.
+  const [googleResult] = useState(() => {
+    const q = new URLSearchParams(window.location.search);
+    const result = q.get("google");
+    if (result) window.history.replaceState(null, "", window.location.pathname);
+    return { result, code: q.get("code") ?? "" };
+  });
+  const [sentTo, setSentTo] = useState<string | null>(googleResult.result === "verified" ? "Google Business Profile" : null);
+  const [code, setCode] = useState(googleResult.result === "verified" ? googleResult.code : "");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,13 +52,17 @@ export default function ClaimPage() {
       setLocation("/dashboard");
     },
   });
+  const google = useMutation({
+    mutationFn: () => claimWithGoogle(token),
+    onSuccess: (r) => window.location.assign(r.url),
+  });
   const decline = useMutation({
     mutationFn: () => declineClaim(token),
     onSuccess: (r) => setDeclined(r.message),
   });
 
   const listing = preview.data?.listing;
-  const channels = preview.data?.channels ?? {};
+  const channels: { email?: string; sms?: string; google?: string } = preview.data?.channels ?? {};
   const canSubmit = code.length === 6 && name.trim() && email.trim() && password && agree.terms && agree.privacy && agree.processing;
 
   return (
@@ -88,6 +99,11 @@ export default function ClaimPage() {
                       <MailCheck className="h-4 w-4 mr-1" /> Email a code to {channels.email}
                     </Button>
                   )}
+                  {channels.google && (
+                    <Button variant="outline" size="sm" disabled={google.isPending} onClick={() => google.mutate()} data-testid="button-code-google">
+                      Prove with Google Business Profile
+                    </Button>
+                  )}
                   {channels.sms && (
                     <Button variant="outline" size="sm" disabled={send.isPending} onClick={() => send.mutate("sms")} data-testid="button-code-sms">
                       <MessageSquareText className="h-4 w-4 mr-1" /> Text a code to {channels.sms}
@@ -96,7 +112,11 @@ export default function ClaimPage() {
                 </div>
               )}
               {send.isError && <p className="text-xs text-destructive">{(send.error as Error).message}</p>}
-              {sentTo && <p className="text-xs text-green-700 dark:text-green-400 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Code sent to {sentTo}. It works for 10 minutes.</p>}
+              {googleResult.result === "nomatch" && (
+                <p className="text-xs text-destructive" data-testid="text-google-nomatch">That Google account does not manage a verified profile for this business. Try another account or use a code.</p>
+              )}
+              {googleResult.result === "verified" && <p className="text-xs text-green-700 dark:text-green-400">Google confirmed you manage this business. The code is filled in for you.</p>}
+              {sentTo && sentTo !== "Google Business Profile" && <p className="text-xs text-green-700 dark:text-green-400 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Code sent to {sentTo}. It works for 10 minutes.</p>}
             </div>
 
             {sentTo && (

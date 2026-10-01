@@ -63,6 +63,10 @@ class ListingClaimService
         if (($phone = Phone::toE164($school->phone)) && (config('messaging.driver') ?? 'null') !== 'null') {
             $out['sms'] = Phone::mask($phone);
         }
+        // DIQ-1107: listings built from a Google place can be proved with Google.
+        if ($school->google_place_id && app(GoogleBusinessService::class)->enabled()) {
+            $out['google'] = 'Google Business Profile';
+        }
 
         return $out;
     }
