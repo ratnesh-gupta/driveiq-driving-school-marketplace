@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\GoogleAdsLeadController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LeadNoteController;
@@ -94,6 +95,9 @@ Route::prefix('claims/{token}')->group(function (): void {
     Route::post('/complete', [ListingClaimController::class, 'complete'])->middleware('throttle:public-forms');
     Route::post('/decline', [ListingClaimController::class, 'decline'])->middleware('throttle:public-forms');
 });
+
+// Google Ads lead form webhook (DIQ-1106); authenticated by the shared google_key.
+Route::post('/webhooks/google-ads/lead', GoogleAdsLeadController::class)->middleware('throttle:60,1');
 
 // One-click unsubscribe from outreach email (DIQ-1105, RFC 8058).
 Route::post('/outreach/unsubscribe/{token}', [AdminOutreachController::class, 'unsubscribe'])->middleware('throttle:public-lookups');
