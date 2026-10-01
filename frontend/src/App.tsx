@@ -40,6 +40,10 @@ import SchoolMessagesPage from "@/pages/dashboard/messages";
 import PaymentsPage from "@/pages/dashboard/payments";
 import TeamPage from "@/pages/dashboard/team";
 import TeamAcceptPage from "@/pages/team-accept";
+import ClaimPage from "@/pages/claim";
+import ForListingsPage from "@/pages/for-listings";
+import UnsubscribePage from "@/pages/unsubscribe";
+import AdminOutreachPage from "@/pages/admin/outreach";
 import ReviewViaLinkPage from "@/pages/review-via-link";
 
 import AdminHomePage from "@/pages/admin/index";
@@ -52,6 +56,7 @@ import AdminDataRequestsPage from "@/pages/admin/data-requests";
 import AdminMessagesPage from "@/pages/admin/messages";
 import AdminBillingPage from "@/pages/admin/billing";
 import AdminAuditPage from "@/pages/admin/audit";
+import AdminProspectsPage from "@/pages/admin/prospects";
 import SchoolAuditPage from "@/pages/dashboard/audit";
 
 import InstructorHomePage from "@/pages/instructor/index";
@@ -101,6 +106,10 @@ function Router() {
       <Route path="/auth/reset-password" component={ResetPasswordPage} />
       <Route path="/compare" component={ComparePage} />
       <Route path="/team/accept" component={TeamAcceptPage} />
+      <Route path="/claim/:token" component={ClaimPage} />
+      <Route path="/for-schools">{() => <ForListingsPage audience="school" />}</Route>
+      <Route path="/for-trainers">{() => <ForListingsPage audience="trainer" />}</Route>
+      <Route path="/unsubscribe/:token" component={UnsubscribePage} />
       <Route path="/review" component={ReviewViaLinkPage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>
@@ -130,6 +139,8 @@ function Router() {
       <Route path="/admin/data-requests">{() => <AuthGuard requireRole="admin"><AdminDataRequestsPage /></AuthGuard>}</Route>
       <Route path="/admin/messages">{() => <AuthGuard requireRole="admin"><AdminMessagesPage /></AuthGuard>}</Route>
       <Route path="/admin/billing">{() => <AuthGuard requireRole="admin"><AdminBillingPage /></AuthGuard>}</Route>
+      <Route path="/admin/prospects">{() => <AuthGuard requireRole="admin"><AdminProspectsPage /></AuthGuard>}</Route>
+      <Route path="/admin/outreach">{() => <AuthGuard requireRole="admin"><AdminOutreachPage /></AuthGuard>}</Route>
       <Route path="/admin/audit">{() => <AuthGuard requireRole="admin"><AdminAuditPage /></AuthGuard>}</Route>
 
       <Route path="/instructor">{() => <AuthGuard requireRole="instructor"><InstructorHomePage /></AuthGuard>}</Route>

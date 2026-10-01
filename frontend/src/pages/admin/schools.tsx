@@ -14,10 +14,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useDeleteSchool } from "@/api-client";
 import type { School } from "@/api-client/generated/api.schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listSchoolsPage, updateSchoolVerification, type VerificationFlags } from "@/lib/ops-api";
+import { listSchoolsPage, updateListingStatus, updateSchoolVerification, type VerificationFlags } from "@/lib/ops-api";
 import { ShieldCheck, Trash2, Building2, Star, Phone, Briefcase, MapPin, Crown } from "lucide-react";
 
 const PAGE_SIZE = 25;
+
+const STATUS_LABEL: Record<string, string> = {
+  published: "Live", draft: "Draft", unclaimed: "Unclaimed", suspended: "Suspended",
+};
+const STATUS_CLASS: Record<string, string> = {
+  published: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  draft: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  unclaimed: "bg-muted text-muted-foreground",
+  suspended: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
 
 const CHECKS: { key: keyof Omit<VerificationFlags, "verified">; label: string; help: string; icon: typeof Phone }[] = [
   { key: "phoneVerified", label: "Phone verified", help: "We reached the school on its listed number.", icon: Phone },
@@ -44,11 +54,24 @@ export default function AdminSchoolsPage() {
   const [reviewing, setReviewing] = useState<School | null>(null);
   const [flags, setFlags] = useState<VerificationFlags | null>(null);
   const [deleting, setDeleting] = useState<School | null>(null);
+  const [status, setStatus] = useState("");
 
-  const queryKey = ["admin", "schools", page];
+  const queryKey = ["admin", "schools", page, status];
   const { data, isLoading } = useQuery({
     queryKey,
-    queryFn: () => listSchoolsPage<School>({ limit: PAGE_SIZE, offset: page * PAGE_SIZE }),
+    queryFn: () => listSchoolsPage<School>({ limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeHidden: true, listingStatus: status || undefined }),
+  });
+
+  const setListing = useMutation({
+    mutationFn: ({ school, next }: { school: School; next: "suspended" | "published" }) => {
+      const reason = next === "suspended" ? window.prompt(`Why are you hiding ${school.name}? (kept in the audit log)`) ?? undefined : undefined;
+      return updateListingStatus(school.id, next, reason);
+    },
+    onSuccess: (_, { school, next }) => {
+      toast({ title: next === "suspended" ? "Listing hidden" : "Listing live again", description: school.name });
+      queryClient.invalidateQueries({ queryKey: ["admin", "schools"] });
+    },
+    onError: (e: Error) => toast({ title: "Could not change the listing", description: e.message, variant: "destructive" }),
   });
   const schools = data?.schools ?? [];
   const total = data?.total ?? 0;
@@ -88,12 +111,26 @@ export default function AdminSchoolsPage() {
         <p className="text-muted-foreground text-sm mt-1">Verify and manage all listed schools. Every change is recorded in the audit log.</p>
       </div>
 
+      <div className="mb-4 flex items-center gap-2 text-sm">
+        <label htmlFor="listing-status-filter" className="text-muted-foreground">Status</label>
+        <select
+          id="listing-status-filter"
+          className="h-9 rounded-md border bg-background px-2"
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(0); }}
+          data-testid="select-listing-status"
+        >
+          <option value="">All</option>
+          {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      </div>
+
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
               <tr>
-                {["School", "Locality", "Rating", "Verification", "Actions"].map(h => (
+                {["School", "Status", "Locality", "Rating", "Verification", "Actions"].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">{h}</th>
                 ))}
               </tr>
@@ -101,11 +138,11 @@ export default function AdminSchoolsPage() {
             <tbody className="divide-y">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={5} className="px-4 py-3"><Skeleton className="h-8" /></td></tr>
+                  <tr key={i}><td colSpan={6} className="px-4 py-3"><Skeleton className="h-8" /></td></tr>
                 ))
               ) : !schools.length ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                  <td colSpan={6} className="text-center py-12 text-muted-foreground">
                     <Building2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
                     No schools found
                   </td>
@@ -117,7 +154,14 @@ export default function AdminSchoolsPage() {
                   <tr key={school.id} className="hover:bg-muted/20 transition-colors" data-testid={`row-school-${school.id}`}>
                     <td className="px-4 py-3">
                       <div className="font-medium">{school.name}</div>
-                      <div className="text-xs text-muted-foreground truncate max-w-48">{school.address}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-48">
+                        {school.listingType === "trainer" ? "Independent trainer · " : ""}{school.address}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge className={`border-0 text-xs ${STATUS_CLASS[school.listingStatus ?? "published"]}`} data-testid={`status-school-${school.id}`}>
+                        {STATUS_LABEL[school.listingStatus ?? "published"]}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{school.localityName || "—"}</td>
                     <td className="px-4 py-3">
@@ -144,6 +188,16 @@ export default function AdminSchoolsPage() {
                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openReview(school)} data-testid={`button-review-school-${school.id}`}>
                           Review
                         </Button>
+                        {school.listingStatus === "published" && (
+                          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => setListing.mutate({ school, next: "suspended" })} data-testid={`button-suspend-school-${school.id}`}>
+                            Hide
+                          </Button>
+                        )}
+                        {school.listingStatus === "suspended" && (
+                          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => setListing.mutate({ school, next: "published" })} data-testid={`button-restore-school-${school.id}`}>
+                            Restore
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" aria-label={`Delete ${school.name}`} onClick={() => setDeleting(school)} data-testid={`button-delete-school-${school.id}`}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

@@ -285,7 +285,7 @@ function PlacementsTab() {
   const { data: settings } = useQuery({ queryKey: ["admin", "marketplace-settings"], queryFn: fetchMarketplaceSettings });
   const { data: schools } = useQuery({
     queryKey: ["admin", "school-options"],
-    queryFn: () => listSchoolsPage<{ id: number; name: string }>({ limit: 100, offset: 0 }),
+    queryFn: () => listSchoolsPage<{ id: number; name: string }>({ limit: 100, offset: 0, includeHidden: true }),
   });
   const { data: localities } = useListLocalities();
 

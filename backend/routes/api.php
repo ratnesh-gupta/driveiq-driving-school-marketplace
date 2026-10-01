@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAcquisitionController;
 use App\Http\Controllers\Api\AdminMonetizationController;
+use App\Http\Controllers\Api\AdminOutreachController;
+use App\Http\Controllers\Api\AdminProspectController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
@@ -10,10 +13,14 @@ use App\Http\Controllers\Api\ConsentController;
 use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\GoogleAdsLeadController;
+use App\Http\Controllers\Api\GoogleBusinessController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LeadNoteController;
 use App\Http\Controllers\Api\LearnerController;
+use App\Http\Controllers\Api\ListingClaimController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
@@ -44,6 +51,13 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth');
+    // DIQ-1102: the link in the email; the signature is the authentication.
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->whereNumber('id')
+        ->middleware(['signed', 'throttle:public-lookups'])
+        ->name('verification.verify');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])
+        ->middleware(['auth:sanctum', 'throttle:6,1']);
 });
 
 Route::prefix('schools')->group(function (): void {
@@ -75,6 +89,25 @@ Route::post('/inquiries', [InquiryController::class, 'store'])
 Route::get('/team/invitations/{token}', [SchoolTeamController::class, 'showInvitation'])
     ->middleware('throttle:public-lookups');
 Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware('throttle:public-forms');
+
+// Claiming a pre-built listing (DIQ-1104): the token in the link is the key.
+Route::prefix('claims/{token}')->group(function (): void {
+    Route::get('/', [ListingClaimController::class, 'show'])->middleware('throttle:public-lookups');
+    Route::post('/code', [ListingClaimController::class, 'sendCode'])->middleware('throttle:public-forms');
+    Route::post('/complete', [ListingClaimController::class, 'complete'])->middleware('throttle:public-forms');
+    Route::post('/decline', [ListingClaimController::class, 'decline'])->middleware('throttle:public-forms');
+    Route::get('/google', [GoogleBusinessController::class, 'claimConnect'])->middleware('throttle:public-forms');
+});
+
+// Google Business Profile OAuth return (DIQ-1107); the encrypted state says who and why.
+Route::get('/google-business/callback', [GoogleBusinessController::class, 'callback'])
+    ->middleware('throttle:public-lookups')->name('google-business.callback');
+
+// Google Ads lead form webhook (DIQ-1106); authenticated by the shared google_key.
+Route::post('/webhooks/google-ads/lead', GoogleAdsLeadController::class)->middleware('throttle:60,1');
+
+// One-click unsubscribe from outreach email (DIQ-1105, RFC 8058).
+Route::post('/outreach/unsubscribe/{token}', [AdminOutreachController::class, 'unsubscribe'])->middleware('throttle:public-lookups');
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
     ->middleware('throttle:public-forms');
@@ -162,6 +195,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::middleware('role:admin')->group(function (): void {
         Route::post('/schools', [SchoolController::class, 'store']);
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
+        Route::patch('/admin/schools/{id}/listing-status', [SchoolController::class, 'updateListingStatus'])->whereNumber('id');
         Route::post('/localities', [LocalityController::class, 'store']);
 
         // Review moderation is platform-admin only; schools can report a review instead.
@@ -193,6 +227,25 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
         Route::get('/admin/outbound-messages', [OutboundMessageController::class, 'index']);
+
+        // School and trainer acquisition (DIQ-1103, funnel DIQ-1109).
+        Route::get('/admin/acquisition', AdminAcquisitionController::class);
+        Route::get('/admin/prospects', [AdminProspectController::class, 'index']);
+        Route::post('/admin/prospects', [AdminProspectController::class, 'store']);
+        Route::post('/admin/prospects/import', [AdminProspectController::class, 'import']);
+        Route::patch('/admin/prospects/{id}', [AdminProspectController::class, 'update'])->whereNumber('id');
+        Route::post('/admin/prospects/{id}/listing', [AdminProspectController::class, 'createListing'])->whereNumber('id');
+        Route::post('/admin/prospects/{id}/claim-link', [ListingClaimController::class, 'adminLink'])->whereNumber('id');
+
+        // Outreach email (DIQ-1105).
+        Route::get('/admin/outreach', [AdminOutreachController::class, 'overview']);
+        Route::get('/admin/outreach/campaigns', [AdminOutreachController::class, 'index']);
+        Route::post('/admin/outreach/campaigns', [AdminOutreachController::class, 'store']);
+        Route::patch('/admin/outreach/campaigns/{id}', [AdminOutreachController::class, 'update'])->whereNumber('id');
+        Route::post('/admin/outreach/campaigns/{id}/enroll', [AdminOutreachController::class, 'enroll'])->whereNumber('id');
+        Route::post('/admin/outreach/campaigns/{id}/test', [AdminOutreachController::class, 'test'])->whereNumber('id');
+        Route::get('/admin/outreach/messages', [AdminOutreachController::class, 'messages']);
+        Route::post('/admin/outreach/messages/{id}/undeliverable', [AdminOutreachController::class, 'undeliverable'])->whereNumber('id');
         Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
@@ -201,6 +254,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::middleware(['role:school,admin', 'plan.features'])->group(function (): void {
         Route::patch('/schools/{id}', [SchoolController::class, 'update'])->whereNumber('id');
+
+        // Google Business Profile (DIQ-1107).
+        Route::get('/schools/{id}/google-business', [GoogleBusinessController::class, 'status'])->whereNumber('id');
+        Route::post('/schools/{id}/google-business/connect', [GoogleBusinessController::class, 'connect'])->whereNumber('id');
+        Route::get('/schools/{id}/google-business/locations', [GoogleBusinessController::class, 'locations'])->whereNumber('id');
+        Route::post('/schools/{id}/google-business/import', [GoogleBusinessController::class, 'import'])->whereNumber('id');
+        Route::delete('/schools/{id}/google-business', [GoogleBusinessController::class, 'disconnect'])->whereNumber('id');
 
         Route::get('/inquiries', [InquiryController::class, 'index']);
         Route::patch('/inquiries/{id}', [InquiryController::class, 'update'])->whereNumber('id');

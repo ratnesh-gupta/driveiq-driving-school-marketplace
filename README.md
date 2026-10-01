@@ -155,7 +155,8 @@ pnpm install && pnpm dev
 | Role | Path | How the account is created | Focus |
 |------|------|----------------------------|-------|
 | Platform admin | `/admin` | `make artisan CMD="driveiq:create-admin you@example.com"` (no self-registration) | Schools & verification, reviews, users, data requests, contact messages, analytics |
-| School owner | `/dashboard` | Registers as "School" | Everything for their school, incl. inviting/removing managers and deleting packages/instructors |
+| School owner | `/dashboard` | Registers as "Driving School", or claims a listing we prepared (`/claim/…`) | Everything for their school, incl. inviting/removing managers and deleting packages/instructors |
+| Independent trainer | `/dashboard` | Registers as "Trainer" (or claims a prepared profile) | Their own trainer listing: enquiries, learners, sessions, reviews (no team or other trainers) |
 | School manager | `/dashboard` | Invited by the owner (optional), accepts via email link | Leads, learners, instructors, schedules, vehicles, payments (not team management or deletes above) |
 | Instructor | `/instructor` | Login created by their school | Assigned sessions, attendance, progress of assigned learners, own documents |
 | Learner | `/learner` | Registers as "Learner"; linked when a school enrols them | Progress, sessions, documents, messages, review their school |
@@ -185,6 +186,7 @@ Two background processes are required outside tests (both are services in `docke
   - token pruning and the retention report, daily
   - plan lifecycle (`driveiq:subscriptions`): trial/plan ending reminders and expiry, daily
   - operations reminders (`driveiq:ops-reminders`): session reminders 24h and 2h before, learner licence and vehicle paper expiry, missing learner documents; hourly, each sent once
+  - outreach email (`driveiq:outreach`): every 15 minutes, only within sending hours and the daily cap
 
 Schools choose who is alerted about new leads, and when to be reminded, at `/dashboard/settings`.
 
@@ -219,6 +221,33 @@ Delivery goes through a provider-neutral driver:
 - The log is deleted after 90 days by `driveiq:retention`.
 - The same message about the same thing is never sent to the same number twice.
 
+## School & trainer acquisition
+
+New listings start as **drafts**. A draft goes live by itself once the owner has confirmed their email and added a phone number, locality and map location (`/dashboard` shows the checklist). Admins can hide or restore any listing in `/admin/schools`.
+
+**Prospects** (`/admin/prospects`): schools and independent trainers we want on board.
+- Add them by hand or import a CSV (headings are matched by name: `name` is required; `phone`, `email`, `locality`, `latitude`, `longitude`, `place id`, … are optional). The import shows a preview with duplicates (same phone, email or Google place id) before saving.
+- "Create listing" prepares a hidden, **unclaimed** listing from the prospect. The owner claims it from a link (outreach email, or "Copy claim link" to send by WhatsApp): they prove the listing's email or phone with a 6-digit code (or sign in with the Google account that manages the business), create their account, and the listing goes live.
+- "Do not contact", an unsubscribe or "Not my business" removes the unclaimed listing and adds the email/phone (as SHA-256 hashes) to the outreach suppression list.
+- Prospects that never came on board are deleted after 12 months by `driveiq:retention`.
+
+**Outreach email** (`/admin/outreach`): sequences of up to 3 emails per campaign.
+- `driveiq:outreach` (every 15 minutes) sends due emails Mon–Sat 10:00–18:00 IST, at most `OUTREACH_DAILY_CAP` a day.
+- Each email has one-click unsubscribe headers (RFC 8058) and a footer link with your postal address.
+- A sequence stops when the prospect replies (mark them "Replied"), claims, signs up on their own, unsubscribes, bounces or complains.
+- Mailbox setup:
+  1. Create a mailbox on a subdomain (e.g. `partners@hello.driveiq.in` in Google Workspace) so outreach can never hurt password-reset and lead-alert delivery.
+  2. Publish SPF (`include:_spf.google.com`), DKIM (Workspace admin → Gmail → Authenticate email) and DMARC (`v=DMARC1; p=none; rua=mailto:…`, tighten later) for that subdomain.
+  3. Use an app password (or the Workspace SMTP relay) in `OUTREACH_MAIL_*`, then set `OUTREACH_MAILER=outreach`. Until then emails go to the log and the admin page says so.
+  4. Start with a small cap (50–150/day) and watch the bounce and complaint numbers in the campaign cards.
+- Under India's DPDP rules, outreach to business contacts should stay relevant, identify DriveIQ, and honour opt-outs immediately; all three are built in. Keep prospect notes factual.
+
+**Google Ads lead forms**: in the lead form's *Webhook integration*, use `https://<api-host>/api/webhooks/google-ads/lead` and the key from `GOOGLE_ADS_WEBHOOK_KEY`. Each lead is filed once as a prospect (source "ads"); the person gets an onboarding email with the claim link or the sign-up page. Google's "Send test data" is recorded but not filed.
+
+**Google Business Profile**: create an OAuth web client in Google Cloud with the redirect URI `https://<api-host>/api/google-business/callback`, request access to the Business Profile APIs (the project needs Google's approval), then set `GOOGLE_OAUTH_CLIENT_ID/SECRET`. Owners can then import their Google details on the profile page, and a Google-verified business gets the business-verified check. Without the variables the feature is hidden.
+
+**Landing pages**: `/for-schools` and `/for-trainers`. UTM tags from the first visit are stored with the registration (source `outreach`, `ads` or `organic`). Funnel numbers and supply by locality are at the top of `/admin/prospects`.
+
 ## Plans & billing
 
 | | Basic (free) | Featured Rs 1,999/mo | Premium Rs 4,999/mo | Enterprise Rs 14,999/mo |
@@ -237,7 +266,7 @@ Delivery goes through a provider-neutral driver:
   - `BILLING_GST_RATE`, `BILLING_DUE_DAYS`.
   - `BILLING_SELLER_NAME`, `BILLING_SELLER_ADDRESS`, `BILLING_GSTIN`, `BILLING_EMAIL`.
   - `BILLING_UPI_ID`, `BILLING_BANK_NAME`, `BILLING_BANK_ACCOUNT_NAME`, `BILLING_BANK_ACCOUNT_NUMBER`, `BILLING_BANK_IFSC`.
-- The tier matrix itself lives in `backend/config/plans.php`.
+- The tier matrix itself lives in `backend/config/plans.php`. Independent trainers can buy Basic and Featured only (`plans.listing_types`).
 
 ## Documentation
 

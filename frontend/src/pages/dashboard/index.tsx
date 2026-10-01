@@ -7,9 +7,12 @@ import { useSchoolId } from "@/hooks/use-school-id";
 import { TrendingUp, Users, Star, MessageCircle, AlertCircle, Timer, Zap, Hourglass, GraduationCap, ChevronRight, ClipboardList } from "lucide-react";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { fetchSchoolDashboard } from "@/lib/ops-api";
 import { formatDuration } from "@/lib/response-time";
+import { GoLiveChecklist } from "@/components/go-live-checklist";
 
 function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.ElementType; label: string; value: string | number; sub?: string; color: string }) {
   return (
@@ -50,14 +53,30 @@ export default function DashboardHomePage() {
   });
   const rt = dashboard?.metrics.responseTime;
 
+  // Landing here from the confirmation email (DIQ-1102).
+  const qc = useQueryClient();
+  useEffect(() => {
+    const verified = new URLSearchParams(window.location.search).get("verified");
+    if (!verified) return;
+    if (verified === "1") {
+      toast.success("Email confirmed. Thank you!");
+      void qc.invalidateQueries({ queryKey: ["school-dashboard"] });
+    } else {
+      toast.error("That confirmation link is not valid any more. Send yourself a new one below.");
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [qc]);
+
   const recentInquiries = (inquiries || []).slice(0, 5);
 
   return (
     <DashboardLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-        <p className="text-muted-foreground text-sm mt-1">Welcome back. Here's how your school is performing.</p>
+        <p className="text-muted-foreground text-sm mt-1">Welcome back. Here's how your {dashboard?.listingType === "trainer" ? "listing" : "school"} is performing.</p>
       </div>
+
+      {dashboard && <GoLiveChecklist status={dashboard.listingStatus} blockers={dashboard.publishBlockers} />}
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

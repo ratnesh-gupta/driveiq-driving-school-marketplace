@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api;
 
 use App\Http\Requests\Api\Concerns\GuardsAgainstBots;
+use Illuminate\Validation\Rule;
 
 class StoreInquiryRequest extends BaseFormRequest
 {
@@ -11,7 +12,8 @@ class StoreInquiryRequest extends BaseFormRequest
     public function rules(): array
     {
         return [
-            'schoolId' => ['required', 'integer', 'exists:schools,id'],
+            // Only live listings take enquiries and reviews (DIQ-1101).
+            'schoolId' => ['required', 'integer', Rule::exists('schools', 'id')->where('listing_status', 'published')],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],

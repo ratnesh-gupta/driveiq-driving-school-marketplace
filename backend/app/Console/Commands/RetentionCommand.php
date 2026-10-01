@@ -41,6 +41,13 @@ class RetentionCommand extends Command
             // WhatsApp / SMS attempt log (DIQ-1006): numbers are masked, kept briefly.
             'outbound_messages' => fn () => DB::table('outbound_messages')
                 ->where('created_at', '<', now()->subDays((int) config('messaging.log_retention_days', 90))),
+            // Outreach contacts who never came on board (DIQ-1103). The
+            // do-not-contact list keeps only hashes, so it outlives them.
+            'prospects' => fn () => DB::table('prospects')
+                ->where('stage', '!=', 'claimed')
+                ->where('updated_at', '<', now()->subMonths($months['prospects'])),
+            'outreach_messages' => fn () => DB::table('outreach_messages')
+                ->where('created_at', '<', now()->subMonths($months['outreach_messages'])),
             'data_subject_requests' => fn () => DB::table('data_subject_requests')
                 ->whereIn('status', ['completed', 'rejected'])
                 ->where('handled_at', '<', now()->subMonths($months['data_subject_requests'])),

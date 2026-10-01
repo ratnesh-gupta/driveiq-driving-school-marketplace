@@ -23,6 +23,7 @@ function parseQuery(search: string) {
   return {
     locality: params.get("locality") || "",
     vehicleType: params.get("vehicleType") || "",
+    listingType: (["school", "trainer"].includes(params.get("type") ?? "") ? params.get("type") : "") as "" | "school" | "trainer",
   };
 }
 
@@ -35,6 +36,7 @@ export default function SearchPage() {
   const [locality, setLocality] = useState(initial.locality);
   const [vehicleType, setVehicleType] = useState(initial.vehicleType);
   const [transmission, setTransmission] = useState("");
+  const [listingType, setListingType] = useState<"" | "school" | "trainer">(initial.listingType);
   const [hasPickup, setHasPickup] = useState(false);
   const [womenInstructor, setWomenInstructor] = useState(false);
   const [weekendClasses, setWeekendClasses] = useState(false);
@@ -54,6 +56,7 @@ export default function SearchPage() {
     if (locality) p.locality = locality.toLowerCase();
     if (vehicleType) p.vehicleType = vehicleType.toLowerCase();
     if (transmission) p.transmission = transmission.toLowerCase();
+    if (listingType) p.listingType = listingType;
     if (hasPickup) p.hasPickup = true;
     if (womenInstructor) p.womenInstructor = true;
     if (weekendClasses) p.weekendClasses = true;
@@ -66,17 +69,17 @@ export default function SearchPage() {
       p.radiusKm = radiusKm;
     }
     return p;
-  }, [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, verifiedOnly, minRating, maxPrice, nearMe, geo, radiusKm]);
+  }, [locality, vehicleType, transmission, listingType, hasPickup, womenInstructor, weekendClasses, verifiedOnly, minRating, maxPrice, nearMe, geo, radiusKm]);
 
   const { data: schools, isLoading } = useListSchools(params);
 
   const activeFilterCount = [
-    locality, vehicleType, transmission, hasPickup, womenInstructor,
+    locality, vehicleType, transmission, listingType, hasPickup, womenInstructor,
     weekendClasses, verifiedOnly, minRating > 0, maxPrice < 10000, nearMe,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
-    setLocality(""); setVehicleType(""); setTransmission("");
+    setLocality(""); setVehicleType(""); setTransmission(""); setListingType("");
     setHasPickup(false); setWomenInstructor(false); setWeekendClasses(false); setVerifiedOnly(false);
     setMinRating(0); setMaxPrice(10000);
     setNearMe(false); setGeo(null); setRadiusKm(5);
@@ -158,6 +161,20 @@ export default function SearchPage() {
             {(localities || []).map((loc) => (
               <SelectItem key={loc.id} value={loc.slug}>{loc.name}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label className="text-sm font-semibold mb-3 block">Who teaches</Label>
+        <Select value={listingType || ALL} onValueChange={(v) => setListingType(v === ALL ? "" : (v as "school" | "trainer"))}>
+          <SelectTrigger data-testid="select-filter-listing-type">
+            <SelectValue placeholder="Schools and trainers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Schools and trainers</SelectItem>
+            <SelectItem value="school">Driving schools</SelectItem>
+            <SelectItem value="trainer">Independent trainers</SelectItem>
           </SelectContent>
         </Select>
       </div>

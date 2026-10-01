@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -65,6 +65,13 @@ export default function BillingPage() {
   });
 
   const [planCode, setPlanCode] = useState("premium");
+  // Independent trainers are offered Basic and Featured only (DIQ-1101).
+  const offered = PLAN_MATRIX.filter((p) => !entitlements?.availablePlans || entitlements.availablePlans.includes(p.code));
+  useEffect(() => {
+    if (entitlements?.availablePlans && !entitlements.availablePlans.includes(planCode)) {
+      setPlanCode(entitlements.availablePlans.filter((c) => c !== "basic").at(-1) ?? "featured");
+    }
+  }, [entitlements?.availablePlans, planCode]);
   const [months, setMonths] = useState(1);
   const [gstin, setGstin] = useState("");
 
@@ -125,7 +132,7 @@ export default function BillingPage() {
 
       <h2 className="font-semibold mb-3">Plans</h2>
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        {PLAN_MATRIX.map((p) => {
+        {offered.map((p) => {
           const current = entitlements?.plan === p.code;
           const selectable = p.code !== "basic";
           return (

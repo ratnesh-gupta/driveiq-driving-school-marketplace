@@ -60,7 +60,14 @@ class SubscriptionController extends Controller
             return $deny;
         }
 
-        return response()->json(['schoolId' => $schoolId, ...$entitlements->forSchool($schoolId)]);
+        $type = School::whereKey($schoolId)->value('listing_type') ?? 'school';
+
+        return response()->json([
+            'schoolId' => $schoolId,
+            ...$entitlements->forSchool($schoolId),
+            'listingType' => $type,
+            'availablePlans' => config('plans.listing_types.'.$type, []),
+        ]);
     }
 
     public function assign(Request $request): JsonResponse
@@ -72,6 +79,11 @@ class SubscriptionController extends Controller
             'autoRenew' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $type = School::whereKey($data['schoolId'])->value('listing_type');
+        if (! in_array($data['planCode'], config('plans.listing_types.'.$type, []), true)) {
+            return response()->json(['message' => 'Validation failed', 'errors' => ['planCode' => ['This plan is not available for this listing type.']]], 422);
+        }
 
         $sub = $this->subscriptions->assign(
             (int) $data['schoolId'],

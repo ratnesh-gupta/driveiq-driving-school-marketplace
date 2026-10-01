@@ -23,7 +23,14 @@ class SchoolService
      */
     public function search(array $filters): array
     {
-        $inner = $this->withPlanMeta(School::query(), $filters['locality'] ?? null);
+        // Admins may list every listing, whatever its status (DIQ-1101).
+        $inner = $this->withPlanMeta(
+            School::query()->when(empty($filters['includeHidden']), fn ($q) => $q->public()),
+            $filters['locality'] ?? null,
+        );
+        if (! empty($filters['includeHidden']) && ! empty($filters['listingStatus'])) {
+            $inner->where('schools.listing_status', $filters['listingStatus']);
+        }
         $this->applyFilters($inner, $filters);
 
         $nearLat = isset($filters['nearLat']) ? (float) $filters['nearLat'] : null;
@@ -94,7 +101,7 @@ class SchoolService
             ->select('school_id')
             ->distinct();
 
-        return $this->withPlanMeta(School::query()->with('locality'))
+        return $this->withPlanMeta(School::query()->public()->with('locality'))
             ->leftJoinSub($campaigns, 'hp', 'hp.school_id', '=', 'schools.id')
             ->where(fn ($q) => $q->where('schools.verified', true)->orWhereNotNull('hp.school_id'))
             ->orderByRaw('(hp.school_id IS NOT NULL) DESC')
@@ -106,14 +113,17 @@ class SchoolService
             ->get();
     }
 
-    public function findById(int $id): ?School
+    /** Hidden listings (DIQ-1101) are only found when $includeHidden (staff/admin). */
+    public function findById(int $id, bool $includeHidden = false): ?School
     {
-        return $this->withPlanMeta(School::query()->with('locality'))->where('schools.id', $id)->first();
+        return $this->withPlanMeta(School::query()->with('locality'))
+            ->when(! $includeHidden, fn ($q) => $q->public())
+            ->where('schools.id', $id)->first();
     }
 
     public function findBySlug(string $slug): ?School
     {
-        return $this->withPlanMeta(School::query()->with('locality'))->where('schools.slug', $slug)->first();
+        return $this->withPlanMeta(School::query()->public()->with('locality'))->where('schools.slug', $slug)->first();
     }
 
     /**
@@ -126,7 +136,7 @@ class SchoolService
      */
     public function compare(array $ids): array
     {
-        $schools = $this->withPlanMeta(School::query()->with('locality'))
+        $schools = $this->withPlanMeta(School::query()->public()->with('locality'))
             ->whereIn('schools.id', $ids)
             ->get()
             ->sortBy(fn (School $s) => array_search($s->id, $ids, true))
@@ -269,6 +279,10 @@ class SchoolService
             if ($locality) {
                 $query->where('locality_id', $locality->id);
             }
+        }
+
+        if (! empty($filters['listingType'])) {
+            $query->where('schools.listing_type', $filters['listingType']);
         }
 
         if (isset($filters['minRating'])) {

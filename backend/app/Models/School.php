@@ -23,6 +23,9 @@ class School extends Model
         'simulator_training' => false,
         'ac_vehicle' => false,
         'rto_assistance' => true,
+        'listing_type' => 'school',
+        'listing_status' => 'published',
+        'source' => 'organic',
     ];
 
     protected $fillable = [
@@ -34,7 +37,17 @@ class School extends Model
         'languages', 'batch_timings', 'pickup_radius_km', 'simulator_training',
         'ac_vehicle', 'rto_assistance', 'established_year', 'total_vehicles',
         'total_instructors', 'accepted_payments', 'cancellation_policy', 'profile_completeness',
+        'source', 'google_place_id',
     ];
+
+    public const TYPES = ['school', 'trainer'];
+
+    /**
+     * DIQ-1101. unclaimed: built by an admin from a prospect, nobody owns it
+     * yet. draft: owned, not yet live (see publishBlockers()). suspended: an
+     * admin took it down. Only published listings are public.
+     */
+    public const STATUSES = ['unclaimed', 'draft', 'published', 'suspended'];
 
     /** PostGIS geography, derived from latitude/longitude by a DB trigger. */
     protected $hidden = ['location'];
@@ -77,6 +90,8 @@ class School extends Model
             'total_vehicles' => 'integer',
             'total_instructors' => 'integer',
             'profile_completeness' => 'integer',
+            'claimed_at' => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 
@@ -84,11 +99,64 @@ class School extends Model
     {
         static::saving(function (School $school) {
             $school->profile_completeness = $school->calculateProfileCompleteness();
+
+            // A draft goes live by itself once nothing blocks it (DIQ-1101/1102).
+            if ($school->listing_status === 'draft' && $school->publishBlockers() === []) {
+                $school->listing_status = 'published';
+            }
+            if ($school->listing_status === 'published' && ! $school->published_at) {
+                $school->published_at = now();
+            }
         });
 
-        // Every new school starts on a feature trial (DIQ-802), however it was
-        // created (registration, admin, seeder).
-        static::created(fn (School $school) => app(SubscriptionService::class)->startTrial($school->id));
+        // Every owned school starts on a feature trial (DIQ-802), however it was
+        // created (registration, admin, seeder). Unclaimed listings start it on claim.
+        static::created(function (School $school) {
+            if ($school->listing_status !== 'unclaimed') {
+                app(SubscriptionService::class)->startTrial($school->id);
+            }
+        });
+    }
+
+    public function scopePublic($query)
+    {
+        return $query->where('schools.listing_status', 'published');
+    }
+
+    public function isPublic(): bool
+    {
+        return $this->listing_status === 'published';
+    }
+
+    public function isTrainer(): bool
+    {
+        return $this->listing_type === 'trainer';
+    }
+
+    /**
+     * What still keeps a draft listing off the marketplace: the owner's email
+     * must be verified, and learners must be able to call and find it.
+     *
+     * @return list<string> keys: verify_email, phone, locality, location
+     */
+    public function publishBlockers(): array
+    {
+        $blockers = [];
+        $owner = $this->user_id ? User::find($this->user_id) : null;
+        if (! $owner || ! $owner->hasVerifiedEmail()) {
+            $blockers[] = 'verify_email';
+        }
+        if (blank($this->phone)) {
+            $blockers[] = 'phone';
+        }
+        if (! $this->locality_id) {
+            $blockers[] = 'locality';
+        }
+        if ($this->latitude === null || $this->longitude === null) {
+            $blockers[] = 'location';
+        }
+
+        return $blockers;
     }
 
     /**

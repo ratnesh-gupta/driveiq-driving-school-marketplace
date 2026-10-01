@@ -7,6 +7,7 @@ use App\Http\Requests\Api\ListSchoolsRequest;
 use App\Http\Requests\Api\StoreSchoolRequest;
 use App\Http\Requests\Api\UpdateSchoolRequest;
 use App\Http\Resources\SchoolResource;
+use App\Models\AuditLog;
 use App\Models\School;
 use App\Services\SchoolService;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +21,10 @@ class SchoolController extends Controller
 
     public function index(ListSchoolsRequest $request): JsonResponse
     {
-        ['items' => $schools, 'total' => $total] = $this->schoolService->search($request->validated());
+        $filters = $request->validated();
+        $filters['includeHidden'] = ($filters['includeHidden'] ?? false) && $request->user('sanctum')?->isAdmin();
+
+        ['items' => $schools, 'total' => $total] = $this->schoolService->search($filters);
 
         // Body stays a plain array (existing clients); the total is a header.
         return response()->json(SchoolResource::collection($schools))
@@ -63,9 +67,12 @@ class SchoolController extends Controller
         return response()->json(SchoolResource::collection($schools));
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $school = $this->schoolService->findById($id);
+        // Staff and admins see their own listing before it is live (DIQ-1101).
+        $viewer = $request->user('sanctum');
+        $staff = $viewer && ($viewer->isAdmin() || ($viewer->isSchool() && (int) $viewer->school_id === $id));
+        $school = $this->schoolService->findById($id, includeHidden: $staff);
 
         if (! $school) {
             return response()->json(['message' => 'School not found'], 404);
@@ -108,6 +115,31 @@ class SchoolController extends Controller
         $school = $this->schoolService->update($school, $request->toSnakeCase());
 
         return response()->json(new SchoolResource($school));
+    }
+
+    /** PATCH /admin/schools/{id}/listing-status (DIQ-1101): an admin takes a listing down or restores it. */
+    public function updateListingStatus(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:suspended,published'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $school = School::find($id);
+        if (! $school) {
+            return response()->json(['message' => 'School not found'], 404);
+        }
+        if ($school->listing_status === 'unclaimed') {
+            return response()->json(['message' => 'Unclaimed listings go live when their owner claims them.'], 422);
+        }
+
+        $old = $school->listing_status;
+        $school->forceFill(['listing_status' => $data['status']])->save();
+
+        AuditLog::log('listing_status', 'School', $school->id, ['status' => $old],
+            ['status' => $school->listing_status, 'reason' => $data['reason'] ?? null], $school->id);
+
+        return response()->json(['listingStatus' => $school->listing_status]);
     }
 
     public function delete(int $id): JsonResponse

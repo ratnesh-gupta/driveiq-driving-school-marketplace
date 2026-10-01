@@ -54,6 +54,13 @@ return [
             'provider_template_id' => env('MSG_TPL_SESSION_REMINDER'),
             'dlt_template_id' => env('DLT_TPL_SESSION_REMINDER'),
         ],
+        // DIQ-1104: proves a claimant controls the listing's phone. SMS only.
+        'claim_code' => [
+            'text' => '{{code}} is your DriveIQ code to claim the listing for {{name}}. It expires in 10 minutes. Do not share it.',
+            'vars' => ['code', 'name'],
+            'provider_template_id' => env('MSG_TPL_CLAIM_CODE'),
+            'dlt_template_id' => env('DLT_TPL_CLAIM_CODE'),
+        ],
     ],
 
     // Outbound message log rows are deleted after this many days (DPDP).

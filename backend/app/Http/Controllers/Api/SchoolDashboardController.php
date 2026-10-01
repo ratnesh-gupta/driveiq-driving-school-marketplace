@@ -109,6 +109,10 @@ class SchoolDashboardController extends Controller
             'schoolId' => $schoolId,
             'profileCompleteness' => $completeness,
             'missingProfileFields' => $school->missingProfileFields(),
+            // Go-live checklist (DIQ-1101/1102).
+            'listingType' => $school->listing_type,
+            'listingStatus' => $school->listing_status,
+            'publishBlockers' => $school->listing_status === 'draft' ? $school->publishBlockers() : [],
             'metrics' => [
                 'totalInquiries' => $totalInquiries,
                 'pendingInquiries' => $pendingInquiries,
