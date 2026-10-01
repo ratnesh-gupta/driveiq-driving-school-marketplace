@@ -28,5 +28,6 @@ return [
         'messages' => 24,
         'contact_messages' => 24, // closed messages, from last update
         'data_subject_requests' => 36, // from closure
+        'prospects' => 12,        // not on board, from last activity (DIQ-1103)
     ],
 ];

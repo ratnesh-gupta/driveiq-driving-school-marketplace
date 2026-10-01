@@ -10,7 +10,7 @@ function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getStoredToken();
   const headers: Record<string, string> = {
     Accept: "application/json",

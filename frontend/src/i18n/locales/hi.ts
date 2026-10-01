@@ -214,6 +214,7 @@ const hi: TranslationTree = {
     dataRequests: "डेटा अनुरोध",
     messages: "संदेश",
     billing: "आय और बिलिंग",
+    prospects: "संभावित स्कूल",
     audit: "ऑडिट लॉग",
     title: "एडमिन पोर्टल",
     brand: "DriveIQ एडमिन",

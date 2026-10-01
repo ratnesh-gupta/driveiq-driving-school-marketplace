@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminMonetizationController;
+use App\Http\Controllers\Api\AdminProspectController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
@@ -202,6 +203,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
         Route::get('/admin/outbound-messages', [OutboundMessageController::class, 'index']);
+
+        // School and trainer acquisition (DIQ-1103).
+        Route::get('/admin/prospects', [AdminProspectController::class, 'index']);
+        Route::post('/admin/prospects', [AdminProspectController::class, 'store']);
+        Route::post('/admin/prospects/import', [AdminProspectController::class, 'import']);
+        Route::patch('/admin/prospects/{id}', [AdminProspectController::class, 'update'])->whereNumber('id');
+        Route::post('/admin/prospects/{id}/listing', [AdminProspectController::class, 'createListing'])->whereNumber('id');
         Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);

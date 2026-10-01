@@ -217,6 +217,7 @@ const en = {
     dataRequests: "Data requests",
     messages: "Messages",
     billing: "Monetization",
+    prospects: "Prospects",
     audit: "Audit log",
     title: "Admin Portal",
     brand: "DriveIQ Admin",
