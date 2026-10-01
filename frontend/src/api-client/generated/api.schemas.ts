@@ -13,6 +13,9 @@ export interface School {
   id: number;
   name: string;
   slug: string;
+  /** DIQ-1101 (added manually, include in next OpenAPI spec regen) */
+  listingType?: "school" | "trainer";
+  listingStatus?: "unclaimed" | "draft" | "published" | "suspended";
   localityId: number;
   /** @nullable */
   localityName?: string | null;
@@ -269,6 +272,8 @@ export interface SchoolStats {
 
 export type ListSchoolsParams = {
 locality?: string;
+/** DIQ-1101 (added manually, include in next OpenAPI spec regen) */
+listingType?: "school" | "trainer";
 vehicleType?: string;
 minRating?: number;
 hasPickup?: boolean;

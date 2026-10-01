@@ -308,7 +308,7 @@ class InstructorController extends Controller
 
     public function publicTrainers(string $slug): JsonResponse
     {
-        $school = School::where('slug', $slug)->first();
+        $school = School::query()->public()->where('slug', $slug)->first();
 
         if (! $school) {
             return response()->json(['message' => 'School not found'], 404);

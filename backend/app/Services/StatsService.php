@@ -12,7 +12,7 @@ class StatsService
 {
     public function overview(): array
     {
-        $schoolStats = School::query()
+        $schoolStats = School::query()->public()
             ->selectRaw('count(*) as total_schools')
             ->selectRaw('sum(case when verified then 1 else 0 end) as verified_schools')
             ->selectRaw('avg(rating) as avg_rating')

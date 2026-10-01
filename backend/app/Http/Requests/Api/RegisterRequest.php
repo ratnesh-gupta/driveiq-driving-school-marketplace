@@ -16,6 +16,9 @@ class RegisterRequest extends BaseFormRequest
             // created via `php artisan driveiq:create-admin`; managers and
             // instructors are added by their school.
             'role' => ['required', 'in:school,learner'],
+            // A "school" registrant runs a school or works as an independent trainer.
+            'listingType' => ['nullable', 'in:school,trainer'],
+            'womenInstructor' => ['sometimes', 'boolean'],
         ];
     }
 }

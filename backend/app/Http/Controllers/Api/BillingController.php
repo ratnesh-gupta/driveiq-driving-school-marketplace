@@ -55,8 +55,13 @@ class BillingController extends Controller
             'gstin' => ['nullable', 'string', 'regex:'.self::GSTIN],
         ]);
 
+        $school = School::findOrFail($schoolId);
+        if (! in_array($data['planCode'], config('plans.listing_types.'.$school->listing_type, []), true)) {
+            return response()->json(['message' => 'Validation failed', 'errors' => ['planCode' => ['This plan is not available for your listing.']]], 422);
+        }
+
         $invoice = $this->billing->requestInvoice(
-            School::findOrFail($schoolId), $data['planCode'], (int) $data['months'], $data['gstin'] ?? null, $request->user()
+            $school, $data['planCode'], (int) $data['months'], $data['gstin'] ?? null, $request->user()
         );
 
         return response()->json($invoice->toApi(true), 201);

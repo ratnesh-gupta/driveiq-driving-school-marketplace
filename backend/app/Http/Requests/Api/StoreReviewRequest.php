@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Api;
 
+use Illuminate\Validation\Rule;
+
 class StoreReviewRequest extends BaseFormRequest
 {
     public function rules(): array
     {
         return [
-            'schoolId' => ['required', 'integer', 'exists:schools,id'],
+            // Only live listings take enquiries and reviews (DIQ-1101).
+            'schoolId' => ['required', 'integer', Rule::exists('schools', 'id')->where('listing_status', 'published')],
             'authorName' => ['required', 'string', 'max:255'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'content' => ['required', 'string'],

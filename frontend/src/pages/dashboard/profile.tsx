@@ -9,10 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { useGetSchool, useUpdateSchool, getGetSchoolQueryKey } from "@/api-client";
+import { useGetSchool, useUpdateSchool, getGetSchoolQueryKey, useListLocalities } from "@/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSchoolId } from "@/hooks/use-school-id";
-import { Save, ShieldCheck, X, Plus } from "lucide-react";
+import { Save, ShieldCheck, X, Plus, LocateFixed } from "lucide-react";
 import { ProfileCompleteness } from "@/features/comparison/components/profile-completeness";
 
 interface BatchTiming {
@@ -54,6 +54,9 @@ interface FormState {
   transmission: string[];
   serviceAreas: string[];
   priceFrom: string;
+  localityId: string;
+  latitude: string;
+  longitude: string;
 }
 
 const VEHICLE_TYPES = [
@@ -98,7 +101,31 @@ export default function ProfilePage() {
     establishedYear: "", totalVehicles: "", totalInstructors: "",
     cancellationPolicy: "", pickupRadiusKm: "",
     address: "", vehicleTypes: [], transmission: [], serviceAreas: [], priceFrom: "",
+    localityId: "", latitude: "", longitude: "",
   });
+  const { data: localities } = useListLocalities();
+  const [locating, setLocating] = useState(false);
+  const isTrainer = school?.listingType === "trainer";
+
+  /** The owner fills in their own business location; nothing is tracked. */
+  const fillCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Your browser cannot share a location. Enter the coordinates instead.", variant: "destructive" });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        setForm((p) => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
+      },
+      () => {
+        setLocating(false);
+        toast({ title: "Location not shared. Enter the coordinates from Google Maps instead.", variant: "destructive" });
+      },
+      { timeout: 10000 },
+    );
+  };
   const [newArea, setNewArea] = useState("");
 
   const [newLanguage, setNewLanguage] = useState("");
@@ -139,6 +166,9 @@ export default function ProfilePage() {
         transmission: school.transmission || [],
         serviceAreas: school.serviceAreas || [],
         priceFrom: school.priceFrom ? String(school.priceFrom) : "",
+        localityId: school.localityId ? String(school.localityId) : "",
+        latitude: school.latitude != null ? String(school.latitude) : "",
+        longitude: school.longitude != null ? String(school.longitude) : "",
       });
     }
   }, [school]);
@@ -186,6 +216,8 @@ export default function ProfilePage() {
       transmission: form.transmission,
       serviceAreas: form.serviceAreas,
       ...(form.priceFrom ? { priceFrom: Number(form.priceFrom) } : {}),
+      ...(form.localityId ? { localityId: Number(form.localityId) } : {}),
+      ...(form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude) } : {}),
     };
 
     updateSchool.mutate(
@@ -254,9 +286,9 @@ export default function ProfilePage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">School Profile</h1>
+        <h1 className="text-2xl font-bold">{isTrainer ? "Trainer Profile" : "School Profile"}</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage your school's public profile
+          {isTrainer ? "Manage your public trainer profile" : "Manage your school's public profile"}
         </p>
       </div>
 
@@ -292,7 +324,7 @@ export default function ProfilePage() {
               <div className="rounded-xl border bg-card p-6 space-y-5">
                 <h2 className="font-semibold text-lg">Basic Information</h2>
                 <div>
-                  <Label>School Name</Label>
+                  <Label>{isTrainer ? "Your name (as learners see it)" : "School Name"}</Label>
                   <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} data-testid="input-school-name" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -320,6 +352,33 @@ export default function ProfilePage() {
                 <div>
                   <Label htmlFor="school-address">Address</Label>
                   <Input id="school-address" value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} data-testid="input-school-address" />
+                </div>
+                <div>
+                  <Label htmlFor="school-locality">Locality</Label>
+                  <select
+                    id="school-locality"
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={form.localityId}
+                    onChange={(e) => setForm((p) => ({ ...p, localityId: e.target.value }))}
+                    data-testid="select-school-locality"
+                  >
+                    <option value="">Choose your locality</option>
+                    {(localities ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Location on the map</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Learners searching near them find you by this point. Stand at your office and use your current
+                    location, or copy the coordinates from Google Maps (right-click the place).
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input aria-label="Latitude" className="w-36" placeholder="18.5590" value={form.latitude} onChange={(e) => setForm((p) => ({ ...p, latitude: e.target.value }))} data-testid="input-school-latitude" />
+                    <Input aria-label="Longitude" className="w-36" placeholder="73.7868" value={form.longitude} onChange={(e) => setForm((p) => ({ ...p, longitude: e.target.value }))} data-testid="input-school-longitude" />
+                    <Button type="button" variant="outline" size="sm" onClick={fillCurrentLocation} disabled={locating} data-testid="button-use-current-location">
+                      <LocateFixed className="h-4 w-4 mr-1" /> {locating ? "Locating…" : "Use my current location"}
+                    </Button>
+                  </div>
                 </div>
               </div>
 

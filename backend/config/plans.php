@@ -33,6 +33,13 @@ return [
 
     'gate_reads' => ['analytics_advanced'],
 
+    // Plans each listing type may buy (DIQ-1101). An independent trainer has
+    // no team or fleet to manage, so the operations tiers are not offered.
+    'listing_types' => [
+        'school' => ['basic', 'featured', 'premium', 'enterprise'],
+        'trainer' => ['basic', 'featured'],
+    ],
+
     // Route URI (as Laravel reports it) => feature.
     'routes' => [
         // Featured

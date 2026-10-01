@@ -324,9 +324,18 @@ export function compareSchools<TSchool>(ids: number[]) {
 // ── Admin school list with totals (DIQ-506) ─────────────────────
 
 /** Like GET /api/schools but also returns X-Total-Count for pagination. */
-export async function listSchoolsPage<TSchool>(params: { limit: number; offset: number }) {
+export async function listSchoolsPage<TSchool>(params: {
+  limit: number;
+  offset: number;
+  /** Admin only: list every listing whatever its status (DIQ-1101). */
+  includeHidden?: boolean;
+  listingStatus?: string;
+}) {
   const token = getStoredToken();
-  const res = await fetch(apiUrl(`/api/schools?limit=${params.limit}&offset=${params.offset}`), {
+  const q = new URLSearchParams({ limit: String(params.limit), offset: String(params.offset) });
+  if (params.includeHidden) q.set("includeHidden", "1");
+  if (params.listingStatus) q.set("listingStatus", params.listingStatus);
+  const res = await fetch(apiUrl(`/api/schools?${q}`), {
     headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -334,6 +343,14 @@ export async function listSchoolsPage<TSchool>(params: { limit: number; offset: 
     schools: (await res.json()) as TSchool[],
     total: Number(res.headers.get("X-Total-Count") ?? 0),
   };
+}
+
+/** DIQ-1101: an admin takes a listing down or puts it back. */
+export function updateListingStatus(schoolId: number, status: "suspended" | "published", reason?: string) {
+  return request<{ listingStatus: string }>(`/api/admin/schools/${schoolId}/listing-status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, ...(reason ? { reason } : {}) }),
+  });
 }
 
 export type VerificationFlags = {
@@ -564,6 +581,13 @@ export type ResponseTimeSummary = {
   within24hRate: number;
 };
 
+export type PublishBlocker = "verify_email" | "phone" | "locality" | "location";
+
+/** DIQ-1102: email the owner a fresh verification link. */
+export function resendVerificationEmail() {
+  return request<{ message: string }>("/api/auth/email/verification-notification", { method: "POST" });
+}
+
 export type DashboardTask = { type: string; count: number; label: string; href: string };
 
 export function fetchSchoolDashboard(schoolId: number) {
@@ -571,6 +595,9 @@ export function fetchSchoolDashboard(schoolId: number) {
     schoolId: number;
     profileCompleteness: number;
     missingProfileFields: string[];
+    listingType: "school" | "trainer";
+    listingStatus: "unclaimed" | "draft" | "published" | "suspended";
+    publishBlockers: PublishBlocker[];
     pendingTasks: DashboardTask[];
     metrics: {
       responseTime: ResponseTimeSummary;
@@ -592,6 +619,9 @@ export type Entitlements = {
   features: PlanFeature[];
   lockedFeatures: PlanFeature[];
   enforced: boolean;
+  listingType: "school" | "trainer";
+  /** Plans this listing type may buy (DIQ-1101). */
+  availablePlans: string[];
 };
 
 export function fetchEntitlements(schoolId: number) {

@@ -5,14 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Requests\Api\RegisterRequest;
-use App\Models\School;
-use App\Models\SchoolAdmin;
 use App\Models\User;
+use App\Services\ListingOnboarding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
@@ -29,27 +27,13 @@ class AuthController extends Controller
 
         $schoolId = null;
 
+        // The registrant owns a draft listing: a driving school, or an
+        // independent trainer (DIQ-1101). It goes live once published.
         if ($user->role === 'school') {
-            $school = School::create([
-                'user_id' => $user->id,
-                'name' => $user->name,
-                'slug' => Str::slug($user->name).'-'.Str::lower(Str::random(5)),
-                'email' => $user->email,
-            ]);
-
-            $user->update(['school_id' => $school->id]);
+            $schoolId = app(ListingOnboarding::class)->register($user, $request->validated('listingType') ?? 'school', [
+                'women_instructor' => $request->boolean('womenInstructor'),
+            ])->id;
             $user->refresh();
-
-            // The registrant is the school's owner.
-            SchoolAdmin::create([
-                'school_id' => $school->id,
-                'user_id' => $user->id,
-                'role' => 'owner',
-                'status' => 'active',
-                'invited_at' => now(),
-                'accepted_at' => now(),
-            ]);
-            $schoolId = $school->id;
         }
 
         $token = $user->createToken('api-token')->plainTextToken;

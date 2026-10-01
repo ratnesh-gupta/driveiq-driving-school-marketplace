@@ -94,12 +94,19 @@ async function handleError(res: Response, fallbackMessage: string): Promise<neve
   throw new Error(message);
 }
 
-export async function registerApi(payload: {
+export type RegisterPayload = {
   name: string;
   email: string;
   password: string;
   role: UserRole;
-}): Promise<AuthResponse> {
+  /** For role "school": a driving school or an independent trainer (DIQ-1101). */
+  listingType?: "school" | "trainer";
+  womenInstructor?: boolean;
+  /** First-touch marketing attribution (DIQ-1108). */
+  attribution?: Record<string, string>;
+};
+
+export async function registerApi(payload: RegisterPayload): Promise<AuthResponse> {
   const res = await fetch(apiUrl("/api/auth/register"), {
     method: "POST",
     headers: JSON_HEADERS,

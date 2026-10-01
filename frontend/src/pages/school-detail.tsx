@@ -248,6 +248,9 @@ export default function SchoolDetailPage() {
           <div className="flex items-end gap-4 flex-wrap">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {school.listingType === "trainer" && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0" data-testid="badge-independent-trainer">Independent trainer</Badge>
+                )}
                 {school.verified && (
                   <Badge className="bg-green-500 text-white border-0">
                     <ShieldCheck className="h-3 w-3 mr-1" /> Verified

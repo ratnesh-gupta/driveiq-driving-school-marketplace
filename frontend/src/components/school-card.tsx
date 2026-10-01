@@ -62,6 +62,11 @@ export function SchoolCard({ school, showCompare = false }: SchoolCardProps) {
               </div>
             )}
             <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
+              {school.listingType === "trainer" && (
+                <Badge variant="secondary" className="bg-background/90 backdrop-blur text-foreground border" data-testid={`badge-trainer-${school.id}`}>
+                  Independent trainer
+                </Badge>
+              )}
               {school.verified && (
                 <Badge className="bg-green-500 hover:bg-green-600 text-white border-transparent">
                   <ShieldCheck className="h-3 w-3 mr-1" /> Verified

@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthStore } from "@/lib/store";
 import { saveRegisterConsent, setRoleConsent } from "@/lib/consent";
-import { Users, Building2 } from "lucide-react";
+import { Users, Building2, UserRound } from "lucide-react";
 
-type AccountType = "school" | "learner";
+/** A "trainer" registers as a school owner whose listing is an independent trainer (DIQ-1101). */
+type AccountType = "school" | "trainer" | "learner";
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
@@ -23,7 +24,12 @@ function FieldError({ errors }: { errors?: string[] }) {
 }
 
 export default function RegisterPage() {
-  const [accountType, setAccountType] = useState<AccountType>("school");
+  const [accountType, setAccountType] = useState<AccountType>(() => {
+    const t = new URLSearchParams(window.location.search).get("type");
+    return t === "trainer" || t === "learner" ? t : "school";
+  });
+  const [womenInstructor, setWomenInstructor] = useState(false);
+  const role = accountType === "learner" ? "learner" : "school";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,20 +47,23 @@ export default function RegisterPage() {
     if (!canSubmit) return;
     clearAuthErrors();
     try {
-      await register({ name, email, password, role: accountType });
-      const role = useAuthStore.getState().userRole ?? userRole;
+      await register({
+        name, email, password, role,
+        ...(role === "school" ? { listingType: accountType === "trainer" ? "trainer" : "school", womenInstructor } : {}),
+      });
+      const signedInRole = useAuthStore.getState().userRole ?? userRole;
       const userId = useAuthStore.getState().user?.id;
       // Recorded server-side now that the account exists (DIQ-604).
       await saveRegisterConsent({
         terms: agreeTerms,
         privacy: agreePrivacy,
         processing: agreeProcessing,
-        role: accountType,
+        role,
       });
-      if (role === "school" || role === "learner") {
-        setRoleConsent(role, userId);
+      if (signedInRole === "school" || signedInRole === "learner") {
+        setRoleConsent(signedInRole, userId);
       }
-      setLocation(role === "school" ? "/dashboard" : "/learner");
+      setLocation(signedInRole === "school" ? "/dashboard" : "/learner");
     } catch {
       // errors are in the store
     }
@@ -83,12 +92,13 @@ export default function RegisterPage() {
             <p className="text-muted-foreground text-sm mt-1">Already have an account? <Link href="/auth/login" className="text-primary hover:underline">Sign in</Link></p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-2 mb-6">
             {([
               { type: "school" as const, icon: Building2, label: "Driving School", desc: "I run a driving school" },
+              { type: "trainer" as const, icon: UserRound, label: "Trainer", desc: "I teach on my own" },
               { type: "learner" as const, icon: Users, label: "Learner", desc: "I'm learning to drive" },
             ]).map((item) => (
-              <button key={item.type} type="button" onClick={() => setAccountType(item.type)} className={`p-4 rounded-xl border text-left transition-all ${accountType === item.type ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/50"}`} data-testid={`button-account-type-${item.type}`}>
+              <button key={item.type} type="button" onClick={() => setAccountType(item.type)} className={`p-3 rounded-xl border text-left transition-all ${accountType === item.type ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/50"}`} data-testid={`button-account-type-${item.type}`}>
                 <item.icon className={`h-6 w-6 mb-2 ${accountType === item.type ? "text-primary" : "text-muted-foreground"}`} />
                 <div className="font-semibold text-sm">{item.label}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">{item.desc}</div>
@@ -102,6 +112,12 @@ export default function RegisterPage() {
               <Input value={name} onChange={e => setName(e.target.value)} placeholder={accountType === "school" ? "Skyline Driving School" : "Your full name"} required data-testid="input-register-name" />
               <FieldError errors={fieldErrors.name} />
             </div>
+            {accountType === "trainer" && (
+              <label className="flex items-start gap-2 cursor-pointer text-sm">
+                <Checkbox checked={womenInstructor} onCheckedChange={(v) => setWomenInstructor(!!v)} className="mt-0.5" data-testid="checkbox-women-trainer" />
+                <span>I am a woman trainer <span className="text-muted-foreground">(shown to learners who look for one)</span></span>
+              </label>
+            )}
             <div>
               <Label>Phone Number</Label>
               <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 98765 43210" data-testid="input-register-phone" />

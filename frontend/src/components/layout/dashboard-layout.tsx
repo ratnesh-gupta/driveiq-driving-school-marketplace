@@ -20,18 +20,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { logout } = useAuthStore();
   const isOwner = useAuthStore((s) => s.schoolRole) !== "manager";
   const t = useT();
-  const { has } = useEntitlements();
+  const { has, entitlements } = useEntitlements();
+  // An independent trainer has no team or other trainers to manage (DIQ-1101).
+  const isTrainer = entitlements?.listingType === "trainer";
 
   const links = [
     { href: "/dashboard", label: t("schoolNav.overview"), icon: LayoutDashboard },
     { href: "/dashboard/leads", label: t("schoolNav.leads"), icon: Users },
     { href: "/dashboard/learners", label: t("schoolNav.learners"), icon: GraduationCap },
-    { href: "/dashboard/instructors", label: t("schoolNav.instructors"), icon: UserCog },
+    ...(isTrainer ? [] : [{ href: "/dashboard/instructors", label: t("schoolNav.instructors"), icon: UserCog }]),
     { href: "/dashboard/schedules", label: t("schoolNav.schedules"), icon: CalendarDays },
     { href: "/dashboard/vehicles", label: t("schoolNav.vehicles"), icon: Car },
     { href: "/dashboard/payments", label: t("schoolNav.payments"), icon: IndianRupee },
     { href: "/dashboard/messages", label: t("schoolNav.messages"), icon: MessageSquare },
-    { href: "/dashboard/team", label: t("schoolNav.team"), icon: UsersRound },
+    ...(isTrainer ? [] : [{ href: "/dashboard/team", label: t("schoolNav.team"), icon: UsersRound }]),
     { href: "/dashboard/profile", label: t("schoolNav.profile"), icon: User },
     { href: "/dashboard/packages", label: t("schoolNav.packages"), icon: PkgIcon },
     { href: "/dashboard/reviews", label: t("schoolNav.reviews"), icon: Star },
