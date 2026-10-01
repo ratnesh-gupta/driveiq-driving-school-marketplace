@@ -178,4 +178,23 @@ class ListingStatusTest extends TestCase
         $unclaimed->save();
         $this->assertSame(0, Subscription::withoutGlobalScope('school')->where('school_id', $unclaimed->id)->count());
     }
+
+    /** DIQ-1108: first-visit tags are kept, and our own channels are recognised. */
+    public function test_registration_records_where_the_listing_came_from(): void
+    {
+        $res = $this->postJson('/api/auth/register', $this->payload([
+            'attribution' => ['utm_source' => 'google', 'utm_medium' => 'cpc', 'utm_campaign' => 'ads-222'],
+        ]))->assertCreated();
+        $school = School::find($res->json('schoolId'));
+        $this->assertSame(['ads', 'google', 'cpc', 'ads-222'], [$school->source, $school->utm_source, $school->utm_medium, $school->utm_campaign]);
+
+        $res = $this->postJson('/api/auth/register', $this->payload(['email' => 'two@example.com', 'attribution' => ['utm_source' => 'outreach']]))->assertCreated();
+        $this->assertSame('outreach', School::find($res->json('schoolId'))->source);
+
+        $res = $this->postJson('/api/auth/register', $this->payload(['email' => 'three@example.com']))->assertCreated();
+        $this->assertSame('organic', School::find($res->json('schoolId'))->source);
+
+        $this->postJson('/api/auth/register', $this->payload(['email' => 'four@example.com', 'attribution' => ['gclid' => 'x']]))
+            ->assertUnprocessable()->assertJsonValidationErrors('attribution');
+    }
 }

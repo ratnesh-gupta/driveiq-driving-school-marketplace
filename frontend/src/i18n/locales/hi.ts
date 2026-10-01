@@ -29,6 +29,8 @@ const hi: TranslationTree = {
     company: "कंपनी",
     forSchools: "स्कूलों के लिए",
     searchSchools: "स्कूल खोजें",
+    listYourSchool: "अपना स्कूल जोड़ें",
+    forTrainers: "स्वतंत्र ट्रेनर के लिए",
     partnerWithUs: "हमारे साथ जुड़ें",
     schoolLogin: "स्कूल लॉगिन",
     tagline: "पुणे में ड्राइविंग स्कूल खोजने और बुक करने का प्रीमियम मार्केटप्लेस।",

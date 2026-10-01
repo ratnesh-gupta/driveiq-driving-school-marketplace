@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthStore } from "@/lib/store";
 import { saveRegisterConsent, setRoleConsent } from "@/lib/consent";
+import { getAttribution } from "@/lib/attribution";
 import { Users, Building2, UserRound } from "lucide-react";
 
 /** A "trainer" registers as a school owner whose listing is an independent trainer (DIQ-1101). */
@@ -49,7 +50,7 @@ export default function RegisterPage() {
     try {
       await register({
         name, email, password, role,
-        ...(role === "school" ? { listingType: accountType === "trainer" ? "trainer" : "school", womenInstructor } : {}),
+        ...(role === "school" ? { listingType: accountType === "trainer" ? "trainer" : "school", womenInstructor, attribution: getAttribution() } : {}),
       });
       const signedInRole = useAuthStore.getState().userRole ?? userRole;
       const userId = useAuthStore.getState().user?.id;

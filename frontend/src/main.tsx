@@ -3,6 +3,7 @@ import { setAuthTokenGetter, setBaseUrl, setUnauthorizedHandler } from "@/api-cl
 import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
 import { useAuthStore } from "@/lib/store";
 import { detectInitialLocale, persistLocale } from "@/i18n";
+import { captureAttribution } from "@/lib/attribution";
 import App from "./App";
 import "./index.css";
 
@@ -15,5 +16,6 @@ setAuthTokenGetter(() => getStoredToken());
 setUnauthorizedHandler(handleUnauthorized);
 void useAuthStore.getState().hydrateAuth();
 persistLocale(detectInitialLocale());
+captureAttribution();
 
 createRoot(document.getElementById("root")!).render(<App />);

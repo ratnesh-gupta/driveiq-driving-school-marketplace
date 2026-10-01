@@ -33,6 +33,7 @@ class AuthController extends Controller
         if ($user->role === 'school') {
             $schoolId = app(ListingOnboarding::class)->register($user, $request->validated('listingType') ?? 'school', [
                 'women_instructor' => $request->boolean('womenInstructor'),
+                'attribution' => $request->validated('attribution') ?? [],
             ])->id;
             $user->refresh();
             $user->notify(new VerifyOwnerEmail);

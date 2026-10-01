@@ -109,7 +109,7 @@ class GoogleAdsLeadController extends Controller
         $school = $prospect->school;
         $link = $school && $school->listing_status === 'unclaimed'
             ? app(ListingClaimService::class)->issue($school, $prospect)['url']
-            : config('app.frontend_url').'/register?'.http_build_query([
+            : config('app.frontend_url').'/auth/register?'.http_build_query([
                 'type' => $prospect->type, 'utm_source' => 'google', 'utm_medium' => 'cpc', 'utm_campaign' => 'ads-'.($ids['campaign_id'] ?? 'lead'),
             ]);
 

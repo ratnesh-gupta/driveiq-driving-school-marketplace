@@ -22,6 +22,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               <Link href="/driving-rules" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{t("nav.drivingRules")}</Link>
               <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{t("nav.about")}</Link>
               <Link href="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{t("nav.contact")}</Link>
+              <Link href="/for-schools" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors" data-testid="link-list-your-school">{t("nav.listYourSchool")}</Link>
             </nav>
           </div>
 
@@ -61,6 +62,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/driving-rules" className="text-sm font-medium">{t("nav.drivingRules")}</Link>
                   <Link href="/about" className="text-sm font-medium">{t("nav.about")}</Link>
                   <Link href="/contact" className="text-sm font-medium">{t("nav.contact")}</Link>
+                  <Link href="/for-schools" className="text-sm font-medium">{t("nav.listYourSchool")}</Link>
                   <Link href="/privacy" className="text-sm font-medium">{t("common.privacy")}</Link>
                   <Link href="/terms" className="text-sm font-medium">{t("common.terms")}</Link>
                   <hr className="my-2" />
@@ -112,7 +114,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               <li><Link href="/privacy" className="hover:text-primary">{t("legal.privacy")}</Link></li>
               <li><Link href="/terms" className="hover:text-primary">{t("legal.terms")}</Link></li>
               <li><Link href="/privacy/data-request" className="hover:text-primary">{t("legal.dataRights")}</Link></li>
-              <li><Link href="/auth/register" className="hover:text-primary">{t("nav.partnerWithUs")}</Link></li>
+              <li><Link href="/for-schools" className="hover:text-primary">{t("nav.partnerWithUs")}</Link></li>
+              <li><Link href="/for-trainers" className="hover:text-primary">{t("nav.forTrainers")}</Link></li>
               <li><Link href="/auth/login" className="hover:text-primary">{t("nav.schoolLogin")}</Link></li>
             </ul>
           </div>

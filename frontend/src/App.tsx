@@ -41,6 +41,7 @@ import PaymentsPage from "@/pages/dashboard/payments";
 import TeamPage from "@/pages/dashboard/team";
 import TeamAcceptPage from "@/pages/team-accept";
 import ClaimPage from "@/pages/claim";
+import ForListingsPage from "@/pages/for-listings";
 import UnsubscribePage from "@/pages/unsubscribe";
 import AdminOutreachPage from "@/pages/admin/outreach";
 import ReviewViaLinkPage from "@/pages/review-via-link";
@@ -106,6 +107,8 @@ function Router() {
       <Route path="/compare" component={ComparePage} />
       <Route path="/team/accept" component={TeamAcceptPage} />
       <Route path="/claim/:token" component={ClaimPage} />
+      <Route path="/for-schools">{() => <ForListingsPage audience="school" />}</Route>
+      <Route path="/for-trainers">{() => <ForListingsPage audience="trainer" />}</Route>
       <Route path="/unsubscribe/:token" component={UnsubscribePage} />
       <Route path="/review" component={ReviewViaLinkPage} />
 

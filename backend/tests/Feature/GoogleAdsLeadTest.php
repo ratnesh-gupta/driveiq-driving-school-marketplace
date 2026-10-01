@@ -55,7 +55,7 @@ class GoogleAdsLeadTest extends TestCase
         $this->assertSame('222', $p->meta['google_ads']['campaign_id']);
 
         Notification::assertSentTo(new AnonymousNotifiable, OnboardingInvite::class, function (OnboardingInvite $n, $ch, $notifiable) {
-            $this->assertStringContainsString('/register?type=school&utm_source=google', $n->link);
+            $this->assertStringContainsString('/auth/register?type=school&utm_source=google', $n->link);
 
             return $notifiable->routes['mail'] === 'prakash@example.com';
         });

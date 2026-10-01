@@ -20,16 +20,23 @@ class ListingOnboarding
     /** A new draft listing for a freshly registered owner. */
     public function register(User $owner, string $type, array $extra = []): School
     {
+        $utm = array_filter($extra['attribution'] ?? [], fn ($v) => is_string($v) && $v !== '');
         $school = School::create([
             'user_id' => $owner->id,
             'name' => $owner->name,
             'slug' => $this->slug($owner->name),
             'email' => $owner->email,
             'women_instructor' => (bool) ($extra['women_instructor'] ?? false),
-            'source' => $extra['source'] ?? 'organic',
         ]);
-        // Not fillable: only the platform decides a listing's type and status.
-        $school->forceFill(['listing_type' => $type, 'listing_status' => 'draft'])->save();
+        // Not fillable: only the platform decides a listing's type, status and attribution.
+        $school->forceFill([
+            'listing_type' => $type,
+            'listing_status' => 'draft',
+            'source' => $extra['source'] ?? self::sourceFromUtm($utm),
+            'utm_source' => $utm['utm_source'] ?? null,
+            'utm_medium' => $utm['utm_medium'] ?? null,
+            'utm_campaign' => $utm['utm_campaign'] ?? null,
+        ])->save();
 
         $this->attachOwner($school, $owner);
 
@@ -76,6 +83,19 @@ class ListingOnboarding
         $this->subscriptions->startTrial($school->id);
 
         AuditLog::log('owner_attached', 'School', $school->id, [], ['user_id' => $owner->id, 'type' => $school->listing_type], $school->id);
+    }
+
+    /** Our own channels are named in the tags we put on links (DIQ-1105/1106). */
+    public static function sourceFromUtm(array $utm): string
+    {
+        $source = mb_strtolower($utm['utm_source'] ?? '');
+        $medium = mb_strtolower($utm['utm_medium'] ?? '');
+
+        return match (true) {
+            $source === 'outreach' => 'outreach',
+            $source === 'google' && in_array($medium, ['cpc', 'ppc', 'paid'], true) => 'ads',
+            default => 'organic',
+        };
     }
 
     public function slug(string $name): string

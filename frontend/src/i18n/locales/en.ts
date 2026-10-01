@@ -27,6 +27,8 @@ const en = {
     company: "Company",
     forSchools: "For Schools",
     searchSchools: "Search Schools",
+    listYourSchool: "List your school",
+    forTrainers: "For independent trainers",
     partnerWithUs: "Partner with us",
     schoolLogin: "School Login",
     tagline: "The premium marketplace for discovering and booking driving schools in Pune.",

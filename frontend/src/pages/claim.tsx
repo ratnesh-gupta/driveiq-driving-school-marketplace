@@ -77,7 +77,7 @@ export default function ClaimPage() {
         ) : preview.isError || !listing ? (
           <div className="mt-6 space-y-2 text-sm" data-testid="text-claim-invalid">
             <p className="text-destructive">{(preview.error as Error)?.message ?? "This claim link is not valid."}</p>
-            <p className="text-muted-foreground">You can still <Link href="/register" className="underline">list your school or trainer profile for free</Link>.</p>
+            <p className="text-muted-foreground">You can still <Link href="/for-schools" className="underline">list your school or trainer profile for free</Link>.</p>
           </div>
         ) : (
           <>

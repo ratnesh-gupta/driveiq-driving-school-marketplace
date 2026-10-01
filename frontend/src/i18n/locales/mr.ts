@@ -29,6 +29,8 @@ const mr: TranslationTree = {
     company: "कंपनी",
     forSchools: "शाळांसाठी",
     searchSchools: "शाळा शोधा",
+    listYourSchool: "तुमची शाळा जोडा",
+    forTrainers: "स्वतंत्र ट्रेनरसाठी",
     partnerWithUs: "आमच्यासोबत सामील व्हा",
     schoolLogin: "शाळा लॉगिन",
     tagline: "पुण्यातील ड्रायव्हिंग शाळा शोधण्यासाठी आणि बुक करण्यासाठी प्रीमियम मार्केटप्लेस.",
