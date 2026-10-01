@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LeadNoteController;
 use App\Http\Controllers\Api\LearnerController;
+use App\Http\Controllers\Api\ListingClaimController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
@@ -84,6 +85,14 @@ Route::post('/inquiries', [InquiryController::class, 'store'])
 Route::get('/team/invitations/{token}', [SchoolTeamController::class, 'showInvitation'])
     ->middleware('throttle:public-lookups');
 Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware('throttle:public-forms');
+
+// Claiming a pre-built listing (DIQ-1104): the token in the link is the key.
+Route::prefix('claims/{token}')->group(function (): void {
+    Route::get('/', [ListingClaimController::class, 'show'])->middleware('throttle:public-lookups');
+    Route::post('/code', [ListingClaimController::class, 'sendCode'])->middleware('throttle:public-forms');
+    Route::post('/complete', [ListingClaimController::class, 'complete'])->middleware('throttle:public-forms');
+    Route::post('/decline', [ListingClaimController::class, 'decline'])->middleware('throttle:public-forms');
+});
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
     ->middleware('throttle:public-forms');
@@ -210,6 +219,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/admin/prospects/import', [AdminProspectController::class, 'import']);
         Route::patch('/admin/prospects/{id}', [AdminProspectController::class, 'update'])->whereNumber('id');
         Route::post('/admin/prospects/{id}/listing', [AdminProspectController::class, 'createListing'])->whereNumber('id');
+        Route::post('/admin/prospects/{id}/claim-link', [ListingClaimController::class, 'adminLink'])->whereNumber('id');
         Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);

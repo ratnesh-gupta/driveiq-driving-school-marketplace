@@ -16,6 +16,7 @@ import {
   createProspect,
   createProspectListing,
   importProspects,
+  issueClaimLink,
   listProspects,
   updateProspect,
   type ImportPreview,
@@ -124,6 +125,19 @@ export default function AdminProspectsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const claimLink = useMutation({
+    mutationFn: (p: Prospect) => issueClaimLink(p.id),
+    onSuccess: async (r) => {
+      try {
+        await navigator.clipboard.writeText(r.url);
+        toast.success("Claim link copied. It works for 30 days and only once.");
+      } catch {
+        window.prompt("Copy the claim link", r.url);
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openEdit = (p: Prospect | "new") => {
     setEditing(p);
     setForm(toForm(p === "new" ? null : p));
@@ -223,7 +237,14 @@ export default function AdminProspectsPage() {
                 </td>
                 <td className="px-4 py-3 text-xs">
                   {p.listing ? (
-                    <span className="inline-flex items-center gap-1"><Store className="h-3.5 w-3.5" /> {p.listing.status === "unclaimed" ? "Waiting for claim" : p.listing.status}</span>
+                    <div className="space-y-1">
+                      <span className="inline-flex items-center gap-1"><Store className="h-3.5 w-3.5" /> {p.listing.status === "unclaimed" ? "Waiting for claim" : p.listing.status}</span>
+                      {p.listing.status === "unclaimed" && p.contactable && (
+                        <Button size="sm" variant="ghost" className="h-6 px-1 text-xs" disabled={claimLink.isPending} onClick={() => claimLink.mutate(p)} data-testid={`button-claim-link-${p.id}`}>
+                          Copy claim link
+                        </Button>
+                      )}
+                    </div>
                   ) : p.contactable ? (
                     <Button size="sm" variant="outline" className="h-7 text-xs" disabled={listing.isPending} onClick={() => listing.mutate(p)} data-testid={`button-create-listing-${p.id}`}>
                       Create listing

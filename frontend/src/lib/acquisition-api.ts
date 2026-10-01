@@ -102,3 +102,37 @@ export function importProspects(file: File, type: ListingType, preview: boolean)
   if (preview) form.append("preview", "1");
   return request<ImportPreview | { created: number; skipped: number }>("/api/admin/prospects/import", { method: "POST", body: form });
 }
+
+// ── Claiming a listing (DIQ-1104) ──
+
+export type ClaimPreview = {
+  listing: { name: string; type: ListingType; locality: string | null; address: string | null };
+  channels: { email?: string; sms?: string };
+  expiresAt: string;
+};
+
+export function getClaim(token: string) {
+  return request<ClaimPreview>(`/api/claims/${encodeURIComponent(token)}`);
+}
+
+export function sendClaimCode(token: string, channel: "email" | "sms") {
+  return request<{ sentTo: string; expiresAt: string }>(`/api/claims/${encodeURIComponent(token)}/code`, {
+    method: "POST",
+    body: JSON.stringify({ channel }),
+  });
+}
+
+export function completeClaim(token: string, body: { code: string; name: string; email: string; password: string }) {
+  return request<{ token: string; schoolId: number; listingStatus: string }>(`/api/claims/${encodeURIComponent(token)}/complete`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function declineClaim(token: string) {
+  return request<{ message: string }>(`/api/claims/${encodeURIComponent(token)}/decline`, { method: "POST" });
+}
+
+export function issueClaimLink(prospectId: number) {
+  return request<{ url: string; expiresAt: string }>(`/api/admin/prospects/${prospectId}/claim-link`, { method: "POST" });
+}
