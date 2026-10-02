@@ -70,7 +70,7 @@ export default function InvoicePage() {
               </thead>
               <tbody>
                 <tr className="border-b">
-                  <td className="py-2">DriveIQ {PLAN_LABEL[inv.planCode]} plan · {inv.months} month{inv.months > 1 ? "s" : ""}</td>
+                  <td className="py-2">DriveQ {PLAN_LABEL[inv.planCode]} plan · {inv.months} month{inv.months > 1 ? "s" : ""}</td>
                   <td className="py-2 text-right">{formatInr(inv.subtotal)}</td>
                 </tr>
                 <tr><td className="py-1 text-muted-foreground">GST @ {inv.gstRate}%</td><td className="py-1 text-right">{formatInr(inv.gstAmount)}</td></tr>

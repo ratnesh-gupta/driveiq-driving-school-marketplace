@@ -25,7 +25,7 @@ function localityFaqs(localityName: string, total: number, schools: School[]) {
   const faqs = [
     {
       q: `How many driving schools are listed in ${localityName}?`,
-      a: `${total} driving school${total === 1 ? " is" : "s are"} listed in ${localityName} on DriveIQ${verified ? `, ${verified} of them verified` : ""}.`,
+      a: `${total} driving school${total === 1 ? " is" : "s are"} listed in ${localityName} on DriveQ${verified ? `, ${verified} of them verified` : ""}.`,
     },
   ];
   if (prices.length) {

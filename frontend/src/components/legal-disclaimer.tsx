@@ -7,7 +7,7 @@ export function LegalDisclaimer({ className }: { className?: string }) {
     <Alert className={cn("bg-muted/50", className)}>
       <AlertTriangle className="h-4 w-4" />
       <AlertDescription>
-        Rules and regulations are for informational purposes only. DriveIQ is
+        Rules and regulations are for informational purposes only. DriveQ is
         not affiliated with any government agency. Please verify details on the{" "}
         <a
           href="https://parivahan.gov.in/parivahan/"

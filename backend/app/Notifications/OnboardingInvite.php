@@ -31,9 +31,9 @@ class OnboardingInvite extends Notification implements ShouldQueue
         $what = $this->type === 'trainer' ? 'trainer profile' : 'driving school listing';
 
         return (new MailMessage)
-            ->subject("Your free {$what} on DriveIQ")
+            ->subject("Your free {$what} on DriveQ")
             ->greeting('Hi '.($this->contactName ?: 'there').',')
-            ->line('Thanks for your interest in DriveIQ. Learners in Pune use it to find and compare driving schools and trainers near them.')
+            ->line('Thanks for your interest in DriveQ. Learners in Pune use it to find and compare driving schools and trainers near them.')
             ->line("Setting up your free {$what} takes a few minutes. Learners can then send you enquiries by WhatsApp or phone.")
             ->action('Set up my free '.$what, $this->link)
             ->line('Questions? Just reply to this email.');

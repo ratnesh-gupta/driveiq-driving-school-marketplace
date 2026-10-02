@@ -56,7 +56,7 @@ export default function ContactPage() {
                 <p className="text-muted-foreground leading-relaxed">Have a question, feedback, or want to list your driving school? Reach out to our team.</p>
               </div>
               {[
-                { icon: Mail, label: "Email", value: "hello@driveiq.in" },
+                { icon: Mail, label: "Email", value: "hello@driveq.in" },
                 { icon: Phone, label: "Phone", value: "+91 98765 43210" },
                 { icon: MapPin, label: "Location", value: "Baner, Pune, Maharashtra 411045" },
               ].map((item) => (

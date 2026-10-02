@@ -296,7 +296,7 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl font-bold">How DriveIQ Works</h2>
+            <h2 className="text-3xl font-bold">How DriveQ Works</h2>
             <p className="text-muted-foreground mt-2 max-w-xl mx-auto">Find your perfect driving school in three simple steps</p>
           </motion.div>
 
@@ -308,7 +308,7 @@ export default function HomePage() {
             variants={stagger}
           >
             {[
-              { icon: Search, step: "01", title: "Search Nearby Schools", desc: "Enter your locality and vehicle type. DriveIQ finds verified driving schools near you instantly." },
+              { icon: Search, step: "01", title: "Search Nearby Schools", desc: "Enter your locality and vehicle type. DriveQ finds verified driving schools near you instantly." },
               { icon: Star, step: "02", title: "Compare & Review", desc: "Read real reviews, compare pricing packages, check instructor details and pickup availability." },
               { icon: MessageCircle, step: "03", title: "Connect Instantly", desc: "Submit an inquiry or reach out on WhatsApp. Get started with your preferred driving school." },
             ].map((step) => (
@@ -369,7 +369,7 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl font-bold">Why Trust DriveIQ</h2>
+            <h2 className="text-3xl font-bold">Why Trust DriveQ</h2>
             <p className="text-muted-foreground mt-2">We verify every school so you don't have to</p>
           </motion.div>
 
@@ -413,7 +413,7 @@ export default function HomePage() {
           >
             <Zap className="h-10 w-10 mx-auto mb-4 text-yellow-400" />
             <h2 className="text-3xl font-bold mb-3">Ready to start learning?</h2>
-            <p className="text-white/70 mb-8 max-w-md mx-auto">Join thousands of students who found their perfect driving school on DriveIQ.</p>
+            <p className="text-white/70 mb-8 max-w-md mx-auto">Join thousands of students who found their perfect driving school on DriveQ.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold" onClick={() => setLocation("/search")} data-testid="button-cta-search">
                 Search Schools Now

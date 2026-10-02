@@ -34,11 +34,11 @@ const DEFAULT_STEPS: Record<ListingType, OutreachStep[]> = {
     {
       subject: "Learners in {{locality}} are looking for {{name}}",
       body:
-        "Hi {{contact}},\n\nI'm with DriveIQ, a new site where learners in Pune find and compare driving schools near them. We have set up a free school listing for {{name}} so learners in {{locality}} can send you enquiries on WhatsApp or by phone.\n\nIt takes two minutes to check the details and switch it on:\n{{link}}\n\nThere is no fee for the basic listing.\n\n(मराठी: तुमच्या ड्रायव्हिंग स्कूलची मोफत लिस्टिंग तयार आहे. वरील लिंकवर क्लिक करून सुरू करा.)\n\nThanks,\nDriveIQ team",
+        "Hi {{contact}},\n\nI'm with DriveQ, a new site where learners in Pune find and compare driving schools near them. We have set up a free school listing for {{name}} so learners in {{locality}} can send you enquiries on WhatsApp or by phone.\n\nIt takes two minutes to check the details and switch it on:\n{{link}}\n\nThere is no fee for the basic listing.\n\n(मराठी: तुमच्या ड्रायव्हिंग स्कूलची मोफत लिस्टिंग तयार आहे. वरील लिंकवर क्लिक करून सुरू करा.)\n\nThanks,\nDriveQ team",
     },
     {
       subject: "Your free listing for {{name}}",
-      body: "Hi {{contact}},\n\nA quick follow-up: your free {{listing}} is ready whenever you are. Learners can only see it after you claim it:\n{{link}}\n\nIf it isn't for you, use the link at the bottom and we won't write again.\n\nThanks,\nDriveIQ team",
+      body: "Hi {{contact}},\n\nA quick follow-up: your free {{listing}} is ready whenever you are. Learners can only see it after you claim it:\n{{link}}\n\nIf it isn't for you, use the link at the bottom and we won't write again.\n\nThanks,\nDriveQ team",
       delayDays: 4,
     },
   ],
@@ -46,11 +46,11 @@ const DEFAULT_STEPS: Record<ListingType, OutreachStep[]> = {
     {
       subject: "Find more learners in {{locality}}, {{contact}}",
       body:
-        "Hi {{contact}},\n\nDriveIQ helps learners in Pune find driving trainers near them, including independent trainers like you. We have prepared a free trainer profile so learners can contact you directly:\n{{link}}\n\nThere is no fee for the basic profile.\n\n(मराठी: तुमचे मोफत ट्रेनर प्रोफाइल तयार आहे. वरील लिंकवर क्लिक करा.)\n\nThanks,\nDriveIQ team",
+        "Hi {{contact}},\n\nDriveQ helps learners in Pune find driving trainers near them, including independent trainers like you. We have prepared a free trainer profile so learners can contact you directly:\n{{link}}\n\nThere is no fee for the basic profile.\n\n(मराठी: तुमचे मोफत ट्रेनर प्रोफाइल तयार आहे. वरील लिंकवर क्लिक करा.)\n\nThanks,\nDriveQ team",
     },
     {
       subject: "Your free trainer profile",
-      body: "Hi {{contact}},\n\nJust following up: your free {{listing}} is waiting for you here:\n{{link}}\n\nIf it isn't for you, use the link at the bottom and we won't write again.\n\nThanks,\nDriveIQ team",
+      body: "Hi {{contact}},\n\nJust following up: your free {{listing}} is waiting for you here:\n{{link}}\n\nIf it isn't for you, use the link at the bottom and we won't write again.\n\nThanks,\nDriveQ team",
       delayDays: 4,
     },
   ],

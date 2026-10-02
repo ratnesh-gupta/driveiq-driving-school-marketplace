@@ -31,7 +31,7 @@ class TeamInvitation extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("You're invited to manage {$this->school->name} on DriveIQ")
+            ->subject("You're invited to manage {$this->school->name} on DriveQ")
             ->line("{$this->inviterName} has invited you to join {$this->school->name} as a manager.")
             ->action('Accept invitation', $this->acceptUrl())
             ->line('This invitation expires in 7 days. If you were not expecting it, you can ignore this email.');

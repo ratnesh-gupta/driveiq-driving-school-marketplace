@@ -9,7 +9,7 @@ export default function PrivacyPage() {
         <p className="text-sm text-muted-foreground">Last updated: 22 September 2026</p>
 
         <p>
-          DriveIQ (&quot;we&quot;, &quot;us&quot;) operates a driving-school marketplace and school operations
+          DriveQ (&quot;we&quot;, &quot;us&quot;) operates a driving-school marketplace and school operations
           platform. This policy explains what personal data we collect, why, and your choices.
           It is written with India’s Digital Personal Data Protection (DPDP) Act principles in mind.
         </p>
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         </ul>
 
         <h2>3. Cookies &amp; local storage</h2>
-        <p>DriveIQ primarily uses <strong>local storage</strong>, not advertising cookies:</p>
+        <p>DriveQ primarily uses <strong>local storage</strong>, not advertising cookies:</p>
         <ul>
           <li><code>driveiq_auth_token</code> — session token after login (essential)</li>
           <li>Theme preference (essential / functional)</li>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
         <p>
           School operators see data needed to serve their learners. We do not sell personal data.
           Processors (hosting, email, payment gateways) may process data under contract. Card numbers
-          are not stored by DriveIQ when online payments are enabled.
+          are not stored by DriveQ when online payments are enabled.
         </p>
 
         <h2>7. Retention</h2>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
 
         <h2>9. Grievance redressal</h2>
         <p>
-          <strong>Grievance contact:</strong> privacy@driveiq.in<br />
+          <strong>Grievance contact:</strong> privacy@driveq.in<br />
           <strong>Form:</strong> <Link href="/privacy/data-request">/privacy/data-request</Link> (request type: Other / grievance)<br />
           If unresolved, you may approach the Data Protection Board of India as provided under applicable law.
         </p>
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
         <h2>10. Security</h2>
         <p>
           Access controls, school-scoped isolation, hashed passwords, and HTTPS in production. Report
-          concerns to privacy@driveiq.in.
+          concerns to privacy@driveq.in.
         </p>
 
         <h2>11. Children</h2>

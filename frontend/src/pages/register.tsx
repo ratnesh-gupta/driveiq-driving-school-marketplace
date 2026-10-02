@@ -75,20 +75,20 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:flex flex-col bg-gradient-to-br from-[hsl(258,60%,18%)] via-[hsl(221,83%,20%)] to-[hsl(221,83%,12%)] text-white p-12 relative overflow-hidden">
-        <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveIQ</Link>
+        <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveQ</Link>
         <div className="flex-1 flex flex-col justify-center z-10 max-w-sm">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h2 className="text-4xl font-bold mb-4">Join India's fastest growing driving school platform</h2>
-            <p className="text-white/70 text-lg leading-relaxed">Whether you're a learner or a school owner, DriveIQ connects you to the best driving experiences in Pune.</p>
+            <p className="text-white/70 text-lg leading-relaxed">Whether you're a learner or a school owner, DriveQ connects you to the best driving experiences in Pune.</p>
           </motion.div>
         </div>
-        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveIQ. All rights reserved.</div>
+        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveQ. All rights reserved.</div>
       </div>
 
       <div className="flex items-center justify-center p-8 bg-background">
         <motion.div className="w-full max-w-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-8">
-            <Link href="/" className="font-bold text-xl text-primary lg:hidden">DriveIQ</Link>
+            <Link href="/" className="font-bold text-xl text-primary lg:hidden">DriveQ</Link>
             <h1 className="text-2xl font-bold mt-4">Create your account</h1>
             <p className="text-muted-foreground text-sm mt-1">Already have an account? <Link href="/auth/login" className="text-primary hover:underline">Sign in</Link></p>
           </div>
@@ -162,7 +162,7 @@ export default function RegisterPage() {
               {isAuthLoading ? "Creating Account..." : "Create Account"}
             </Button>
             <p className="text-[11px] text-center text-muted-foreground">
-              Grievance / data rights: <Link href="/privacy/data-request" className="underline">request form</Link> · privacy@driveiq.in
+              Grievance / data rights: <Link href="/privacy/data-request" className="underline">request form</Link> · privacy@driveq.in
             </p>
           </form>
         </motion.div>

@@ -1,4 +1,4 @@
-# DriveIQ — Master Project Plan & Roadmap
+# DriveQ — Master Project Plan & Roadmap
 
 **Version:** 1.0  
 **Date:** June 9, 2026  
@@ -38,7 +38,7 @@ All previous standalone PRDs, roadmaps, and assessment docs are superseded by th
 
 ## 1. Product Vision
 
-### What is DriveIQ?
+### What is DriveQ?
 
 A **hyperlocal, geo-intelligent marketplace** that connects driving learners with verified driving schools — evolving into a **Driving School Operating System (DSOS)** for complete school operations.
 

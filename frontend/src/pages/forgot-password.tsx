@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-background">
       <div className="w-full max-w-sm">
-        <Link href="/" className="font-bold text-xl text-primary">DriveIQ</Link>
+        <Link href="/" className="font-bold text-xl text-primary">DriveQ</Link>
         <h1 className="text-2xl font-bold mt-4">{t("auth.forgotTitle")}</h1>
         <p className="text-muted-foreground text-sm mt-1 mb-6">{t("auth.forgotSub")}</p>
 

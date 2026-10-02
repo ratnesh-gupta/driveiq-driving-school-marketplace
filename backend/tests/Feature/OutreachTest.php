@@ -36,7 +36,7 @@ class OutreachTest extends TestCase
     private function steps(): array
     {
         return [
-            ['subject' => '{{name}} on DriveIQ', 'body' => "Hi {{contact}},\n\nLearners in {{locality}} look for schools like {{name}}. Your free {{listing}}: {{link}}"],
+            ['subject' => '{{name}} on DriveQ', 'body' => "Hi {{contact}},\n\nLearners in {{locality}} look for schools like {{name}}. Your free {{listing}}: {{link}}"],
             ['subject' => 'Following up', 'body' => 'Just checking: {{link}}', 'delayDays' => 4],
         ];
     }
@@ -77,7 +77,7 @@ class OutreachTest extends TestCase
 
         $claimUrl = null;
         Mail::assertSent(OutreachEmail::class, function (OutreachEmail $m) use (&$claimUrl) {
-            $this->assertSame('Sai Motor School on DriveIQ', $m->subjectLine);
+            $this->assertSame('Sai Motor School on DriveQ', $m->subjectLine);
             $this->assertStringContainsString('Hi Sunil,', $m->body);
             $this->assertStringContainsString('Learners in Pune', $m->body);
             preg_match('~/claim/(\S+)~', $m->body, $match);

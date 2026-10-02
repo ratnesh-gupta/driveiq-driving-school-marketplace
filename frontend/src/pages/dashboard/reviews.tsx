@@ -58,7 +58,7 @@ export default function DashboardReviewsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Reviews</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Reviews are moderated by DriveIQ. If a review breaks the rules, report it for moderation.
+          Reviews are moderated by DriveQ. If a review breaks the rules, report it for moderation.
         </p>
       </div>
 

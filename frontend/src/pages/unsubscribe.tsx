@@ -13,12 +13,12 @@ export default function UnsubscribePage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <div className="w-full max-w-sm space-y-4">
-        <Link href="/" className="font-bold text-xl text-primary">DriveIQ</Link>
+        <Link href="/" className="font-bold text-xl text-primary">DriveQ</Link>
         {done ? (
           <p className="text-sm" data-testid="text-unsubscribed">{done}</p>
         ) : (
           <>
-            <h1 className="text-xl font-semibold">Stop emails from DriveIQ?</h1>
+            <h1 className="text-xl font-semibold">Stop emails from DriveQ?</h1>
             <p className="text-sm text-muted-foreground">We will not email you about listing your school or trainer profile again, and we remove any listing we prepared for you.</p>
             {run.isError && <p className="text-sm text-destructive">{(run.error as Error).message}</p>}
             <Button onClick={() => run.mutate()} disabled={run.isPending} data-testid="button-unsubscribe">Unsubscribe</Button>

@@ -68,7 +68,7 @@ export default function ClaimPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <div className="w-full max-w-md">
-        <Link href="/" className="font-bold text-xl text-primary">DriveIQ</Link>
+        <Link href="/" className="font-bold text-xl text-primary">DriveQ</Link>
 
         {declined ? (
           <p className="mt-6 text-sm" data-testid="text-claim-declined">{declined}</p>

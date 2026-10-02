@@ -35,8 +35,8 @@ class StaffLoginInvite extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("Your {$this->school->name} trainer login on DriveIQ")
-            ->line("{$this->school->name} has created a DriveIQ trainer login for you.")
+            ->subject("Your {$this->school->name} trainer login on DriveQ")
+            ->line("{$this->school->name} has created a DriveQ trainer login for you.")
             ->line('Use it to see your sessions, mark attendance and update learner progress.')
             ->action('Set your password', $this->setPasswordUrl($notifiable))
             ->line('This link expires in '.config('auth.passwords.users.expire', 60).' minutes. Ask your school to resend it if it runs out.');

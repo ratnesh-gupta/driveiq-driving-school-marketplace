@@ -46,11 +46,11 @@ const en = {
     featuredSchools: "Featured Driving Schools",
     featuredSub: "Top-rated, verified schools across Pune",
     exploreAll: "Explore All Schools",
-    howTitle: "How DriveIQ Works",
+    howTitle: "How DriveQ Works",
     howSub: "Find your perfect driving school in three simple steps",
     step1Title: "Search Nearby Schools",
     step1Desc:
-      "Enter your locality and vehicle type. DriveIQ finds verified driving schools near you instantly.",
+      "Enter your locality and vehicle type. DriveQ finds verified driving schools near you instantly.",
     step2Title: "Compare & Review",
     step2Desc:
       "Read real reviews, compare pricing packages, check instructor details and pickup availability.",
@@ -61,7 +61,7 @@ const en = {
     rulesDesc:
       "Everything you need — minimum age requirements, RTO offices, documents, fees, and a step-by-step license process for Pune.",
     viewGuide: "View Full Guide",
-    trustTitle: "Why Trust DriveIQ",
+    trustTitle: "Why Trust DriveQ",
     trustSub: "We verify every school so you don't have to",
     trust1: "Verified Schools",
     trust1Desc: "Every school is personally verified by our team before listing.",
@@ -94,10 +94,10 @@ const en = {
     revokeInvite: "Cancel invite",
     removed: "Removed from team",
     empty: "No managers yet. Your school works fine without them.",
-    acceptTitle: "Join {{school}} on DriveIQ",
+    acceptTitle: "Join {{school}} on DriveQ",
     acceptSub: "You've been invited as a manager.",
     acceptInvalid: "This invitation is invalid or has expired. Ask the school owner to send a new one.",
-    signInFirst: "This email already has a DriveIQ account. Sign in as {{email}} to accept.",
+    signInFirst: "This email already has a DriveQ account. Sign in as {{email}} to accept.",
     signIn: "Sign in to accept",
     accept: "Accept invitation",
     accepting: "Joining…",
@@ -158,7 +158,7 @@ const en = {
     welcomeBack: "Welcome back to",
     joinTitle: "Join India's fastest growing driving school platform",
     joinSub:
-      "Whether you're a learner or a school owner, DriveIQ connects you to the best driving experiences in Pune.",
+      "Whether you're a learner or a school owner, DriveQ connects you to the best driving experiences in Pune.",
   },
   search: {
     allSchools: "All Driving Schools",
@@ -187,7 +187,7 @@ const en = {
     tryFilters: "Try adjusting your filters or clearing them",
     locationPurposeTitle: "Use your location?",
     locationPurposeBody:
-      "DriveIQ will ask your browser for your current position only to show driving schools near you for this search. We do not track you continuously or sell location data.",
+      "DriveQ will ask your browser for your current position only to show driving schools near you for this search. We do not track you continuously or sell location data.",
   },
   schoolNav: {
     team: "Team",
@@ -207,7 +207,7 @@ const en = {
     billing: "Plan & billing",
     audit: "Activity log",
     title: "School Dashboard",
-    brand: "DriveIQ Partner",
+    brand: "DriveQ Partner",
   },
   adminNav: {
     overview: "Overview",
@@ -223,7 +223,7 @@ const en = {
     outreach: "Outreach",
     audit: "Audit log",
     title: "Admin Portal",
-    brand: "DriveIQ Admin",
+    brand: "DriveQ Admin",
   },
   instructorNav: {
     overview: "Overview",
@@ -233,7 +233,7 @@ const en = {
     learners: "My learners",
     leave: "Leave",
     title: "Instructor Portal",
-    brand: "DriveIQ Trainer",
+    brand: "DriveQ Trainer",
   },
   learnerNav: {
     overview: "Overview",
@@ -242,7 +242,7 @@ const en = {
     documents: "Documents",
     messages: "Messages",
     title: "Learner Portal",
-    brand: "DriveIQ Learner",
+    brand: "DriveQ Learner",
   },
   legal: {
     privacy: "Privacy Policy",

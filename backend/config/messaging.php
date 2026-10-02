@@ -56,7 +56,7 @@ return [
         ],
         // DIQ-1104: proves a claimant controls the listing's phone. SMS only.
         'claim_code' => [
-            'text' => '{{code}} is your DriveIQ code to claim the listing for {{name}}. It expires in 10 minutes. Do not share it.',
+            'text' => '{{code}} is your DriveQ code to claim the listing for {{name}}. It expires in 10 minutes. Do not share it.',
             'vars' => ['code', 'name'],
             'provider_template_id' => env('MSG_TPL_CLAIM_CODE'),
             'dlt_template_id' => env('DLT_TPL_CLAIM_CODE'),

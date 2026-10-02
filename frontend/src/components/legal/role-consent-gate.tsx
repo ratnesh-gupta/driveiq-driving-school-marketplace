@@ -104,7 +104,7 @@ export function RoleConsentGate({
               Data use notice — {ROLE_LABEL[role]}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Please review how DriveIQ processes personal data in this portal. You can withdraw
+              Please review how DriveQ processes personal data in this portal. You can withdraw
               optional consents and request access or deletion anytime.
             </p>
           </div>
@@ -122,7 +122,7 @@ export function RoleConsentGate({
             <Link href="/terms" className="underline text-primary">Terms</Link>
             {" · "}
             <Link href="/privacy/data-request" className="underline text-primary">Data rights</Link>
-            {" · Grievance: privacy@driveiq.in"}
+            {" · Grievance: privacy@driveq.in"}
           </p>
 
           <label className="flex items-start gap-2 text-sm cursor-pointer">

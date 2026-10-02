@@ -9,16 +9,16 @@ export default function TermsPage() {
         <p className="text-muted-foreground text-sm">Last updated: 22 September 2026</p>
 
         <p>
-          These Terms govern use of the DriveIQ website and applications (&quot;Service&quot;). By creating an
+          These Terms govern use of the DriveQ website and applications (&quot;Service&quot;). By creating an
           account or using the Service you agree to these Terms and our{" "}
           <Link href="/privacy">Privacy Policy</Link>.
         </p>
 
-        <h2>1. What DriveIQ provides</h2>
+        <h2>1. What DriveQ provides</h2>
         <p>
-          DriveIQ is a marketplace and operations platform connecting learners with driving schools
+          DriveQ is a marketplace and operations platform connecting learners with driving schools
           and supporting school workflows (leads, schedules, payments records, messaging, analytics).
-          DriveIQ is not a government portal and does not issue licenses.
+          DriveQ is not a government portal and does not issue licenses.
         </p>
 
         <h2>2. Accounts & roles</h2>
@@ -33,7 +33,7 @@ export default function TermsPage() {
 
         <h2>3. Schools and listings</h2>
         <p>
-          School profiles, packages, prices, and availability are provided by schools. DriveIQ does
+          School profiles, packages, prices, and availability are provided by schools. DriveQ does
           not guarantee training outcomes, RTO success, or continuous availability of any school.
         </p>
 
@@ -61,7 +61,7 @@ export default function TermsPage() {
 
         <h2>7. Intellectual property</h2>
         <p>
-          DriveIQ branding, software, and original content remain our property. School content remains
+          DriveQ branding, software, and original content remain our property. School content remains
           the school’s responsibility.
         </p>
 
@@ -74,9 +74,9 @@ export default function TermsPage() {
 
         <h2>9. Limitation of liability</h2>
         <p>
-          To the extent allowed by law, DriveIQ is not liable for indirect or consequential damages,
+          To the extent allowed by law, DriveQ is not liable for indirect or consequential damages,
           or for disputes solely between learners and schools. Our aggregate liability relating to
-          the Service is limited to fees you paid to DriveIQ (if any) in the three months before the
+          the Service is limited to fees you paid to DriveQ (if any) in the three months before the
           claim.
         </p>
 

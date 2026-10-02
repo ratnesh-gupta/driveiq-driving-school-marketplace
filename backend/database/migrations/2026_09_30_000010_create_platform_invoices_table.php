@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * DIQ-803: DriveIQ's invoices to schools for plans. Kept apart from the
+ * DIQ-803: DriveQ's invoices to schools for plans. Kept apart from the
  * schools' own invoices/payments (package sales to learners), which school
  * staff may mark paid; only a platform admin can settle these. Seller and
  * buyer details are snapshotted so an issued invoice never changes.

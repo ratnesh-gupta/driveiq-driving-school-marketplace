@@ -188,7 +188,7 @@ class InstructorController extends Controller
         if (! $attachable) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => ['email' => ['This email already belongs to another DriveIQ account.']],
+                'errors' => ['email' => ['This email already belongs to another DriveQ account.']],
             ], 422);
         }
 

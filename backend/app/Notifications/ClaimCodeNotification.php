@@ -22,8 +22,8 @@ class ClaimCodeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("{$this->code} is your code to claim {$this->listingName} on DriveIQ")
-            ->line("Use this code to claim the DriveIQ listing for {$this->listingName}:")
+            ->subject("{$this->code} is your code to claim {$this->listingName} on DriveQ")
+            ->line("Use this code to claim the DriveQ listing for {$this->listingName}:")
             ->line("**{$this->code}**")
             ->line('It expires in '.ListingClaimService::CODE_MINUTES.' minutes. If you did not ask for it, ignore this email: nothing changes.');
     }

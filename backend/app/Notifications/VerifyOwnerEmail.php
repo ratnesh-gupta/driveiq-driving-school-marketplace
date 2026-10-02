@@ -33,9 +33,9 @@ class VerifyOwnerEmail extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Confirm your email to go live on DriveIQ')
+            ->subject('Confirm your email to go live on DriveQ')
             ->greeting("Hi {$notifiable->name},")
-            ->line('Confirm your email address so learners can find your listing on DriveIQ.')
+            ->line('Confirm your email address so learners can find your listing on DriveQ.')
             ->action('Confirm email', $this->verifyUrl($notifiable))
             ->line('The link works for '.self::EXPIRES_DAYS.' days. If you did not sign up, you can ignore this email.');
     }

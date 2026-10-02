@@ -1,4 +1,4 @@
-# DriveIQ — Docker Compose helpers
+# DriveQ — Docker Compose helpers
 # Default stack: docker-compose.yaml (local)
 # Production:    docker-compose.prod.yaml via prod-* targets
 
@@ -21,7 +21,7 @@ PROD_BACKEND  := $(DC_PROD) exec -T backend
 	prod-up prod-down prod-logs prod-migrate prod-seed
 
 help:
-	@echo "DriveIQ make targets"
+	@echo "DriveQ make targets"
 	@echo ""
 	@echo "  Stack"
 	@echo "    make up              Build & start full local stack"
