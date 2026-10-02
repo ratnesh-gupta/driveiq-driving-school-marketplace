@@ -48,6 +48,8 @@ auth.json
 # ------------------------------------------------------------------------------
 node_modules/
 vendor/
+# Our own overrides of published package views (DIQ-1204) are source.
+!backend/resources/views/vendor/
 .pnpm-store/
 .pnpm-debug.log
 yarn-error.log
