@@ -84,6 +84,8 @@ make artisan CMD="key:generate"
 | `trainer.skyline@driveiq.in` | `password123` | `/instructor` |
 | `learner.asha@driveiq.in` | `password123` | `/learner` |
 
+For sales demos, `make demo` (`php artisan driveiq:demo --fresh`) wipes the local database and loads a fuller Pune showcase: 12 listings including two independent trainers, a busy Skyline dashboard and an admin outreach pipeline. It refuses to run in production. The same logins work.
+
 ## Make targets
 
 All database and Artisan commands below run **inside the `backend` container** via Docker Compose (see `docker-compose.yaml`).
@@ -272,6 +274,7 @@ New listings start as **drafts**. A draft goes live by itself once the owner has
 
 - [docs/DEPLOY.md](docs/DEPLOY.md) — production checklist, env, CI
 - `docs/` — product plans, architecture, phase notes
+- [marketing/README.md](marketing/README.md) — sales kit: demo videos, screenshots, outreach email copy, pitch decks
 
 ## License
 
