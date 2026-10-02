@@ -36,7 +36,7 @@ const mr: TranslationTree = {
     tagline: "पुण्यातील ड्रायव्हिंग शाळा शोधण्यासाठी आणि बुक करण्यासाठी प्रीमियम मार्केटप्लेस.",
   },
   home: {
-    badge: "पुण्याचे #1 ड्रायव्हिंग स्कूल प्लॅटफॉर्म",
+    badge: "पुण्याचा ड्रायव्हिंग स्कूल मार्केटप्लेस",
     heroTitle: "विश्वसनीय ड्रायव्हिंग शाळा शोधा",
     heroTitleAccent: "तुमच्या जवळ",
     heroSubtitle:
@@ -48,10 +48,10 @@ const mr: TranslationTree = {
     featuredSchools: "वैशिष्ट्यीकृत ड्रायव्हिंग शाळा",
     featuredSub: "पुण्यातील उच्च रेटिंग असलेल्या सत्यापित शाळा",
     exploreAll: "सर्व शाळा पहा",
-    howTitle: "DriveIQ कसे काम करते",
+    howTitle: "DriveQ कसे काम करते",
     howSub: "तीन सोप्या पायऱ्यांमध्ये योग्य ड्रायव्हिंग शाळा शोधा",
     step1Title: "जवळच्या शाळा शोधा",
-    step1Desc: "परिसर आणि वाहन प्रकार निवडा. DriveIQ सत्यापित शाळा दाखवते.",
+    step1Desc: "परिसर आणि वाहन प्रकार निवडा. DriveQ सत्यापित शाळा दाखवते.",
     step2Title: "तुलना आणि समीक्षा",
     step2Desc: "समीक्षा वाचा, पॅकेज किंमतींची तुलना करा, प्रशिक्षक व पिकअप तपासा.",
     step3Title: "त्वरित संपर्क",
@@ -59,7 +59,7 @@ const mr: TranslationTree = {
     rulesTitle: "ड्रायव्हिंग नियम आणि परवाना मार्गदर्शन",
     rulesDesc: "किमान वय, आरटीओ, कागदपत्रे, शुल्क आणि पुण्यासाठी परवाना प्रक्रिया.",
     viewGuide: "पूर्ण मार्गदर्शक पहा",
-    trustTitle: "DriveIQ वर विश्वास का",
+    trustTitle: "DriveQ वर विश्वास का",
     trustSub: "आम्ही प्रत्येक शाळेची पडताळणी करतो",
     trust1: "सत्यापित शाळा",
     trust1Desc: "यादीत येण्यापूर्वी प्रत्येक शाळेची तपासणी.",
@@ -92,10 +92,10 @@ const mr: TranslationTree = {
     revokeInvite: "आमंत्रण रद्द करा",
     removed: "टीममधून काढले",
     empty: "अद्याप व्यवस्थापक नाहीत. त्यांच्याशिवायही तुमची शाळा चालते.",
-    acceptTitle: "DriveIQ वर {{school}} मध्ये सामील व्हा",
+    acceptTitle: "DriveQ वर {{school}} मध्ये सामील व्हा",
     acceptSub: "तुम्हाला व्यवस्थापक म्हणून आमंत्रित केले आहे.",
     acceptInvalid: "हे आमंत्रण अवैध आहे किंवा त्याची मुदत संपली आहे. शाळा मालकाला नवीन आमंत्रण पाठवण्यास सांगा.",
-    signInFirst: "या ईमेलचे आधीच DriveIQ खाते आहे. स्वीकारण्यासाठी {{email}} ने साइन इन करा.",
+    signInFirst: "या ईमेलचे आधीच DriveQ खाते आहे. स्वीकारण्यासाठी {{email}} ने साइन इन करा.",
     signIn: "स्वीकारण्यासाठी साइन इन करा",
     accept: "आमंत्रण स्वीकारा",
     accepting: "सामील होत आहे…",
@@ -155,7 +155,7 @@ const mr: TranslationTree = {
     schoolDesc: "मी शाळा चालवतो/चालवते",
     welcomeBack: "पुन्हा स्वागत",
     joinTitle: "भारताच्या वेगाने वाढणाऱ्या ड्रायव्हिंग स्कूल प्लॅटफॉर्मशी जोडा",
-    joinSub: "विद्यार्थी असो किंवा शाळा संचालक, DriveIQ तुम्हाला पुण्यातील उत्तम अनुभवाशी जोडते.",
+    joinSub: "विद्यार्थी असो किंवा शाळा संचालक, DriveQ तुम्हाला पुण्यातील उत्तम अनुभवाशी जोडते.",
   },
   search: {
     allSchools: "सर्व ड्रायव्हिंग शाळा",
@@ -184,7 +184,7 @@ const mr: TranslationTree = {
     tryFilters: "फिल्टर बदला किंवा साफ करा",
     locationPurposeTitle: "तुमचे स्थान वापरायचे?",
     locationPurposeBody:
-      "DriveIQ फक्त या शोधासाठी जवळच्या शाळा दाखवण्यासाठी ब्राउझरकडून स्थान मागेल. आम्ही सतत ट्रॅक करत नाही.",
+      "DriveQ फक्त या शोधासाठी जवळच्या शाळा दाखवण्यासाठी ब्राउझरकडून स्थान मागेल. आम्ही सतत ट्रॅक करत नाही.",
   },
   schoolNav: {
     team: "टीम",
@@ -204,7 +204,7 @@ const mr: TranslationTree = {
     billing: "प्लॅन आणि बिलिंग",
     audit: "क्रियाकलाप नोंद",
     title: "शाळा डॅशबोर्ड",
-    brand: "DriveIQ पार्टनर",
+    brand: "DriveQ पार्टनर",
   },
   adminNav: {
     overview: "आढावा",
@@ -220,7 +220,7 @@ const mr: TranslationTree = {
     outreach: "आउटरीच ईमेल",
     audit: "ऑडिट नोंद",
     title: "अॅडमिन पोर्टल",
-    brand: "DriveIQ अॅडमिन",
+    brand: "DriveQ अॅडमिन",
   },
   instructorNav: {
     overview: "आढावा",
@@ -230,7 +230,7 @@ const mr: TranslationTree = {
     learners: "माझे शिकाऊ",
     leave: "रजा",
     title: "प्रशिक्षक पोर्टल",
-    brand: "DriveIQ ट्रेनर",
+    brand: "DriveQ ट्रेनर",
   },
   learnerNav: {
     overview: "आढावा",
@@ -239,7 +239,7 @@ const mr: TranslationTree = {
     documents: "कागदपत्रे",
     messages: "संदेश",
     title: "विद्यार्थी पोर्टल",
-    brand: "DriveIQ लर्नर",
+    brand: "DriveQ लर्नर",
   },
   legal: {
     privacy: "गोपनीयता धोरण",

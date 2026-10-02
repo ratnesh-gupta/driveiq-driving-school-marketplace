@@ -1,4 +1,4 @@
-# DriveIQ — Driving School Marketplace
+# DriveQ — Driving School Marketplace
 
 Multi-tenant marketplace and school operations platform for driving schools in India.
 
@@ -83,6 +83,8 @@ make artisan CMD="key:generate"
 | `info@skylinedrive.in` | `password123` | `/dashboard` (school) |
 | `trainer.skyline@driveiq.in` | `password123` | `/instructor` |
 | `learner.asha@driveiq.in` | `password123` | `/learner` |
+
+For sales demos, `make demo` (`php artisan driveiq:demo --fresh`) wipes the local database and loads a fuller Pune showcase: 12 listings including two independent trainers, a busy Skyline dashboard and an admin outreach pipeline. It refuses to run in production. The same logins work.
 
 ## Make targets
 
@@ -236,11 +238,11 @@ New listings start as **drafts**. A draft goes live by itself once the owner has
 - Each email has one-click unsubscribe headers (RFC 8058) and a footer link with your postal address.
 - A sequence stops when the prospect replies (mark them "Replied"), claims, signs up on their own, unsubscribes, bounces or complains.
 - Mailbox setup:
-  1. Create a mailbox on a subdomain (e.g. `partners@hello.driveiq.in` in Google Workspace) so outreach can never hurt password-reset and lead-alert delivery.
+  1. Create a mailbox on a subdomain (e.g. `partners@hello.driveq.in` in Google Workspace) so outreach can never hurt password-reset and lead-alert delivery.
   2. Publish SPF (`include:_spf.google.com`), DKIM (Workspace admin → Gmail → Authenticate email) and DMARC (`v=DMARC1; p=none; rua=mailto:…`, tighten later) for that subdomain.
   3. Use an app password (or the Workspace SMTP relay) in `OUTREACH_MAIL_*`, then set `OUTREACH_MAILER=outreach`. Until then emails go to the log and the admin page says so.
   4. Start with a small cap (50–150/day) and watch the bounce and complaint numbers in the campaign cards.
-- Under India's DPDP rules, outreach to business contacts should stay relevant, identify DriveIQ, and honour opt-outs immediately; all three are built in. Keep prospect notes factual.
+- Under India's DPDP rules, outreach to business contacts should stay relevant, identify DriveQ, and honour opt-outs immediately; all three are built in. Keep prospect notes factual.
 
 **Google Ads lead forms**: in the lead form's *Webhook integration*, use `https://<api-host>/api/webhooks/google-ads/lead` and the key from `GOOGLE_ADS_WEBHOOK_KEY`. Each lead is filed once as a prospect (source "ads"); the person gets an onboarding email with the claim link or the sign-up page. Google's "Send test data" is recorded but not filed.
 
@@ -272,6 +274,7 @@ New listings start as **drafts**. A draft goes live by itself once the owner has
 
 - [docs/DEPLOY.md](docs/DEPLOY.md) — production checklist, env, CI
 - `docs/` — product plans, architecture, phase notes
+- [marketing/README.md](marketing/README.md) — sales kit: demo videos, screenshots, outreach email copy, pitch decks
 
 ## License
 

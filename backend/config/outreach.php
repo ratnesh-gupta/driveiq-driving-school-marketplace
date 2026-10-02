@@ -15,12 +15,12 @@ return [
 
     'from' => [
         'address' => env('OUTREACH_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
-        'name' => env('OUTREACH_FROM_NAME', 'DriveIQ Partnerships'),
+        'name' => env('OUTREACH_FROM_NAME', 'DriveQ Partnerships'),
     ],
     'reply_to' => env('OUTREACH_REPLY_TO'),
 
     // Shown in every email footer: who is writing and from where.
-    'postal_address' => env('OUTREACH_POSTAL_ADDRESS', 'DriveIQ, Pune, Maharashtra, India'),
+    'postal_address' => env('OUTREACH_POSTAL_ADDRESS', 'DriveQ, Pune, Maharashtra, India'),
 
     // Never more than this many outreach emails a day (Workspace allows
     // about 2,000; staying well below protects the domain's reputation).

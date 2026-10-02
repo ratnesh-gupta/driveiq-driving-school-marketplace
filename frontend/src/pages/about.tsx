@@ -10,7 +10,7 @@ export default function AboutPage() {
       <section className="bg-gradient-to-br from-primary/5 to-accent/10 py-20">
         <div className="container mx-auto px-4 text-center max-w-3xl">
           <motion.div {...fadeIn}>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">About DriveIQ</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">About DriveQ</h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
               We're building the most trusted driving school discovery platform in India — starting right here in Pune.
             </p>
@@ -27,13 +27,13 @@ export default function AboutPage() {
                 Learning to drive is a rite of passage. But finding the right school — one that's trustworthy, affordable, and convenient — has always been a frustrating experience of word-of-mouth and guesswork.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                DriveIQ changes that. We verify every school, aggregate honest reviews, and make it easy to compare, connect, and enroll — all from your phone.
+                DriveQ changes that. We verify every school, aggregate honest reviews, and make it easy to compare, connect, and enroll — all from your phone.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { icon: Target, label: "Our Goal", desc: "Make learning to drive accessible and transparent for everyone." },
-                { icon: ShieldCheck, label: "Verified Only", desc: "Every school is personally verified before it appears on DriveIQ." },
+                { icon: ShieldCheck, label: "Verified Only", desc: "Every school is personally verified before it appears on DriveQ." },
                 { icon: Heart, label: "Community First", desc: "We're built for learners, by people who care about safety." },
                 { icon: Zap, label: "Fast & Local", desc: "Hyper-local search so you find schools that actually serve your area." },
               ].map((item) => (
@@ -47,7 +47,7 @@ export default function AboutPage() {
           </motion.div>
 
           <motion.div {...fadeIn} className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Why DriveIQ?</h2>
+            <h2 className="text-3xl font-bold mb-4">Why DriveQ?</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">We're not a classifieds site or a directory. We're a curated, geo-intelligent platform built around trust.</p>
           </motion.div>
 
@@ -75,7 +75,7 @@ export default function AboutPage() {
           <motion.div {...fadeIn}>
             <h2 className="text-3xl font-bold mb-4">We're just getting started</h2>
             <p className="text-muted-foreground leading-relaxed">
-              DriveIQ launched in Pune but we're building the infrastructure for all of India. If you run a driving school and want to reach more students, <a href="/auth/register" className="text-primary font-medium hover:underline">partner with us today</a>.
+              DriveQ launched in Pune but we're building the infrastructure for all of India. If you run a driving school and want to reach more students, <a href="/auth/register" className="text-primary font-medium hover:underline">partner with us today</a>.
             </p>
           </motion.div>
         </div>

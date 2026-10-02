@@ -22,7 +22,7 @@ const COPY: Record<Audience, {
 }> = {
   school: {
     title: "Get more learners for your driving school",
-    lead: "Learners across Pune search DriveIQ for schools near them. List your school free, answer enquiries on WhatsApp or phone, and let your reviews do the talking.",
+    lead: "Learners across Pune search DriveQ for schools near them. List your school free, answer enquiries on WhatsApp or phone, and let your reviews do the talking.",
     cta: "List my school free",
     benefits: [
       { icon: Search, title: "Found by nearby learners", text: "Show up when learners in your locality search, compare fees and filter by car, bike, timing or women trainers." },
@@ -41,7 +41,7 @@ const COPY: Record<Audience, {
   },
   trainer: {
     title: "Teach more learners as an independent trainer",
-    lead: "Not part of a school? Learners on DriveIQ can find independent trainers too. Create a free profile and get enquiries directly.",
+    lead: "Not part of a school? Learners on DriveQ can find independent trainers too. Create a free profile and get enquiries directly.",
     cta: "Create my free trainer profile",
     benefits: [
       { icon: MapPin, title: "Learners near you", text: "Appear in search for your area, with your vehicle, timings and languages." },

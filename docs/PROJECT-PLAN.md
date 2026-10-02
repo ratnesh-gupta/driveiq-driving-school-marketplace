@@ -1,4 +1,4 @@
-# DriveIQ — Master Project Plan & Roadmap
+# DriveQ — Master Project Plan & Roadmap
 
 **Version:** 1.0  
 **Date:** June 9, 2026  
@@ -38,7 +38,7 @@ All previous standalone PRDs, roadmaps, and assessment docs are superseded by th
 
 ## 1. Product Vision
 
-### What is DriveIQ?
+### What is DriveQ?
 
 A **hyperlocal, geo-intelligent marketplace** that connects driving learners with verified driving schools — evolving into a **Driving School Operating System (DSOS)** for complete school operations.
 
@@ -87,7 +87,7 @@ Learner Management (Training Lifecycle)
 
 ## 2. Current State
 
-_Updated 2026-10-02 after milestones M1–M9 (PRs #23–#29 and the M9 PR). Phases 3–8 were re-audited against the code in M7; partial items say what is missing._
+_Updated 2026-10-02 after milestones M1–M10 (PRs #23–#30 and the M10 PR). Phases 3–8 were re-audited against the code in M7; partial items say what is missing._
 
 ### What's Implemented
 
@@ -108,7 +108,8 @@ _Updated 2026-10-02 after milestones M1–M9 (PRs #23–#29 and the M9 PR). Phas
 - Operations screens and alerts (M7b): learner detail sheet (profile, licence, assignment history, progress, driving tests, documents); instructor management with set-password login emails and a performance table; trainer portal roster, four-way attendance with session summaries, self-service leave; schedule editing, leave approval with clash list, vehicle add/edit/retire with expiry-driven paper status; learner session history with feedback; public "Meet our trainers"; overview to-dos and completeness; owner and admin audit pages; hourly `driveiq:ops-reminders` (session 24h/2h, licence and vehicle paper expiry, missing documents) and document review notices.
 - WhatsApp/SMS driver layer (M8): opt-ins as consent, lead alerts and reminders to staff, enquiry confirmations, session reminders; masked outbound log.
 - Supply acquisition (M9): listings are unclaimed / draft / published / suspended and only published ones are public; drafts go live once the owner's email is confirmed and phone, locality and map location are set; independent-trainer listings (Basic/Featured plans); admin prospects CRM with CSV import and duplicate checks; pre-built unclaimed listings claimed with a one-time code (email, SMS, or the Google account that manages the business); outreach email campaigns (sequences, daily cap, IST sending hours, RFC 8058 unsubscribe, suppression list, click/claim tracking); Google Ads lead-form webhook; Google Business Profile import and verification; `/for-schools` and `/for-trainers` landing pages with UTM attribution; acquisition funnel and supply-by-locality for admins.
-- PHPUnit on PostgreSQL/PostGIS in CI (305 tests) and Pint lint.
+- Sales kit (M10): product renamed DriveQ in user-facing text (code identifiers, storage keys and `driveiq:*` commands unchanged); `driveiq:demo` showcase data; branded outreach emails with ready-made 3-step sequences for schools and trainers in English, Hindi and Marathi (`outreach_campaigns.language`); DriveQ look for transactional emails; scripted demo videos and screenshots (`marketing/`); school and investor decks published as slide artifacts.
+- PHPUnit on PostgreSQL/PostGIS in CI (311 tests) and Pint lint.
 
 **Frontend (React 19 + Vite + Tailwind 4), 47 pages:**
 - Public: home, search (radius, distance badges, verified filter), school detail (lazy Google Map, JSON-LD), locality pages (FAQ/Breadcrumb JSON-LD), compare, driving rules, contact, privacy/terms/data requests, review-by-link, invite acceptance, password reset.
@@ -120,8 +121,9 @@ _Updated 2026-10-02 after milestones M1–M9 (PRs #23–#29 and the M9 PR). Phas
 | Gap | Phase |
 |-----|-------|
 | Admin review moderation has no bulk actions | 2 |
-| "Near me" entry point on the homepage (search page has it) | 1 (M10) |
-| Production launch readiness: images, reverse proxy/TLS, trusted proxies, security headers, Spaces, backups, deep health check, deploy job, production seed (audit 2026-09-30) | M10 |
+| "Near me" entry point on the homepage (search page has it) | 1 (M11) |
+| Production launch readiness: images, reverse proxy/TLS, trusted proxies, security headers, Spaces, backups, deep health check, deploy job, production seed (audit 2026-09-30) | M11 |
+| Sales kit: native-speaker review of Hindi/Marathi email and caption copy; investor deck numbers (⟨fill in⟩); voice-over/music for videos | M10 follow-up |
 | Outreach: automatic bounce/complaint handling (needs the mailbox's bounce feed); reply detection (admins mark "Replied") | M9 follow-up |
 | Google Business: review sync and replies, posts | Growth |
 | A real WhatsApp/SMS provider driver, plus inbound replies (STOP) and delivery receipts. The driver layer, opt-ins and four message types are built (M8). | Messaging |

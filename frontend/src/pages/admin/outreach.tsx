@@ -23,38 +23,12 @@ import {
   sendCampaignTest,
   type ListingType,
   type OutreachCampaign,
+  type OutreachLanguage,
+  type OutreachPresets,
   type OutreachStep,
 } from "@/lib/acquisition-api";
 
 const SELECT = "h-9 rounded-md border bg-background px-2 text-sm";
-
-/** Starting copy; short, plain and personal reads better than a newsletter. */
-const DEFAULT_STEPS: Record<ListingType, OutreachStep[]> = {
-  school: [
-    {
-      subject: "Learners in {{locality}} are looking for {{name}}",
-      body:
-        "Hi {{contact}},\n\nI'm with DriveIQ, a new site where learners in Pune find and compare driving schools near them. We have set up a free school listing for {{name}} so learners in {{locality}} can send you enquiries on WhatsApp or by phone.\n\nIt takes two minutes to check the details and switch it on:\n{{link}}\n\nThere is no fee for the basic listing.\n\n(मराठी: तुमच्या ड्रायव्हिंग स्कूलची मोफत लिस्टिंग तयार आहे. वरील लिंकवर क्लिक करून सुरू करा.)\n\nThanks,\nDriveIQ team",
-    },
-    {
-      subject: "Your free listing for {{name}}",
-      body: "Hi {{contact}},\n\nA quick follow-up: your free {{listing}} is ready whenever you are. Learners can only see it after you claim it:\n{{link}}\n\nIf it isn't for you, use the link at the bottom and we won't write again.\n\nThanks,\nDriveIQ team",
-      delayDays: 4,
-    },
-  ],
-  trainer: [
-    {
-      subject: "Find more learners in {{locality}}, {{contact}}",
-      body:
-        "Hi {{contact}},\n\nDriveIQ helps learners in Pune find driving trainers near them, including independent trainers like you. We have prepared a free trainer profile so learners can contact you directly:\n{{link}}\n\nThere is no fee for the basic profile.\n\n(मराठी: तुमचे मोफत ट्रेनर प्रोफाइल तयार आहे. वरील लिंकवर क्लिक करा.)\n\nThanks,\nDriveIQ team",
-    },
-    {
-      subject: "Your free trainer profile",
-      body: "Hi {{contact}},\n\nJust following up: your free {{listing}} is waiting for you here:\n{{link}}\n\nIf it isn't for you, use the link at the bottom and we won't write again.\n\nThanks,\nDriveIQ team",
-      delayDays: 4,
-    },
-  ],
-};
 
 const STATUS_CLASS: Record<OutreachCampaign["status"], string> = {
   draft: "bg-muted text-muted-foreground",
@@ -141,7 +115,7 @@ export default function AdminOutreachPage() {
                     <Badge className={`border-0 ${STATUS_CLASS[c.status]}`}>{c.status}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {c.audience === "trainer" ? "Independent trainers" : "Driving schools"} · {c.steps.length} email{c.steps.length > 1 ? "s" : ""}
+                    {c.audience === "trainer" ? "Independent trainers" : "Driving schools"} · {LANGUAGE_LABEL[c.language]} · {c.steps.length} email{c.steps.length > 1 ? "s" : ""}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -181,33 +155,39 @@ export default function AdminOutreachPage() {
         </TabsContent>
       </Tabs>
 
-      <CampaignDialog campaign={editing} placeholders={o?.placeholders ?? []} onClose={() => setEditing(null)} onSaved={refresh} />
+      <CampaignDialog campaign={editing} placeholders={o?.placeholders ?? []} presets={o?.presets} onClose={() => setEditing(null)} onSaved={refresh} />
       <EnrollDialog campaign={enrolling} onClose={() => setEnrolling(null)} onDone={refresh} />
     </AdminLayout>
   );
 }
 
-function CampaignDialog({ campaign, placeholders, onClose, onSaved }: {
+const LANGUAGE_LABEL: Record<OutreachLanguage, string> = { en: "English", hi: "हिन्दी (Hindi)", mr: "मराठी (Marathi)" };
+
+function CampaignDialog({ campaign, placeholders, presets, onClose, onSaved }: {
   campaign: OutreachCampaign | "new" | null;
   placeholders: string[];
+  presets?: OutreachPresets;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const isNew = campaign === "new";
   const [name, setName] = useState("");
   const [audience, setAudience] = useState<ListingType>("school");
+  const [language, setLanguage] = useState<OutreachLanguage>("en");
   const [steps, setSteps] = useState<OutreachStep[]>([]);
   const [loadedFor, setLoadedFor] = useState<unknown>(null);
+  const preset = (a: ListingType, l: OutreachLanguage) => presets?.[a]?.[l] ?? [];
 
-  if (campaign && loadedFor !== campaign) {
+  if (campaign && loadedFor !== campaign && (!isNew || presets)) {
     setLoadedFor(campaign);
     setName(isNew ? "" : campaign.name);
     setAudience(isNew ? "school" : campaign.audience);
-    setSteps(isNew ? DEFAULT_STEPS.school : campaign.steps);
+    setLanguage(isNew ? "en" : campaign.language);
+    setSteps(isNew ? preset("school", "en") : campaign.steps);
   }
 
   const save = useMutation({
-    mutationFn: () => saveCampaign(isNew ? null : (campaign as OutreachCampaign).id, { name, audience, steps }),
+    mutationFn: () => saveCampaign(isNew ? null : (campaign as OutreachCampaign).id, { name, audience, language, steps }),
     onSuccess: () => {
       toast.success("Campaign saved");
       onSaved();
@@ -240,12 +220,40 @@ function CampaignDialog({ campaign, placeholders, onClose, onSaved }: {
               onChange={(e) => {
                 const next = e.target.value as ListingType;
                 setAudience(next);
-                if (isNew) setSteps(DEFAULT_STEPS[next]);
+                if (isNew) setSteps(preset(next, language));
               }}
             >
               <option value="school">Driving schools</option>
               <option value="trainer">Independent trainers</option>
             </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="c-lang">Language</Label>
+            <select
+              id="c-lang"
+              className={`${SELECT} w-full`}
+              value={language}
+              onChange={(e) => {
+                const next = e.target.value as OutreachLanguage;
+                setLanguage(next);
+                if (isNew) setSteps(preset(audience, next));
+              }}
+              data-testid="select-campaign-language"
+            >
+              {(Object.keys(LANGUAGE_LABEL) as OutreachLanguage[]).map((l) => <option key={l} value={l}>{LANGUAGE_LABEL[l]}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1 flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={!presets}
+              onClick={() => window.confirm("Replace the emails below with our ready-made sequence?") && setSteps(preset(audience, language))}
+              data-testid="button-use-preset"
+            >
+              Start from our ready-made emails
+            </Button>
           </div>
         </div>
         <div className="space-y-4">

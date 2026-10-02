@@ -1,12 +1,12 @@
-# DriveIQ — DPDP-oriented compliance notes
+# DriveQ — DPDP-oriented compliance notes
 
 **Not legal advice.** Align with counsel and official MeitY notifications / DPDP Rules.
 
 ## Roles
 
-| Role | DriveIQ |
+| Role | DriveQ |
 |------|---------|
-| Data Fiduciary | DriveIQ platform operator |
+| Data Fiduciary | DriveQ platform operator |
 | Data Principal | Learners, school users, instructors, admins, public users who submit data |
 | Data Processors | Cloud host, email, Redis/Postgres provider, payment gateway (when live) |
 
@@ -25,7 +25,7 @@
 
 ## Grievance
 
-- **Email:** privacy@driveiq.in (publish/replace with real monitored mailbox before launch)
+- **Email:** privacy@driveq.in (publish/replace with real monitored mailbox before launch)
 - **Form:** `/privacy/data-request` (type: other / grievance)
 - **Target:** acknowledge and resolve within **90 days** where Rules require
 

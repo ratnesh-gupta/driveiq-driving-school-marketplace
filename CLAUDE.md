@@ -2,7 +2,7 @@
 
 **Status:** MVP Development in Progress  
 **Target Market:** Pune, India (Initial Phase)  
-**Current Phase:** M1–M9 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization, operations reconciliation of phases 3–8, WhatsApp driver layer, school/trainer acquisition); next: M10 pilot launch readiness  
+**Current Phase:** M1–M10 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization, operations reconciliation of phases 3–8, WhatsApp driver layer, school/trainer acquisition, DriveQ sales kit); next: M11 cheap pilot launch (infrastructure)  
 **Last Updated:** 2026-10-02  
 **Master Plan:** `docs/PROJECT-PLAN.md` — single source of truth for scope, phasing, and requirements
 
@@ -729,6 +729,7 @@ Current single-branch design naturally extends to this model.
 ✅ Operations (M7): school-scoped foreign IDs, payment status rules, locked bookings, real dashboard numbers; learner/trainer/fleet screens; trainer portal (roster, attendance, leave); `driveiq:ops-reminders` hourly (sessions, licence/vehicle paper expiry, missing documents)  
 ✅ WhatsApp (M8): provider-neutral driver layer (`log`/`null`), opt-in recorded as consent, lead alerts/reminders to staff, enquiry confirmations, session reminders; masked outbound log for admins  
 ✅ Acquisition (M9): listing status (unclaimed/draft/published/suspended; only published is public, use `School::public()` scope), independent-trainer listings, owner email verification gates publishing, prospects CRM + CSV import, claim links with one-time codes, outreach email campaigns (`driveiq:outreach`, separate `outreach` mailer, suppression list), Google Ads lead webhook, Google Business Profile import, `/for-schools` + `/for-trainers` landing pages, admin funnel  
+✅ Sales kit (M10): user-facing name is **DriveQ** (code identifiers, `driveiq_*` storage keys, `driveiq:*` commands and demo logins keep the old name); `driveiq:demo` showcase data (refuses production); branded outreach emails + presets in en/hi/mr (`config/outreach_presets.php`, `config/outreach_copy.php`); `marketing/` scripts for demo videos and screenshots  
 ✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build in CI  
 
 ### Demo/Non-Production Behaviors
@@ -1002,7 +1003,7 @@ public function test_user_can_only_see_own_schools_learners()
 
 **Project Owner:** Ratnesh (ratnesh.k.gupta@icloud.com)  
 **Repository:** `/Volumes/RatneshED/Projects/Agies/driveiq-driving-school-marketplace/`  
-**Current Phase:** M1–M9 done; next: M10 pilot launch readiness  
+**Current Phase:** M1–M10 done; next: M11 pilot launch (infrastructure)  
 **Target Launch:** Marketplace MVP Week 12, Operations MVP Week 18 (see PROJECT-PLAN.md)
 
 ---

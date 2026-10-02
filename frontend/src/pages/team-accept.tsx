@@ -49,7 +49,7 @@ export default function TeamAcceptPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-background">
       <div className="w-full max-w-sm">
-        <Link href="/" className="font-bold text-xl text-primary">DriveIQ</Link>
+        <Link href="/" className="font-bold text-xl text-primary">DriveQ</Link>
 
         {!token || preview.isError ? (
           <p className="mt-6 text-sm text-destructive" data-testid="text-invite-invalid">{t("team.acceptInvalid")}</p>

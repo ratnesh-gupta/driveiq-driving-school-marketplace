@@ -59,7 +59,7 @@ class SchoolTeamController extends Controller
 
         if ($user && ! $this->canBecomeManager($user, $schoolId)) {
             return response()->json([
-                'message' => 'This email already has a DriveIQ account that cannot be added as a manager.',
+                'message' => 'This email already has a DriveQ account that cannot be added as a manager.',
             ], 422);
         }
 

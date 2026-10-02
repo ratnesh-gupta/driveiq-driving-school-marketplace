@@ -49,10 +49,10 @@ export default function LoginPage() {
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:flex flex-col bg-gradient-to-br from-[hsl(221,83%,12%)] via-[hsl(221,83%,20%)] to-[hsl(258,60%,25%)] text-white p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)" }} />
-        <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveIQ</Link>
+        <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveQ</Link>
         <div className="flex-1 flex flex-col justify-center z-10">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h2 className="text-4xl font-bold mb-4 leading-tight">Welcome back to<br />DriveIQ</h2>
+            <h2 className="text-4xl font-bold mb-4 leading-tight">Welcome back to<br />DriveQ</h2>
             <p className="text-white/70 text-lg leading-relaxed max-w-sm">School, instructor, learner, and admin portals — one sign-in.</p>
           </motion.div>
           <motion.div className="mt-12 space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
@@ -64,13 +64,13 @@ export default function LoginPage() {
             ))}
           </motion.div>
         </div>
-        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveIQ. All rights reserved.</div>
+        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveQ. All rights reserved.</div>
       </div>
 
       <div className="flex items-center justify-center p-8 bg-background">
         <motion.div className="w-full max-w-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-8">
-            <Link href="/" className="font-bold text-xl text-primary lg:hidden">DriveIQ</Link>
+            <Link href="/" className="font-bold text-xl text-primary lg:hidden">DriveQ</Link>
             <h1 className="text-2xl font-bold mt-4">Sign in to your account</h1>
             <p className="text-muted-foreground text-sm mt-1">Don't have an account? <Link href="/auth/register" className="text-primary hover:underline">Sign up</Link></p>
           </div>

@@ -1,7 +1,7 @@
 <?php
 
 /*
- | Platform billing (DIQ-803): what DriveIQ invoices schools for plans, and
+ | Platform billing (DIQ-803): what DriveQ invoices schools for plans, and
  | how they pay while collection is manual (UPI / bank transfer, recorded by
  | an admin). Fill these from the real business details before charging.
  */
@@ -12,10 +12,10 @@ return [
     'term_months' => [1, 3, 6, 12],
 
     'seller' => [
-        'name' => env('BILLING_SELLER_NAME', 'DriveIQ'),
+        'name' => env('BILLING_SELLER_NAME', 'DriveQ'),
         'address' => env('BILLING_SELLER_ADDRESS', 'Pune, Maharashtra, India'),
         'gstin' => env('BILLING_GSTIN'),
-        'email' => env('BILLING_EMAIL', 'billing@driveiq.in'),
+        'email' => env('BILLING_EMAIL', 'billing@driveq.in'),
     ],
 
     'payment' => [

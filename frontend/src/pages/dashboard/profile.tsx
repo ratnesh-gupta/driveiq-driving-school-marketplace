@@ -304,7 +304,7 @@ export default function ProfilePage() {
           {school?.verified && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
               <ShieldCheck className="h-4 w-4" />
-              Your school is verified on DriveIQ
+              Your school is verified on DriveQ
             </div>
           )}
 

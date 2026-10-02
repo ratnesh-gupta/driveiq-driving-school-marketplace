@@ -28,7 +28,7 @@ export function setCookieConsent(value: ConsentValue): void {
 }
 
 /**
- * DriveIQ currently uses:
+ * DriveQ currently uses:
  * - localStorage for auth token + theme + this consent choice
  * - No third-party advertising cookies in the product today
  * Optional analytics may be enabled later only after "Accept all".

@@ -1,0 +1,44 @@
+{
+  "en": {
+    "intro": "Learning to drive in Pune? DriveQ finds the right school near you.",
+    "near": "Search near you, with your permission. Schools are ranked by distance, rating and replies.",
+    "filter": "Filter for what matters: women trainers, pickup, car or bike, budget.",
+    "compare": "Compare fees, packages, trainers and real reviews.",
+    "enquire": "Send an enquiry in seconds, or chat on WhatsApp.",
+    "alert": "The school gets the enquiry instantly, with a reminder if nobody replies.",
+    "note": "Reply, add notes and set follow-ups. Nothing slips.",
+    "operate": "Run the whole school: learners, progress, trainers and this week's sessions.",
+    "trainers": "Independent trainers can list themselves too.",
+    "claim": "Schools claim their free listing in two minutes.",
+    "end_title": "DriveQ",
+    "end_sub": "Pune's driving school marketplace · List your school free"
+  },
+  "hi": {
+    "intro": "पुणे में ड्राइविंग सीखनी है? DriveQ आपके पास का सही स्कूल ढूंढता है।",
+    "near": "आपकी अनुमति से पास के स्कूल खोजें। दूरी, रेटिंग और जवाब के हिसाब से क्रम।",
+    "filter": "जो ज़रूरी है वही चुनें: महिला ट्रेनर, पिकअप, कार या बाइक, बजट।",
+    "compare": "फीस, पैकेज, ट्रेनर और असली रिव्यू की तुलना करें।",
+    "enquire": "कुछ सेकंड में पूछताछ भेजें, या WhatsApp पर बात करें।",
+    "alert": "स्कूल को तुरंत पूछताछ मिलती है, और जवाब न देने पर रिमाइंडर।",
+    "note": "जवाब दें, नोट्स लिखें, फॉलो-अप तय करें। कुछ नहीं छूटता।",
+    "operate": "पूरा स्कूल चलाएं: स्टूडेंट्स, प्रगति, ट्रेनर और इस हफ्ते के सेशन।",
+    "trainers": "स्वतंत्र ट्रेनर भी अपनी प्रोफाइल बना सकते हैं।",
+    "claim": "स्कूल दो मिनट में अपनी मुफ्त लिस्टिंग चालू करते हैं।",
+    "end_title": "DriveQ",
+    "end_sub": "पुणे का ड्राइविंग स्कूल मार्केटप्लेस · अपना स्कूल मुफ्त जोड़ें"
+  },
+  "mr": {
+    "intro": "पुण्यात ड्रायव्हिंग शिकायचंय? DriveQ तुमच्या जवळची योग्य स्कूल शोधतं.",
+    "near": "तुमच्या परवानगीने जवळच्या स्कूल शोधा. अंतर, रेटिंग आणि उत्तरांनुसार क्रम.",
+    "filter": "हवं ते निवडा: महिला ट्रेनर, पिकअप, कार किंवा बाइक, बजेट.",
+    "compare": "फी, पॅकेज, ट्रेनर आणि खरे रिव्ह्यू यांची तुलना करा.",
+    "enquire": "काही सेकंदांत चौकशी पाठवा, किंवा WhatsApp वर बोला.",
+    "alert": "स्कूलला लगेच चौकशी मिळते, आणि उत्तर न दिल्यास आठवण.",
+    "note": "उत्तर द्या, नोट्स लिहा, फॉलो-अप ठरवा. काहीही सुटत नाही.",
+    "operate": "संपूर्ण स्कूल चालवा: विद्यार्थी, प्रगती, ट्रेनर आणि या आठवड्याचे सेशन.",
+    "trainers": "स्वतंत्र ट्रेनरसुद्धा स्वतःची प्रोफाइल बनवू शकतात.",
+    "claim": "स्कूल दोन मिनिटांत आपली मोफत लिस्टिंग सुरू करतात.",
+    "end_title": "DriveQ",
+    "end_sub": "पुण्याचा ड्रायव्हिंग स्कूल मार्केटप्लेस · तुमची स्कूल मोफत जोडा"
+  }
+}

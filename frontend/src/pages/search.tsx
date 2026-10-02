@@ -273,7 +273,7 @@ export default function SearchPage() {
           >
             <h2 id="location-purpose-title" className="text-lg font-semibold">Use your location?</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              DriveIQ will ask your browser for your current position <strong>only to show driving schools near you</strong> for this search.
+              DriveQ will ask your browser for your current position <strong>only to show driving schools near you</strong> for this search.
               We do not track you continuously or sell location data. You can use locality filters instead.
             </p>
             <p className="text-xs text-muted-foreground">

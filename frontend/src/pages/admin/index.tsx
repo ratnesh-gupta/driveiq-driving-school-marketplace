@@ -29,7 +29,7 @@ export default function AdminHomePage() {
     <AdminLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Platform Overview</h1>
-        <p className="text-muted-foreground text-sm mt-1">DriveIQ platform statistics</p>
+        <p className="text-muted-foreground text-sm mt-1">DriveQ platform statistics</p>
       </div>
 
       {isLoading ? (

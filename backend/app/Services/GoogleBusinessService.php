@@ -171,7 +171,7 @@ class GoogleBusinessService
             if ($location['verified'] && $location['placeId']) {
                 $taken = School::where('google_place_id', $location['placeId'])->whereKeyNot($school->id)->exists();
                 if ($taken) {
-                    throw new RuntimeException('Another DriveIQ listing is already linked to this Google business. Contact us and we will sort it out.');
+                    throw new RuntimeException('Another DriveQ listing is already linked to this Google business. Contact us and we will sort it out.');
                 }
                 $school->forceFill(['google_place_id' => $location['placeId'], 'business_verified' => true]);
             }

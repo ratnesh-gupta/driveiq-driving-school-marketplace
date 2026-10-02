@@ -18,7 +18,7 @@ export default function AdminAnalyticsPage() {
     <AdminLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Platform analytics</h1>
-        <p className="text-sm text-muted-foreground mt-1">Business metrics across DriveIQ</p>
+        <p className="text-sm text-muted-foreground mt-1">Business metrics across DriveQ</p>
       </div>
 
       {isLoading ? (

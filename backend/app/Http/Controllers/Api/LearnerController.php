@@ -571,7 +571,7 @@ class LearnerController extends Controller
 
         if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
             throw ValidationException::withMessages([
-                'email' => 'This email already belongs to another DriveIQ account.',
+                'email' => 'This email already belongs to another DriveQ account.',
             ]);
         }
 

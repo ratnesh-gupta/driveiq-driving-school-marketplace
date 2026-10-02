@@ -7,7 +7,7 @@ export function PortalLegalFooter() {
       <Link href="/privacy" className="hover:text-primary underline-offset-2 hover:underline">Privacy</Link>
       <Link href="/terms" className="hover:text-primary underline-offset-2 hover:underline">Terms</Link>
       <Link href="/privacy/data-request" className="hover:text-primary underline-offset-2 hover:underline">Data rights</Link>
-      <span>Grievance: privacy@driveiq.in</span>
+      <span>Grievance: privacy@driveq.in</span>
     </div>
   );
 }
