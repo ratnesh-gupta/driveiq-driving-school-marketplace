@@ -34,7 +34,7 @@ const en = {
     tagline: "The premium marketplace for discovering and booking driving schools in Pune.",
   },
   home: {
-    badge: "Pune's #1 Driving School Platform",
+    badge: "Pune's driving school marketplace",
     heroTitle: "Find Trusted Driving Schools",
     heroTitleAccent: "Near You",
     heroSubtitle:

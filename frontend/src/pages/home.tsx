@@ -97,7 +97,7 @@ export default function HomePage() {
           <motion.div className="max-w-2xl" initial="initial" animate="animate" variants={stagger}>
             <motion.div variants={fadeIn}>
               <Badge className="mb-6 bg-white/10 text-white border-white/20 hover:bg-white/20 px-3 py-1">
-                <MapPin className="h-3 w-3 mr-1" /> Pune's #1 Driving School Platform
+                <MapPin className="h-3 w-3 mr-1" /> Pune's driving school marketplace
               </Badge>
             </motion.div>
 
