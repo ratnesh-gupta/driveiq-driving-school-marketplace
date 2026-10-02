@@ -13,7 +13,7 @@ BACKEND       := $(DC) exec -T backend
 BACKEND_TTY   := $(DC) exec backend
 PROD_BACKEND  := $(DC_PROD) exec -T backend
 
-.PHONY: help up down restart ps logs logs-backend logs-frontend \
+.PHONY: help demo up down restart ps logs logs-backend logs-frontend \
 	up-infra \
 	migrate migrate-fresh seed migrate-seed fresh \
 	artisan tinker shell \

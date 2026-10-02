@@ -8,6 +8,7 @@ use App\Models\OutreachCampaign;
 use App\Models\OutreachEnrollment;
 use App\Models\OutreachMessage;
 use App\Models\Prospect;
+use App\Models\School;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ use Throwable;
  */
 class OutreachService
 {
-    public const PLACEHOLDERS = ['name', 'contact', 'locality', 'link', 'listing'];
+    public const PLACEHOLDERS = ['name', 'contact', 'locality', 'link', 'listing', 'nearby_line'];
 
     public function __construct(
         private readonly OutreachSuppression $suppression,
@@ -160,7 +161,7 @@ class OutreachService
         $message->save();
 
         $link = $this->linkFor($prospect, $campaign, $message);
-        [$subject, $body] = $this->render($steps[$step], $prospect, $link);
+        [$subject, $body] = $this->render($steps[$step], $prospect, $link, $campaign->language);
 
         try {
             Mail::mailer(config('outreach.mailer'))->to($prospect->email)->send(new OutreachEmail(
@@ -168,6 +169,8 @@ class OutreachService
                 $body,
                 $this->unsubscribeApiUrl($unsubscribe),
                 config('app.frontend_url').'/unsubscribe/'.$unsubscribe,
+                $this->card($prospect, $link, $campaign->language),
+                $campaign->language,
             ));
             $message->forceFill(['status' => 'sent'])->save();
         } catch (Throwable $e) {
@@ -213,18 +216,53 @@ class OutreachService
     }
 
     /** @return array{0: string, 1: string} subject and body with placeholders filled */
-    public function render(array $step, Prospect $prospect, string $link): array
+    public function render(array $step, Prospect $prospect, string $link, string $lang = 'en'): array
     {
+        $copy = config('outreach_copy.'.$lang) ?? config('outreach_copy.en');
+        $locality = $prospect->locality?->name ?? 'Pune';
         $vars = [
             'name' => $prospect->name,
-            'contact' => $prospect->contact_person ?: 'there',
-            'locality' => $prospect->locality?->name ?? 'Pune',
+            'contact' => $prospect->contact_person ?: $copy['contact_fallback'],
+            'locality' => $locality,
             'link' => $link,
-            'listing' => $prospect->type === 'trainer' ? 'trainer profile' : 'school listing',
+            'listing' => $copy['listing'][$prospect->type] ?? $copy['listing']['school'],
+            'nearby_line' => $this->nearbyLine($prospect, $copy, $locality),
         ];
-        $fill = fn (string $text) => trim(preg_replace_callback('/\{\{\s*(\w+)\s*\}\}/', fn ($m) => (string) ($vars[$m[1]] ?? $m[0]), $text));
+        $fill = fn (string $text) => trim(preg_replace("/[ \t]+\n/", "\n", preg_replace_callback('/\{\{\s*(\w+)\s*\}\}/', fn ($m) => (string) ($vars[$m[1]] ?? $m[0]), $text)));
 
         return [$fill((string) $step['subject']), $fill((string) $step['body'])];
+    }
+
+    /**
+     * A true sentence about live listings in their locality, or nothing
+     * when there are none (we never invent numbers).
+     */
+    private function nearbyLine(Prospect $prospect, array $copy, string $locality): string
+    {
+        if (! $prospect->locality_id) {
+            return '';
+        }
+        $count = School::query()->public()->where('locality_id', $prospect->locality_id)->count();
+
+        return match (true) {
+            $count === 0 => '',
+            $count === 1 => strtr($copy['nearby_one'], [':locality' => $locality]),
+            default => strtr($copy['nearby_many'], [':locality' => $locality, ':count' => (string) $count]),
+        };
+    }
+
+    /** @return array{name: string, place: string, type: string, link: string, claim: bool} */
+    private function card(Prospect $prospect, string $link, string $lang): array
+    {
+        $copy = config('outreach_copy.'.$lang) ?? config('outreach_copy.en');
+
+        return [
+            'name' => $prospect->name,
+            'place' => ($prospect->locality?->name ?? 'Pune').', Pune',
+            'type' => $copy['listing'][$prospect->type] ?? $copy['listing']['school'],
+            'link' => $link,
+            'claim' => str_contains($link, '/claim/'),
+        ];
     }
 
     /** Sends one step to an admin, with sample data and no tracking. */
@@ -235,9 +273,13 @@ class OutreachService
             'name' => $campaign->audience === 'trainer' ? 'Meena Deshpande' : 'Sai Motor Driving School',
             'contact_person' => 'Sunil',
         ]);
-        [$subject, $body] = $this->render($campaign->steps[$step], $sample, config('app.frontend_url').'/claim/EXAMPLE');
+        $link = config('app.frontend_url').'/claim/EXAMPLE';
+        [$subject, $body] = $this->render($campaign->steps[$step], $sample, $link, $campaign->language);
 
-        Mail::mailer(config('outreach.mailer'))->to($to)->send(new OutreachEmail('[Test] '.$subject, $body, null, config('app.frontend_url').'/unsubscribe/EXAMPLE'));
+        Mail::mailer(config('outreach.mailer'))->to($to)->send(new OutreachEmail(
+            '[Test] '.$subject, $body, null, config('app.frontend_url').'/unsubscribe/EXAMPLE',
+            $this->card($sample, $link, $campaign->language), $campaign->language,
+        ));
     }
 
     /** One-click unsubscribe from an email: never write to them again. */

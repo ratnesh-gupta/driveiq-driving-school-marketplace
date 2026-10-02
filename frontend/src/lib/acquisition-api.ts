@@ -140,11 +140,15 @@ export function issueClaimLink(prospectId: number) {
 // ── Outreach email (DIQ-1105) ──
 
 export type OutreachStep = { subject: string; body: string; delayDays?: number };
+export type OutreachLanguage = "en" | "hi" | "mr";
+/** DIQ-1203: ready-made sequences, by audience and language. */
+export type OutreachPresets = Record<ListingType, Record<OutreachLanguage, OutreachStep[]>>;
 
 export type OutreachCampaign = {
   id: number;
   name: string;
   audience: ListingType;
+  language: OutreachLanguage;
   status: "draft" | "active" | "paused";
   steps: OutreachStep[];
   startedAt: string | null;
@@ -160,6 +164,7 @@ export type OutreachOverview = {
   mailer: string;
   from: string;
   placeholders: string[];
+  presets: OutreachPresets;
 };
 
 export type OutreachLogRow = {
@@ -182,7 +187,7 @@ export function listCampaigns() {
   return request<OutreachCampaign[]>("/api/admin/outreach/campaigns");
 }
 
-export function saveCampaign(id: number | null, body: Partial<Pick<OutreachCampaign, "name" | "audience" | "steps" | "status">>) {
+export function saveCampaign(id: number | null, body: Partial<Pick<OutreachCampaign, "name" | "audience" | "language" | "steps" | "status">>) {
   return id
     ? request<OutreachCampaign>(`/api/admin/outreach/campaigns/${id}`, { method: "PATCH", body: JSON.stringify(body) })
     : request<OutreachCampaign>("/api/admin/outreach/campaigns", { method: "POST", body: JSON.stringify(body) });

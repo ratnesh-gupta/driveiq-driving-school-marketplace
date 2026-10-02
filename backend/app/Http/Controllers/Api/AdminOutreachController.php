@@ -27,6 +27,8 @@ class AdminOutreachController extends Controller
             'mailer' => config('outreach.mailer'),
             'from' => config('outreach.from.address'),
             'placeholders' => OutreachService::PLACEHOLDERS,
+            // DIQ-1203: ready-made sequences, by audience and language.
+            'presets' => config('outreach_presets'),
         ]);
     }
 
@@ -155,6 +157,7 @@ class AdminOutreachController extends Controller
         return [
             'name' => [$req, 'string', 'max:120'],
             'audience' => [$req, Rule::in(Prospect::TYPES)],
+            'language' => ['sometimes', Rule::in(OutreachCampaign::LANGUAGES)],
             'steps' => [$req, 'array', 'min:1', 'max:'.config('outreach.max_steps')],
             'steps.*.subject' => ['required', 'string', 'max:200'],
             'steps.*.body' => ['required', 'string', 'max:5000'],
@@ -168,6 +171,7 @@ class AdminOutreachController extends Controller
             'id' => $c->id,
             'name' => $c->name,
             'audience' => $c->audience,
+            'language' => $c->language,
             'status' => $c->status,
             'steps' => $c->steps,
             'startedAt' => $c->started_at?->toISOString(),

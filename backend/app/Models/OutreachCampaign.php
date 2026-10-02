@@ -10,9 +10,11 @@ class OutreachCampaign extends Model
 {
     public const STATUSES = ['draft', 'active', 'paused'];
 
-    protected $attributes = ['status' => 'draft', 'audience' => 'school'];
+    public const LANGUAGES = ['en', 'hi', 'mr'];
 
-    protected $fillable = ['name', 'audience', 'status', 'steps', 'created_by'];
+    protected $attributes = ['status' => 'draft', 'audience' => 'school', 'language' => 'en'];
+
+    protected $fillable = ['name', 'audience', 'language', 'status', 'steps', 'created_by'];
 
     protected function casts(): array
     {
