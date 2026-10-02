@@ -89,6 +89,9 @@ migrate-fresh:
 seed:
 	$(BACKEND) php artisan db:seed --force
 
+demo: ## Wipe the local database and load the demo showcase (DIQ-1202)
+	$(BACKEND) php artisan driveiq:demo --fresh
+
 migrate-seed: migrate seed
 
 fresh:
