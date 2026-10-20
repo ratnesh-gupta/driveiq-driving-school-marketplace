@@ -28,6 +28,9 @@ return [
     |
     */
 
+    // Private documents (DIQ-601): learner / instructor / vehicle files.
+    'documents_disk' => env('DOCUMENTS_DISK', 'local'),
+
     'disks' => [
 
         'local' => [

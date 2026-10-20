@@ -128,4 +128,23 @@ class SchoolManagementTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['action' => 'update']);
     }
+
+    /** DIQ-707: settings only accept known keys with typed values. */
+    public function test_settings_reject_unknown_keys_and_bad_values(): void
+    {
+        ['owner' => $owner, 'school' => $school] = $this->seedSchoolOwner();
+        Sanctum::actingAs($owner);
+        $url = '/api/schools/'.$school->id.'/settings';
+
+        $this->putJson($url, ['settings' => ['anything' => 'x']])->assertUnprocessable();
+        $this->putJson($url, ['settings' => ['notifications' => ['reminder_after_minutes' => 7]]])->assertUnprocessable();
+        $this->putJson($url, ['settings' => ['notifications' => ['email' => 'yes please']]])->assertUnprocessable();
+        $this->putJson($url, ['settings' => ['timezone' => 'Mars/Olympus']])->assertUnprocessable();
+
+        $this->putJson($url, ['settings' => ['notifications' => ['email' => false, 'reminder_after_minutes' => 120]]])
+            ->assertOk()
+            ->assertJsonPath('settings.notifications.email', false)
+            ->assertJsonPath('settings.notifications.reminder_after_minutes', 120)
+            ->assertJsonPath('settings.notifications.in_app', true);
+    }
 }

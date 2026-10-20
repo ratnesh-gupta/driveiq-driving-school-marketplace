@@ -50,7 +50,9 @@ return [
     |
     */
 
-    'expiration' => null,
+    // API tokens expire after 7 days by default (minutes). The frontend
+    // sends the user back to login on the resulting 401.
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 60 * 24 * 7),
 
     /*
     |--------------------------------------------------------------------------

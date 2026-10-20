@@ -8,6 +8,8 @@ use App\Models\Locality;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -102,6 +104,7 @@ class LearnerManagementTest extends TestCase
     {
         ['owner' => $owner, 'school' => $school] = $this->seedFixtures();
         Sanctum::actingAs($owner);
+        Storage::fake('local');
 
         $created = $this->postJson('/api/schools/'.$school->id.'/learners', [
             'name' => 'Doc Learner',
@@ -111,7 +114,7 @@ class LearnerManagementTest extends TestCase
 
         $doc = $this->postJson('/api/learners/'.$id.'/documents', [
             'type' => 'aadhaar',
-            'filePath' => '/uploads/aadhaar.pdf',
+            'file' => UploadedFile::fake()->create('aadhaar.pdf', 100, 'application/pdf'),
         ])->assertCreated();
 
         $this->patchJson('/api/learners/'.$id.'/documents/'.$doc->json('id'), [

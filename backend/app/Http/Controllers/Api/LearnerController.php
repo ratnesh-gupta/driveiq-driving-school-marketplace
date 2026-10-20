@@ -15,10 +15,13 @@ use App\Models\School;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\NotificationService;
+use App\Support\DocumentStorage;
+use App\Support\SchoolScopedIds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class LearnerController extends Controller
 {
@@ -28,7 +31,7 @@ class LearnerController extends Controller
 
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -48,11 +51,12 @@ class LearnerController extends Controller
 
     public function store(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
-        $data = $this->validateLearner($request);
+        // createLearner() expects snake_case (same mapping as update()).
+        $data = $this->mapLearnerPayload($this->validateLearner($request, $schoolId));
         $learner = $this->createLearner($schoolId, $data, $request->user());
 
         return response()->json($this->serialize($learner->load(['instructor', 'vehicle', 'package']), full: true), 201);
@@ -66,7 +70,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Inquiry not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $inquiry->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $inquiry->school_id)) {
             return $deny;
         }
 
@@ -81,10 +85,11 @@ class LearnerController extends Controller
             ], 422);
         }
 
+        $schoolId = (int) $inquiry->school_id;
         $extra = $request->validate([
-            'packageId' => ['nullable', 'integer'],
-            'assignedInstructorId' => ['nullable', 'integer'],
-            'assignedVehicleId' => ['nullable', 'integer'],
+            'packageId' => ['nullable', 'integer', SchoolScopedIds::package($schoolId)],
+            'assignedInstructorId' => ['nullable', 'integer', SchoolScopedIds::instructor($schoolId)],
+            'assignedVehicleId' => ['nullable', 'integer', SchoolScopedIds::vehicle($schoolId)],
             'startDate' => ['nullable', 'date'],
             'createLogin' => ['nullable', 'boolean'],
         ]);
@@ -99,12 +104,17 @@ class LearnerController extends Controller
             'assigned_vehicle_id' => $extra['assignedVehicleId'] ?? null,
             'start_date' => $extra['startDate'] ?? now()->toDateString(),
             'converted_from_inquiry_id' => $inquiry->id,
+            // The enquirer's own WhatsApp opt-in follows them (DIQ-1002); a school never sets it.
+            'whatsapp_opt_in_at' => $inquiry->whatsapp_opt_in_at,
             'status' => 'active',
             'create_login' => (bool) ($extra['createLogin'] ?? false),
+            // Only the account that submitted this enquiry itself may be linked.
+            'link_user_id' => $inquiry->user_id,
         ], $request->user());
 
         $previous = $inquiry->status;
-        $inquiry->update(['status' => 'converted']);
+        $inquiry->update(['status' => 'converted', 'next_follow_up_at' => null]);
+        $inquiry->markResponded();
 
         LeadStatusHistory::create([
             'inquiry_id' => $inquiry->id,
@@ -131,7 +141,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -146,15 +156,30 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
-        $data = $this->validateLearner($request, partial: true);
+        $data = $this->validateLearner($request, (int) $learner->school_id, partial: true);
         $payload = $this->mapLearnerPayload($data);
 
         $old = $learner->only(array_keys($payload));
-        $learner->fill($payload)->save();
+        $learner->fill($payload);
+        $reassigned = $learner->isDirty(['assigned_instructor_id', 'assigned_vehicle_id']);
+        $learner->save();
+
+        // Editing the trainer or vehicle here is an assignment too; keep its history.
+        if ($reassigned) {
+            LearnerAssignmentHistory::withoutGlobalScope('school')->create([
+                'learner_id' => $learner->id,
+                'school_id' => $learner->school_id,
+                'instructor_id' => $learner->assigned_instructor_id,
+                'vehicle_id' => $learner->assigned_vehicle_id,
+                'assigned_by' => $request->user()->id,
+                'action' => 'reassign',
+            ]);
+            Instructor::refreshLearnerCount($learner->assigned_instructor_id);
+        }
 
         AuditLog::log('update', 'Learner', $learner->id, $old, $payload);
 
@@ -169,7 +194,7 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner not found'], 404);
         }
 
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -234,9 +259,7 @@ class LearnerController extends Controller
                 );
             }
 
-            Instructor::withoutGlobalScope('school')
-                ->where('id', $instructorId)
-                ->increment('total_learners_trained');
+            Instructor::refreshLearnerCount($instructorId);
         }
 
         AuditLog::log('assign', 'Learner', $learner->id, [], [
@@ -247,13 +270,47 @@ class LearnerController extends Controller
         return response()->json($this->serialize($learner->fresh(['instructor', 'vehicle', 'package']), full: true));
     }
 
+    /** Trainer and vehicle assignment history, newest first (DIQ-906). */
+    public function assignments(Request $request, int $id): JsonResponse
+    {
+        $learner = Learner::withoutGlobalScope('school')->find($id);
+        if (! $learner) {
+            return response()->json(['message' => 'Learner not found'], 404);
+        }
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
+            return $deny;
+        }
+
+        $rows = LearnerAssignmentHistory::withoutGlobalScope('school')
+            ->where('learner_id', $learner->id)
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
+
+        $instructors = Instructor::withoutGlobalScope('school')->whereIn('id', $rows->pluck('instructor_id')->filter())->pluck('name', 'id');
+        $vehicles = Vehicle::withoutGlobalScope('school')->whereIn('id', $rows->pluck('vehicle_id')->filter())->pluck('registration_number', 'id');
+        $users = User::whereIn('id', $rows->pluck('assigned_by')->filter())->pluck('name', 'id');
+
+        return response()->json($rows->map(fn (LearnerAssignmentHistory $h) => [
+            'id' => $h->id,
+            'action' => $h->action,
+            'instructorId' => $h->instructor_id,
+            'instructorName' => $instructors[$h->instructor_id] ?? null,
+            'vehicleId' => $h->vehicle_id,
+            'vehicleRegistration' => $vehicles[$h->vehicle_id] ?? null,
+            'assignedBy' => $users[$h->assigned_by] ?? null,
+            'notes' => $h->notes,
+            'createdAt' => $h->created_at?->toISOString(),
+        ])->values());
+    }
+
     public function listDocuments(Request $request, int $id): JsonResponse
     {
         $learner = Learner::withoutGlobalScope('school')->find($id);
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->learner($request, $learner, allowSelf: true)) {
             return $deny;
         }
 
@@ -266,45 +323,51 @@ class LearnerController extends Controller
         return response()->json($docs);
     }
 
-    public function addDocument(Request $request, int $id): JsonResponse
+    public function addDocument(Request $request, int $id, DocumentStorage $storage): JsonResponse
     {
         $learner = Learner::withoutGlobalScope('school')->find($id);
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchoolOrLearner($request, $learner)) {
+        if ($deny = $this->access()->learner($request, $learner, allowSelf: true)) {
             return $deny;
         }
 
         $data = $request->validate([
             'type' => ['required', 'string', 'in:aadhaar,pan,photo,learner_license,medical,other'],
-            'filePath' => ['nullable', 'string', 'max:2048'],
-            'fileName' => ['nullable', 'string', 'max:255'],
+            'file' => ['nullable', ...DocumentStorage::FILE_RULE],
             'expiryDate' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $file = $request->file('file');
+        $schoolId = (int) $learner->school_id;
+
         $doc = LearnerDocument::withoutGlobalScope('school')->create([
             'learner_id' => $learner->id,
-            'school_id' => $learner->school_id,
+            'school_id' => $schoolId,
             'type' => $data['type'],
-            'file_path' => $data['filePath'] ?? null,
-            'file_name' => $data['fileName'] ?? null,
+            'file_path' => $file ? $storage->store($file, $schoolId, 'learners', $learner->id) : null,
+            'file_name' => $file ? DocumentStorage::displayName($file) : null,
             'expiry_date' => $data['expiryDate'] ?? null,
-            'status' => ! empty($data['filePath']) ? 'uploaded' : 'pending',
+            'status' => $file ? 'uploaded' : 'pending',
             'notes' => $data['notes'] ?? null,
         ]);
 
         return response()->json($this->serializeDoc($doc), 201);
     }
 
-    public function updateDocument(Request $request, int $id, int $docId): JsonResponse
+    /**
+     * School staff review a document (verify / reject) and may attach or
+     * replace its file. Send as multipart POST with _method=PATCH to upload.
+     */
+    public function updateDocument(Request $request, int $id, int $docId, DocumentStorage $storage): JsonResponse
     {
         $learner = Learner::withoutGlobalScope('school')->find($id);
         if (! $learner) {
             return response()->json(['message' => 'Learner not found'], 404);
         }
-        if ($deny = $this->authSchool($request, (int) $learner->school_id)) {
+        if ($deny = $this->access()->school($request, (int) $learner->school_id)) {
             return $deny;
         }
 
@@ -318,29 +381,66 @@ class LearnerController extends Controller
         }
 
         $data = $request->validate([
-            'status' => ['required', 'string', 'in:pending,uploaded,verified,rejected'],
+            // pending/uploaded follow from the file; staff only verify or reject.
+            'status' => ['required_without:file', 'string', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:500'],
-            'filePath' => ['nullable', 'string', 'max:2048'],
-            'fileName' => ['nullable', 'string', 'max:255'],
+            'file' => ['nullable', ...DocumentStorage::FILE_RULE],
             'expiryDate' => ['nullable', 'date'],
         ]);
 
+        $previous = $doc->status;
+
+        if ($file = $request->file('file')) {
+            $old = $doc->file_path;
+            $doc->file_path = $storage->store($file, (int) $doc->school_id, 'learners', $learner->id);
+            $doc->file_name = DocumentStorage::displayName($file);
+            $doc->status = 'uploaded';
+            // A new file has not been checked by anyone yet.
+            $doc->verified_by = null;
+            $doc->verified_at = null;
+            $storage->delete($old, (int) $doc->school_id);
+        }
+
+        if (($data['status'] ?? null) === 'verified' && $doc->file_path === null) {
+            throw ValidationException::withMessages(['status' => 'Upload the file before verifying it.']);
+        }
+
         $doc->fill([
-            'status' => $data['status'],
+            'status' => $data['status'] ?? $doc->status,
             'notes' => $data['notes'] ?? $doc->notes,
-            'file_path' => $data['filePath'] ?? $doc->file_path,
-            'file_name' => $data['fileName'] ?? $doc->file_name,
             'expiry_date' => $data['expiryDate'] ?? $doc->expiry_date,
         ]);
 
-        if (in_array($data['status'], ['verified', 'rejected'], true)) {
+        if (isset($data['status'])) {
             $doc->verified_by = $request->user()->id;
             $doc->verified_at = now();
         }
 
         $doc->save();
 
+        if ($doc->status !== $previous) {
+            AuditLog::log('document_'.$doc->status, 'LearnerDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);
+            $this->tellOwnerAboutReview($learner->user_id, $doc->type, $doc->status, $doc->notes, (int) $doc->school_id);
+        }
+
         return response()->json($this->serializeDoc($doc));
+    }
+
+    /** DIQ-913: the learner hears when the school verifies or rejects a document. */
+    private function tellOwnerAboutReview(?int $userId, string $type, string $status, ?string $notes, int $schoolId): void
+    {
+        if (! in_array($status, ['verified', 'rejected'], true) || ! $userId || ! ($user = User::find($userId))) {
+            return;
+        }
+        $label = str_replace('_', ' ', $type);
+        $this->notifications->notify(
+            $user,
+            'document.'.$status,
+            $status === 'verified' ? "Your {$label} was verified" : "Your {$label} needs another upload",
+            $status === 'verified' ? null : trim('Please upload a clearer or valid copy. '.($notes ?? '')),
+            ['documentType' => $type],
+            $schoolId
+        );
     }
 
     public function me(Request $request): JsonResponse
@@ -364,7 +464,10 @@ class LearnerController extends Controller
             ->get(['id', 'session_date', 'start_time', 'end_time', 'status', 'pickup_location', 'instructor_id']);
 
         return response()->json([
-            'learner' => $this->serialize($learner, full: true, withDocs: true),
+            // The learner may call their own trainer; staff contacts are not exposed.
+            'learner' => $this->serialize($learner, full: true, withDocs: true) + [
+                'instructorMobile' => $learner->instructor?->mobile,
+            ],
             'upcomingSessions' => $sessions->map(fn (Schedule $s) => [
                 'id' => $s->id,
                 'sessionDate' => $s->session_date?->toDateString(),
@@ -378,25 +481,8 @@ class LearnerController extends Controller
 
     private function createLearner(int $schoolId, array $data, User $actor): Learner
     {
-        $userId = null;
-        if (! empty($data['create_login']) && ! empty($data['email'])) {
-            $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
-            if (! $user) {
-                $user = User::create([
-                    'name' => $data['name'],
-                    'email' => strtolower($data['email']),
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => 'learner',
-                    'school_id' => $schoolId,
-                ]);
-            } else {
-                $user->update([
-                    'role' => $user->isAdmin() ? $user->role : 'learner',
-                    'school_id' => $schoolId,
-                ]);
-            }
-            $userId = $user->id;
-        }
+        $user = $this->learnerAccountFor($schoolId, $data);
+        $userId = $user?->id;
 
         $learner = Learner::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
@@ -421,6 +507,7 @@ class LearnerController extends Controller
             'permanent_license_status' => $data['permanent_license_status'] ?? null,
             'status' => $data['status'] ?? 'active',
             'notes' => $data['notes'] ?? null,
+            'whatsapp_opt_in_at' => $data['whatsapp_opt_in_at'] ?? null,
         ]);
 
         if ($learner->assigned_instructor_id || $learner->assigned_vehicle_id) {
@@ -432,14 +519,72 @@ class LearnerController extends Controller
                 'assigned_by' => $actor->id,
                 'action' => 'assign',
             ]);
+            Instructor::refreshLearnerCount($learner->assigned_instructor_id);
         }
 
         AuditLog::log('create', 'Learner', $learner->id, [], ['name' => $learner->name]);
 
+        if ($user) {
+            $schoolName = School::whereKey($schoolId)->value('name');
+            $this->notifications->notify(
+                $user,
+                'learner_enrolled',
+                'You are enrolled',
+                "{$schoolName} has enrolled you. Your trainer, sessions and progress now appear in your portal.",
+                ['learnerId' => $learner->id],
+                $schoolId
+            );
+        }
+
         return $learner;
     }
 
-    private function validateLearner(Request $request, bool $partial = false): array
+    /**
+     * The login account to attach to a new learner record (DIQ-406), or null.
+     *
+     * - Consent: an existing learner account is linked only when that learner
+     *   submitted the converted enquiry while signed in (link_user_id), and
+     *   has no school yet. Knowing someone's email is never enough.
+     * - With create_login and no existing account, a new learner account is
+     *   created (they set a password via "forgot password").
+     * - Existing accounts are otherwise never modified; asking to create a
+     *   login for an email that already has an account is rejected.
+     */
+    private function learnerAccountFor(int $schoolId, array $data): ?User
+    {
+        if (! empty($data['link_user_id'])) {
+            $user = User::find($data['link_user_id']);
+            if ($user?->isLearner() && ($user->school_id === null || (int) $user->school_id === $schoolId)) {
+                if ($user->school_id === null) {
+                    $user->forceFill(['school_id' => $schoolId])->save();
+                }
+
+                return $user;
+            }
+        }
+
+        if (empty($data['email']) || empty($data['create_login'])) {
+            return null;
+        }
+
+        $email = strtolower($data['email']);
+
+        if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => 'This email already belongs to another DriveQ account.',
+            ]);
+        }
+
+        return User::create([
+            'name' => $data['name'],
+            'email' => $email,
+            'password' => Hash::make(Str::random(24)),
+            'role' => 'learner',
+            'school_id' => $schoolId,
+        ]);
+    }
+
+    private function validateLearner(Request $request, int $schoolId, bool $partial = false): array
     {
         $req = $partial ? 'sometimes' : 'required';
 
@@ -452,11 +597,11 @@ class LearnerController extends Controller
             'address' => ['nullable', 'string', 'max:500'],
             'emergencyContact' => ['nullable', 'string', 'max:100'],
             'vehicleType' => ['nullable', 'string', 'max:50'],
-            'packageId' => ['nullable', 'integer'],
+            'packageId' => ['nullable', 'integer', SchoolScopedIds::package($schoolId)],
             'startDate' => ['nullable', 'date'],
             'expectedCompletionDate' => ['nullable', 'date'],
-            'assignedInstructorId' => ['nullable', 'integer'],
-            'assignedVehicleId' => ['nullable', 'integer'],
+            'assignedInstructorId' => ['nullable', 'integer', SchoolScopedIds::instructor($schoolId)],
+            'assignedVehicleId' => ['nullable', 'integer', SchoolScopedIds::vehicle($schoolId)],
             'learnerLicenseNumber' => ['nullable', 'string', 'max:50'],
             'licenseIssueDate' => ['nullable', 'date'],
             'licenseExpiryDate' => ['nullable', 'date'],
@@ -555,41 +700,14 @@ class LearnerController extends Controller
         return [
             'id' => $d->id,
             'type' => $d->type,
-            'filePath' => $d->file_path,
+            'learnerId' => $d->learner_id,
+            'hasFile' => $d->file_path !== null,
             'fileName' => $d->file_name,
             'status' => $d->status,
             'expiryDate' => $d->expiry_date?->toDateString(),
             'verifiedAt' => $d->verified_at?->toISOString(),
             'notes' => $d->notes,
+            'createdAt' => $d->created_at?->toISOString(),
         ];
-    }
-
-    private function authSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-        $user = $request->user();
-        if ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === $schoolId)) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
-    }
-
-    private function authSchoolOrLearner(Request $request, Learner $learner): ?JsonResponse
-    {
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-        if ($user->isSchool() && (int) $user->school_id === (int) $learner->school_id) {
-            return null;
-        }
-        if ($user->role === 'learner' && (int) $user->id === (int) $learner->user_id) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

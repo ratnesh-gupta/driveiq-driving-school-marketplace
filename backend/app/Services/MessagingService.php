@@ -137,15 +137,15 @@ class MessagingService
             ]);
         }
 
-        // Allowed role pairs: school↔instructor, school↔learner, instructor↔learner
+        // Allowed role pairs (PROJECT-PLAN §9.1): school↔instructor, school↔learner,
+        // instructor↔learner, plus school staff↔staff. Learners never message
+        // each other (they would see other learners' contact data).
         $roles = collect([$sender->role, $receiver->role])->sort()->values()->all();
         $allowed = [
             ['instructor', 'school'],
             ['learner', 'school'],
             ['instructor', 'learner'],
             ['school', 'school'], // staff-to-staff
-            ['instructor', 'instructor'],
-            ['learner', 'learner'],
         ];
 
         $ok = false;

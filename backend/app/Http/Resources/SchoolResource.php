@@ -13,8 +13,12 @@ class SchoolResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            // DIQ-1101: "school" or "trainer" (independent trainer).
+            'listingType' => $this->listing_type ?? 'school',
+            'listingStatus' => $this->listing_status ?? 'published',
             'localityId' => $this->locality_id,
             'localityName' => $this->whenLoaded('locality', fn () => $this->locality->name),
+            'localitySlug' => $this->whenLoaded('locality', fn () => $this->locality?->slug),
             'address' => $this->address,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
@@ -27,12 +31,20 @@ class SchoolResource extends JsonResource
             'rating' => (float) ($this->rating ?? 0),
             'reviewCount' => (int) ($this->review_count ?? 0),
             'verified' => (bool) $this->verified,
+            // Median first-reply time over recent leads; null until there is enough data.
+            'typicalResponseMinutes' => $this->typical_response_minutes,
             'phoneVerified' => (bool) ($this->phone_verified ?? false),
             'businessVerified' => (bool) ($this->business_verified ?? false),
             'locationVerified' => (bool) ($this->location_verified ?? false),
             'premiumVerified' => (bool) ($this->premium_verified ?? false),
             'planCode' => $this->plan_code ?? 'basic',
-            'isSponsored' => (bool) ($this->is_sponsored ?? false),
+            // Listing tier (DIQ-805). Paid placement is always labelled:
+            // "Sponsored" for top-placement plans and campaigns, "Featured"
+            // for the Featured plan's boost and highlight.
+            'listingTier' => $this->plan_code ?? 'basic',
+            'isSponsored' => (bool) ($this->top_placement ?? false),
+            'isFeatured' => ($this->plan_code ?? 'basic') === 'featured',
+            'isPinned' => $this->when(isset($this->is_pinned), fn () => (bool) $this->is_pinned),
             'hasPickup' => (bool) $this->has_pickup,
             'womenInstructor' => (bool) $this->women_instructor,
             'weekendClasses' => (bool) $this->weekend_classes,

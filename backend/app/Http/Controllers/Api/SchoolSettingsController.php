@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
-use App\Models\School;
 use App\Models\SchoolSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +12,7 @@ class SchoolSettingsController extends Controller
 {
     public function show(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -34,12 +33,25 @@ class SchoolSettingsController extends Controller
 
     public function update(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
+        // Only known keys, with typed values (DIQ-707): this JSON drives who gets
+        // notified and when, so arbitrary input is rejected.
         $data = $request->validate([
-            'settings' => ['required', 'array'],
+            'settings' => ['required', 'array:notifications,timezone,locale,lead_auto_assign'],
+            'settings.notifications' => ['sometimes', 'array:email,sms,whatsapp,in_app,new_inquiry,new_review,reminder_after_minutes'],
+            'settings.notifications.email' => ['sometimes', 'boolean'],
+            'settings.notifications.sms' => ['sometimes', 'boolean'],
+            'settings.notifications.whatsapp' => ['sometimes', 'boolean'],
+            'settings.notifications.in_app' => ['sometimes', 'boolean'],
+            'settings.notifications.new_inquiry' => ['sometimes', 'boolean'],
+            'settings.notifications.new_review' => ['sometimes', 'boolean'],
+            'settings.notifications.reminder_after_minutes' => ['sometimes', 'integer', 'in:0,30,60,120,240'],
+            'settings.timezone' => ['sometimes', 'timezone'],
+            'settings.locale' => ['sometimes', 'string', 'in:en-IN,hi-IN,mr-IN'],
+            'settings.lead_auto_assign' => ['sometimes', 'boolean'],
         ]);
 
         $row = SchoolSetting::withoutGlobalScope('school')
@@ -56,23 +68,5 @@ class SchoolSettingsController extends Controller
             'schoolId' => $schoolId,
             'settings' => $merged,
         ]);
-    }
-
-    private function authorizeSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-
-        if ((int) $user->school_id !== $schoolId) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        return null;
     }
 }

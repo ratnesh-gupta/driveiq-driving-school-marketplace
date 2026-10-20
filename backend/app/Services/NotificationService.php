@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\NotificationCreated;
 use App\Models\AppNotification;
+use App\Models\School;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -35,7 +36,9 @@ class NotificationService
     }
 
     /**
-     * Notify all users belonging to a school (owners / staff linked via school_id).
+     * Notify a school's staff: its owner and managers (role "school"), never
+     * its learners or instructors, who share school_id but must not receive
+     * lead details (DIQ-701). Deactivated accounts are skipped.
      *
      * @return Collection<int, AppNotification>
      */
@@ -46,12 +49,26 @@ class NotificationService
         ?string $body = null,
         array $data = []
     ): Collection {
-        $users = User::query()
-            ->where('school_id', $schoolId)
-            ->get();
+        return $this->schoolStaff($schoolId)->map(
+            fn (User $user) => $this->notify($user, $type, $title, $body, $data, $schoolId)
+        );
+    }
 
-        return $users->map(function (User $user) use ($schoolId, $type, $title, $body, $data) {
-            return $this->notify($user, $type, $title, $body, $data, $schoolId);
-        });
+    /**
+     * Active staff of a school, including a legacy owner linked only through
+     * schools.user_id, each once.
+     *
+     * @return Collection<int, User>
+     */
+    public function schoolStaff(int $schoolId): Collection
+    {
+        return User::query()
+            ->where('role', 'school')
+            ->whereNull('deactivated_at')
+            ->where(fn ($q) => $q
+                ->where('school_id', $schoolId)
+                ->orWhereIn('id', School::where('id', $schoolId)->whereNotNull('user_id')->select('user_id')))
+            ->orderBy('id')
+            ->get();
     }
 }

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/store";
 import { roleHomePath } from "@/lib/auth-api";
+import { useT } from "@/i18n/use-locale";
 import { Car, ShieldCheck, Star } from "lucide-react";
 
 function FieldError({ errors }: { errors?: string[] }) {
@@ -24,6 +25,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const { login, authError, fieldErrors, clearAuthErrors, isAuthLoading, userRole } = useAuthStore();
   const [, setLocation] = useLocation();
+  const t = useT();
+  const sessionExpired = new URLSearchParams(window.location.search).has("expired");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +34,10 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       const role = useAuthStore.getState().userRole ?? userRole;
-      setLocation(roleHomePath(role));
+      // Only same-origin paths (e.g. back to an invite link), never "//host".
+      const next = new URLSearchParams(window.location.search).get("next");
+      const safeNext = next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : null;
+      setLocation(safeNext ?? roleHomePath(role));
     } catch {
       // errors are in the store
     }
@@ -43,10 +49,10 @@ export default function LoginPage() {
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:flex flex-col bg-gradient-to-br from-[hsl(221,83%,12%)] via-[hsl(221,83%,20%)] to-[hsl(258,60%,25%)] text-white p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)" }} />
-        <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveIQ</Link>
+        <Link href="/" className="font-bold text-2xl tracking-tight z-10">DriveQ</Link>
         <div className="flex-1 flex flex-col justify-center z-10">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h2 className="text-4xl font-bold mb-4 leading-tight">Welcome back to<br />DriveIQ</h2>
+            <h2 className="text-4xl font-bold mb-4 leading-tight">Welcome back to<br />DriveQ</h2>
             <p className="text-white/70 text-lg leading-relaxed max-w-sm">School, instructor, learner, and admin portals — one sign-in.</p>
           </motion.div>
           <motion.div className="mt-12 space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
@@ -58,16 +64,22 @@ export default function LoginPage() {
             ))}
           </motion.div>
         </div>
-        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveIQ. All rights reserved.</div>
+        <div className="text-white/40 text-xs z-10">&copy; {new Date().getFullYear()} DriveQ. All rights reserved.</div>
       </div>
 
       <div className="flex items-center justify-center p-8 bg-background">
         <motion.div className="w-full max-w-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-8">
-            <Link href="/" className="font-bold text-xl text-primary lg:hidden">DriveIQ</Link>
+            <Link href="/" className="font-bold text-xl text-primary lg:hidden">DriveQ</Link>
             <h1 className="text-2xl font-bold mt-4">Sign in to your account</h1>
             <p className="text-muted-foreground text-sm mt-1">Don't have an account? <Link href="/auth/register" className="text-primary hover:underline">Sign up</Link></p>
           </div>
+
+          {sessionExpired && (
+            <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-200" data-testid="text-session-expired">
+              {t("auth.sessionExpired")}
+            </p>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -76,7 +88,12 @@ export default function LoginPage() {
               <FieldError errors={fieldErrors.email} />
             </div>
             <div>
-              <Label>Password</Label>
+              <div className="flex items-center justify-between">
+                <Label>Password</Label>
+                <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline" data-testid="link-forgot-password">
+                  {t("auth.forgotPassword")}
+                </Link>
+              </div>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required data-testid="input-login-password" />
               <FieldError errors={fieldErrors.password} />
             </div>

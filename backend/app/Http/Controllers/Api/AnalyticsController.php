@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\School;
 use App\Services\AnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +15,7 @@ class AnalyticsController extends Controller
 
     public function school(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -25,7 +24,7 @@ class AnalyticsController extends Controller
 
     public function instructors(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -47,19 +46,5 @@ class AnalyticsController extends Controller
         }
 
         return response()->json($this->analytics->platform());
-    }
-
-    private function authSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        $user = $request->user();
-        if ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === $schoolId)) {
-            return null;
-        }
-
-        return response()->json(['message' => 'Forbidden'], 403);
     }
 }

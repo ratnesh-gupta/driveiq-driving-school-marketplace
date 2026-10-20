@@ -7,10 +7,14 @@ export type AuthUser = {
   role: UserRole;
 };
 
+/** Owner vs manager, for school staff only (DIQ-302). */
+export type SchoolRole = "owner" | "manager";
+
 type AuthResponse = {
   user: AuthUser;
   token: string;
   schoolId: number | null;
+  schoolRole?: SchoolRole | null;
 };
 
 export type FieldErrors = Record<string, string[]>;
@@ -51,6 +55,21 @@ export function setStoredToken(token: string | null): void {
   localStorage.setItem("driveiq_auth_token", token);
 }
 
+const PORTAL_PREFIXES = ["/dashboard", "/admin", "/instructor", "/learner"];
+
+/**
+ * A signed-in request came back 401: the token expired or was revoked.
+ * Drop it and, inside a portal, send the user to login.
+ */
+export function handleUnauthorized(): void {
+  if (!getStoredToken()) return;
+  setStoredToken(null);
+  const path = window.location.pathname;
+  if (PORTAL_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))) {
+    window.location.assign("/auth/login?expired=1");
+  }
+}
+
 async function handleError(res: Response, fallbackMessage: string): Promise<never> {
   let message = fallbackMessage;
   let fieldErrors: FieldErrors | undefined;
@@ -75,12 +94,19 @@ async function handleError(res: Response, fallbackMessage: string): Promise<neve
   throw new Error(message);
 }
 
-export async function registerApi(payload: {
+export type RegisterPayload = {
   name: string;
   email: string;
   password: string;
   role: UserRole;
-}): Promise<AuthResponse> {
+  /** For role "school": a driving school or an independent trainer (DIQ-1101). */
+  listingType?: "school" | "trainer";
+  womenInstructor?: boolean;
+  /** First-touch marketing attribution (DIQ-1108). */
+  attribution?: Record<string, string>;
+};
+
+export async function registerApi(payload: RegisterPayload): Promise<AuthResponse> {
   const res = await fetch(apiUrl("/api/auth/register"), {
     method: "POST",
     headers: JSON_HEADERS,
@@ -106,7 +132,7 @@ export async function loginApi(payload: { email: string; password: string }): Pr
   return JSON.parse(text) as AuthResponse;
 }
 
-export async function meApi(token: string): Promise<{ user: AuthUser; schoolId: number | null }> {
+export async function meApi(token: string): Promise<{ user: AuthUser; schoolId: number | null; schoolRole: SchoolRole | null }> {
   const res = await fetch(apiUrl("/api/auth/me"), {
     method: "GET",
     headers: {
@@ -118,7 +144,7 @@ export async function meApi(token: string): Promise<{ user: AuthUser; schoolId: 
   if (!res.ok) await handleError(res, "Session expired");
   const text = await res.text();
   const data = text ? JSON.parse(text) : {};
-  return { user: data.user, schoolId: data.schoolId ?? null };
+  return { user: data.user, schoolId: data.schoolId ?? null, schoolRole: data.schoolRole ?? null };
 }
 
 export async function logoutApi(token: string): Promise<void> {
@@ -144,4 +170,27 @@ export function roleHomePath(role: UserRole | null | undefined): string {
     default:
       return "/search";
   }
+}
+
+export async function forgotPasswordApi(email: string): Promise<void> {
+  const res = await fetch(apiUrl("/api/auth/forgot-password"), {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) await handleError(res, "Could not send reset link");
+}
+
+export async function resetPasswordApi(payload: {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  const res = await fetch(apiUrl("/api/auth/reset-password"), {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) await handleError(res, "This reset link is invalid or has expired.");
 }

@@ -1,5 +1,5 @@
 # ==============================================================================
-# DriveIQ Driving School Marketplace - Unified Root Gitignore
+# DriveQ Driving School Marketplace - Unified Root Gitignore
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -48,6 +48,8 @@ auth.json
 # ------------------------------------------------------------------------------
 node_modules/
 vendor/
+# Our own overrides of published package views (DIQ-1204) are source.
+!backend/resources/views/vendor/
 .pnpm-store/
 .pnpm-debug.log
 yarn-error.log
@@ -111,3 +113,6 @@ frontend/connect.lock
 .local/
 
 frontend_old/
+# Generated marketing assets (DIQ-1205/1206): rebuild with marketing/README.md
+marketing/screenshots/
+marketing/video/out/

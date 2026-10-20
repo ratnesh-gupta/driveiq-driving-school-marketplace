@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ApiValidationError, getStoredToken, loginApi, logoutApi, meApi, registerApi, setStoredToken, type AuthUser, type FieldErrors, type UserRole } from "@/lib/auth-api";
+import { ApiValidationError, getStoredToken, loginApi, logoutApi, meApi, registerApi, setStoredToken, type AuthUser, type RegisterPayload, type FieldErrors, type SchoolRole, type UserRole } from "@/lib/auth-api";
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -7,12 +7,13 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   schoolId: number | null;
+  schoolRole: SchoolRole | null;
   isAuthLoading: boolean;
   authError: string | null;
   fieldErrors: FieldErrors;
   hydrateAuth: () => Promise<void>;
   login: (payload: { email: string; password: string }) => Promise<void>;
-  register: (payload: { name: string; email: string; password: string; role: UserRole }) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   clearAuthErrors: () => void;
 }
@@ -23,6 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   schoolId: null,
+  schoolRole: null,
   isAuthLoading: !!getStoredToken(),
   authError: null,
   fieldErrors: {},
@@ -41,6 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: data.user,
         userRole: data.user.role,
         schoolId: data.schoolId,
+        schoolRole: data.schoolRole ?? null,
         isLoggedIn: true,
         isAuthLoading: false,
       });
@@ -51,6 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: null,
         userRole: null,
         schoolId: null,
+        schoolRole: null,
         isLoggedIn: false,
         isAuthLoading: false,
       });
@@ -67,6 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: data.user,
         userRole: data.user.role,
         schoolId: data.schoolId,
+        schoolRole: data.schoolRole ?? null,
         isLoggedIn: true,
         isAuthLoading: false,
       });
@@ -81,16 +86,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  register: async ({ name, email, password, role }) => {
+  register: async (payload) => {
     set({ isAuthLoading: true, authError: null, fieldErrors: {} });
     try {
-      const data = await registerApi({ name, email, password, role });
+      const data = await registerApi(payload);
       setStoredToken(data.token);
       set({
         token: data.token,
         user: data.user,
         userRole: data.user.role,
         schoolId: data.schoolId,
+        schoolRole: data.schoolRole ?? null,
         isLoggedIn: true,
         isAuthLoading: false,
       });
@@ -121,6 +127,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: null,
       userRole: null,
       schoolId: null,
+      schoolRole: null,
       isLoggedIn: false,
       authError: null,
       fieldErrors: {},

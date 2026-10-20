@@ -1,4 +1,4 @@
-# DriveIQ — Production deploy checklist
+# DriveQ — Production deploy checklist
 
 ## Stack
 

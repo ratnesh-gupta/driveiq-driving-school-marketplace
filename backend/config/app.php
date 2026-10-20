@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // SPA origin, used for links in emails (password reset, invites).
+    'frontend_url' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

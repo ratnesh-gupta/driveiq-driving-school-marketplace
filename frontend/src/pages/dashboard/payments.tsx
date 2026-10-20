@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PlanGateBanner } from "@/components/plan/plan-gate-banner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export default function PaymentsPage() {
   const [learnerId, setLearnerId] = useState("");
   const [packageId, setPackageId] = useState("");
   const [method, setMethod] = useState("cash");
-  const [markPaid, setMarkPaid] = useState(true);
+  const [markPaid, setMarkPaid] = useState(false);
 
   const payments = useQuery({
     queryKey: ["payments", schoolId],
@@ -51,10 +52,11 @@ export default function PaymentsPage() {
         markPaid,
       }),
     onSuccess: () => {
-      toast.success("Payment recorded");
+      toast.success(markPaid ? "Payment recorded" : "Invoice created. Mark it paid once the money arrives.");
       setOpen(false);
       setLearnerId("");
       setPackageId("");
+      setMarkPaid(false);
       void qc.invalidateQueries({ queryKey: ["payments"] });
       void qc.invalidateQueries({ queryKey: ["learners"] });
     },
@@ -81,6 +83,7 @@ export default function PaymentsPage() {
 
   return (
     <DashboardLayout>
+      <PlanGateBanner feature="payments" />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Payments</h1>
@@ -116,14 +119,15 @@ export default function PaymentsPage() {
             <select className="w-full h-9 rounded-md border bg-background px-2 text-sm" value={method} onChange={(e) => setMethod(e.target.value)}>
               <option value="cash">Cash</option>
               <option value="upi">UPI</option>
-              <option value="manual">Manual</option>
-              <option value="razorpay">Razorpay (pending order)</option>
+              <option value="bank">Bank transfer</option>
+              <option value="card">Card (at the counter)</option>
+              <option value="manual">Other</option>
             </select>
           </div>
           <div className="flex items-end gap-2">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={markPaid} onChange={(e) => setMarkPaid(e.target.checked)} />
-              Mark paid immediately
+              Money already received — mark paid now
             </label>
           </div>
           <div className="sm:col-span-2">

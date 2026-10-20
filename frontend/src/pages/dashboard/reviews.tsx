@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useListReviews, getListReviewsQueryKey } from "@/api-client";
+import type { ListReviewsParams } from "@/api-client/generated/api.schemas";
 import { useMutation } from "@tanstack/react-query";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { reportReview } from "@/lib/ops-api";
@@ -33,7 +34,10 @@ function StarRow({ rating }: { rating: number }) {
 export default function DashboardReviewsPage() {
   const { toast } = useToast();
   const schoolId = useSchoolId();
-  const { data: reviews, isLoading } = useListReviews({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey({ schoolId: schoolId! }) } });
+  // Own school's reviews including those awaiting moderation (the API only
+  // honours includePending for the signed-in school's own id).
+  const reviewParams: ListReviewsParams & { includePending: boolean } = { schoolId: schoolId!, includePending: true };
+  const { data: reviews, isLoading } = useListReviews(reviewParams, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey(reviewParams) } });
 
   const [reportingId, setReportingId] = useState<number | null>(null);
   const [reason, setReason] = useState("fake");
@@ -54,7 +58,7 @@ export default function DashboardReviewsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Reviews</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Reviews are moderated by DriveIQ. If a review breaks the rules, report it for moderation.
+          Reviews are moderated by DriveQ. If a review breaks the rules, report it for moderation.
         </p>
       </div>
 

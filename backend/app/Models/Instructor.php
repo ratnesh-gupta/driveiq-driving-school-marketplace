@@ -75,4 +75,22 @@ class Instructor extends Model
     {
         return $query->where('public_visible', true)->where('status', 'active');
     }
+
+    /**
+     * "Learners trained" is the number of different learners ever assigned to
+     * this trainer, so reassigning the same learner does not inflate it.
+     */
+    public static function refreshLearnerCount(?int $instructorId): void
+    {
+        if (! $instructorId) {
+            return;
+        }
+
+        $count = LearnerAssignmentHistory::withoutGlobalScope('school')
+            ->where('instructor_id', $instructorId)
+            ->distinct()
+            ->count('learner_id');
+
+        static::withoutGlobalScope('school')->whereKey($instructorId)->update(['total_learners_trained' => $count]);
+    }
 }

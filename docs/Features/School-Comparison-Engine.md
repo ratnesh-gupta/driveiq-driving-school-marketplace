@@ -221,7 +221,7 @@ Comparison state encoded in URL:
 
 * Shareable via WhatsApp / copy link
 * Open Graph metadata for shared links:
-  * Title: "Compare ABC vs XYZ vs PQR — DriveIQ"
+  * Title: "Compare ABC vs XYZ vs PQR — DriveQ"
   * Description: "Side-by-side comparison of driving schools in Pune"
 
 ---

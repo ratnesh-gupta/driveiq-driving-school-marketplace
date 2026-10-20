@@ -12,7 +12,7 @@ class StatsService
 {
     public function overview(): array
     {
-        $schoolStats = School::query()
+        $schoolStats = School::query()->public()
             ->selectRaw('count(*) as total_schools')
             ->selectRaw('sum(case when verified then 1 else 0 end) as verified_schools')
             ->selectRaw('avg(rating) as avg_rating')
@@ -36,8 +36,10 @@ class StatsService
             ->where('created_at', '>=', Carbon::now()->startOfMonth())
             ->count();
 
-        $totalReviews = Review::where('school_id', $schoolId)->count();
-        $avgRating = (float) (Review::where('school_id', $schoolId)->avg('rating') ?? 0);
+        // Only published reviews count, matching the public rating.
+        $approved = Review::where('school_id', $schoolId)->where('approved', true);
+        $totalReviews = (clone $approved)->count();
+        $avgRating = (float) ($approved->avg('rating') ?? 0);
 
         return [
             'schoolId' => $schoolId,
@@ -46,6 +48,7 @@ class StatsService
             'thisMonthInquiries' => $thisMonthInquiries,
             'totalReviews' => $totalReviews,
             'avgRating' => round($avgRating, 2),
+            'monthlyInquiries' => app(AnalyticsService::class)->inquiryTrend($schoolId),
         ];
     }
 }

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useListSchools, useListLocalities } from "@/api-client";
+import { SchoolsMap, hasMapsKey } from "@/components/maps/schools-map";
 import type { ListSchoolsParams } from "@/api-client/generated/api.schemas";
 import { Search, SlidersHorizontal, X, MapPin, Car } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -22,6 +23,7 @@ function parseQuery(search: string) {
   return {
     locality: params.get("locality") || "",
     vehicleType: params.get("vehicleType") || "",
+    listingType: (["school", "trainer"].includes(params.get("type") ?? "") ? params.get("type") : "") as "" | "school" | "trainer",
   };
 }
 
@@ -34,15 +36,18 @@ export default function SearchPage() {
   const [locality, setLocality] = useState(initial.locality);
   const [vehicleType, setVehicleType] = useState(initial.vehicleType);
   const [transmission, setTransmission] = useState("");
+  const [listingType, setListingType] = useState<"" | "school" | "trainer">(initial.listingType);
   const [hasPickup, setHasPickup] = useState(false);
   const [womenInstructor, setWomenInstructor] = useState(false);
   const [weekendClasses, setWeekendClasses] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minRating, setMinRating] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [nearMe, setNearMe] = useState(false);
   const [radiusKm, setRadiusKm] = useState<number>(5);
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [locationPrompt, setLocationPrompt] = useState(false);
+  const [view, setView] = useState<"list" | "map">("list");
 
   const { data: localities } = useListLocalities();
 
@@ -51,9 +56,11 @@ export default function SearchPage() {
     if (locality) p.locality = locality.toLowerCase();
     if (vehicleType) p.vehicleType = vehicleType.toLowerCase();
     if (transmission) p.transmission = transmission.toLowerCase();
+    if (listingType) p.listingType = listingType;
     if (hasPickup) p.hasPickup = true;
     if (womenInstructor) p.womenInstructor = true;
     if (weekendClasses) p.weekendClasses = true;
+    if (verifiedOnly) p.verified = true;
     if (minRating > 0) p.minRating = minRating;
     if (maxPrice < 10000) p.maxPrice = maxPrice;
     if (nearMe && geo) {
@@ -62,18 +69,18 @@ export default function SearchPage() {
       p.radiusKm = radiusKm;
     }
     return p;
-  }, [locality, vehicleType, transmission, hasPickup, womenInstructor, weekendClasses, minRating, maxPrice, nearMe, geo, radiusKm]);
+  }, [locality, vehicleType, transmission, listingType, hasPickup, womenInstructor, weekendClasses, verifiedOnly, minRating, maxPrice, nearMe, geo, radiusKm]);
 
   const { data: schools, isLoading } = useListSchools(params);
 
   const activeFilterCount = [
-    locality, vehicleType, transmission, hasPickup, womenInstructor,
-    weekendClasses, minRating > 0, maxPrice < 10000, nearMe,
+    locality, vehicleType, transmission, listingType, hasPickup, womenInstructor,
+    weekendClasses, verifiedOnly, minRating > 0, maxPrice < 10000, nearMe,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
-    setLocality(""); setVehicleType(""); setTransmission("");
-    setHasPickup(false); setWomenInstructor(false); setWeekendClasses(false);
+    setLocality(""); setVehicleType(""); setTransmission(""); setListingType("");
+    setHasPickup(false); setWomenInstructor(false); setWeekendClasses(false); setVerifiedOnly(false);
     setMinRating(0); setMaxPrice(10000);
     setNearMe(false); setGeo(null); setRadiusKm(5);
   };
@@ -159,6 +166,20 @@ export default function SearchPage() {
       </div>
 
       <div>
+        <Label className="text-sm font-semibold mb-3 block">Who teaches</Label>
+        <Select value={listingType || ALL} onValueChange={(v) => setListingType(v === ALL ? "" : (v as "school" | "trainer"))}>
+          <SelectTrigger data-testid="select-filter-listing-type">
+            <SelectValue placeholder="Schools and trainers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Schools and trainers</SelectItem>
+            <SelectItem value="school">Driving schools</SelectItem>
+            <SelectItem value="trainer">Independent trainers</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
         <Label className="text-sm font-semibold mb-3 block">Vehicle Type</Label>
         <Select value={vehicleType || ALL} onValueChange={(v) => setVehicleType(v === ALL ? "" : v)}>
           <SelectTrigger data-testid="select-filter-vehicle">
@@ -219,6 +240,7 @@ export default function SearchPage() {
           { label: "Pickup & Drop", value: hasPickup, setter: setHasPickup, id: "pickup" },
           { label: "Women Instructor", value: womenInstructor, setter: setWomenInstructor, id: "women" },
           { label: "Weekend Classes", value: weekendClasses, setter: setWeekendClasses, id: "weekend" },
+          { label: "Verified schools only", value: verifiedOnly, setter: setVerifiedOnly, id: "verified" },
         ].map((item) => (
           <div key={item.id} className="flex items-center gap-2">
             <Checkbox
@@ -251,7 +273,7 @@ export default function SearchPage() {
           >
             <h2 id="location-purpose-title" className="text-lg font-semibold">Use your location?</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              DriveIQ will ask your browser for your current position <strong>only to show driving schools near you</strong> for this search.
+              DriveQ will ask your browser for your current position <strong>only to show driving schools near you</strong> for this search.
               We do not track you continuously or sell location data. You can use locality filters instead.
             </p>
             <p className="text-xs text-muted-foreground">
@@ -363,7 +385,29 @@ export default function SearchPage() {
                   </p>
                 )}
               </div>
+              {hasMapsKey && (
+                <div className="flex rounded-lg border p-0.5 text-sm" role="group" aria-label="Results view">
+                  {(["list", "map"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      aria-pressed={view === v}
+                      onClick={() => setView(v)}
+                      className={`px-3 py-1 rounded-md capitalize ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                      data-testid={`button-view-${v}`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {view === "map" && !isLoading && !!schools?.length && (
+              <div className="mb-6">
+                <SchoolsMap schools={schools} origin={nearMe ? geo : null} />
+              </div>
+            )}
 
             {isLoading ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">

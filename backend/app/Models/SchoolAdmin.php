@@ -13,6 +13,9 @@ class SchoolAdmin extends Model
     protected $fillable = [
         'school_id',
         'user_id',
+        'invite_email',
+        'invite_token_hash',
+        'invite_expires_at',
         'role',
         'invited_by',
         'invited_at',
@@ -20,11 +23,14 @@ class SchoolAdmin extends Model
         'status',
     ];
 
+    protected $hidden = ['invite_token_hash'];
+
     protected function casts(): array
     {
         return [
             'invited_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'invite_expires_at' => 'datetime',
         ];
     }
 

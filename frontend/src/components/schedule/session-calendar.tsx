@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   addDays,
   addMonths,
@@ -28,6 +28,22 @@ export type CalendarSession = {
 
 type View = "week" | "month";
 
+export type CalendarRange = { from: string; to: string };
+
+function weekDays(cursor: Date): Date[] {
+  const start = startOfWeek(cursor, { weekStartsOn: 1 });
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
+function toRange(days: Date[]): CalendarRange {
+  return { from: format(days[0], "yyyy-MM-dd"), to: format(days[days.length - 1], "yyyy-MM-dd") };
+}
+
+/** The range the calendar shows on first render (this week), so pages can load it up front. */
+export function initialCalendarRange(): CalendarRange {
+  return toRange(weekDays(new Date()));
+}
+
 function parseDate(value: string): Date {
   const [y, m, d] = value.slice(0, 10).split("-").map(Number);
   return new Date(y, (m || 1) - 1, d || 1);
@@ -43,10 +59,13 @@ function statusColor(status?: string) {
 export function SessionCalendar({
   sessions,
   onSelectSession,
+  onRangeChange,
   emptyLabel = "No sessions in this range",
 }: {
   sessions: CalendarSession[];
   onSelectSession?: (session: CalendarSession) => void;
+  /** Called with the visible dates so the page can load just that range. */
+  onRangeChange?: (range: CalendarRange) => void;
   emptyLabel?: string;
 }) {
   const [view, setView] = useState<View>("week");
@@ -54,16 +73,19 @@ export function SessionCalendar({
   const [selected, setSelected] = useState<Date | null>(new Date());
 
   const days = useMemo(() => {
-    if (view === "week") {
-      const start = startOfWeek(cursor, { weekStartsOn: 1 });
-      return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-    }
+    if (view === "week") return weekDays(cursor);
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
     const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 });
     const out: Date[] = [];
     for (let d = start; d <= end; d = addDays(d, 1)) out.push(d);
     return out;
   }, [cursor, view]);
+
+  const rangeKey = `${format(days[0], "yyyy-MM-dd")}|${format(days[days.length - 1], "yyyy-MM-dd")}`;
+  useEffect(() => {
+    onRangeChange?.(toRange(days));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeKey]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, CalendarSession[]>();

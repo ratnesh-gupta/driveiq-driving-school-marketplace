@@ -1,4 +1,4 @@
-# DriveIQ — Docker Compose helpers
+# DriveQ — Docker Compose helpers
 # Default stack: docker-compose.yaml (local)
 # Production:    docker-compose.prod.yaml via prod-* targets
 
@@ -13,7 +13,7 @@ BACKEND       := $(DC) exec -T backend
 BACKEND_TTY   := $(DC) exec backend
 PROD_BACKEND  := $(DC_PROD) exec -T backend
 
-.PHONY: help up down restart ps logs logs-backend logs-frontend \
+.PHONY: help demo up down restart ps logs logs-backend logs-frontend \
 	up-infra \
 	migrate migrate-fresh seed migrate-seed fresh \
 	artisan tinker shell \
@@ -21,7 +21,7 @@ PROD_BACKEND  := $(DC_PROD) exec -T backend
 	prod-up prod-down prod-logs prod-migrate prod-seed
 
 help:
-	@echo "DriveIQ make targets"
+	@echo "DriveQ make targets"
 	@echo ""
 	@echo "  Stack"
 	@echo "    make up              Build & start full local stack"
@@ -88,6 +88,9 @@ migrate-fresh:
 
 seed:
 	$(BACKEND) php artisan db:seed --force
+
+demo: ## Wipe the local database and load the demo showcase (DIQ-1202)
+	$(BACKEND) php artisan driveiq:demo --fresh
 
 migrate-seed: migrate seed
 

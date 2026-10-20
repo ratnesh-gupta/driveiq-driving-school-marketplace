@@ -63,12 +63,17 @@ class PackageController extends Controller
         return response()->json(new PackageResource($package));
     }
 
-    public function delete(int $id): JsonResponse
+    public function delete(Request $request, int $id): JsonResponse
     {
         $package = DrivePackage::find($id);
 
         if (! $package) {
             return response()->json(['message' => 'Package not found'], 404);
+        }
+
+        // PBAC: deleting packages is owner-only (managers may create/edit).
+        if ($deny = $this->access()->school($request, (int) $package->school_id, ownerOnly: true)) {
+            return $deny;
         }
 
         AuditLog::log('delete', 'DrivePackage', $package->id, $package->toArray(), []);

@@ -36,6 +36,7 @@
         <env name="DB_USERNAME" value="driveiq"/>
         <env name="DB_PASSWORD" value="driveiq"/>
         <env name="MAIL_MAILER" value="array"/>
+        <env name="MESSAGING_DRIVER" value="null"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\User;
+use App\Services\LeadResponseStats;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 
@@ -39,3 +41,25 @@ Artisan::command('driveiq:create-admin {email} {--name=Platform Admin}', functio
 
     return 0;
 })->purpose('Create a platform admin account');
+
+// Remove API tokens that expired more than a day ago (config sanctum.expiration).
+Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+// DPDP retention (DIQ-606): reports daily; deletes only when RETENTION_EXECUTE=true.
+Schedule::command('driveiq:retention')->dailyAt('02:30')->withoutOverlapping();
+
+// Remind schools about leads still waiting for a first reply (DIQ-705).
+Schedule::command('driveiq:lead-reminders')->everyFifteenMinutes()->withoutOverlapping();
+
+// Public "usually replies within" badges (DIQ-708).
+Schedule::call(fn () => app(LeadResponseStats::class)->refreshSchoolBadges())
+    ->name('driveiq:response-badges')->hourly()->withoutOverlapping();
+
+// Plan / trial reminders and expiry (DIQ-807).
+Schedule::command('driveiq:subscriptions')->dailyAt('03:15')->withoutOverlapping();
+
+// Session reminders, licence / vehicle paper expiry, missing documents (DIQ-913).
+Schedule::command('driveiq:ops-reminders')->hourly()->withoutOverlapping();
+
+// School / trainer outreach emails (DIQ-1105): sends only within sending hours and the daily cap.
+Schedule::command('driveiq:outreach')->everyFifteenMinutes()->withoutOverlapping();

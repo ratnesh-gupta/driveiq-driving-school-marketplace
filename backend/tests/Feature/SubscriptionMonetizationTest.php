@@ -60,6 +60,21 @@ class SubscriptionMonetizationTest extends TestCase
             ->assertJsonPath('activeSubscriptions', 1);
     }
 
+    /** DIQ-801: a paid plan must not buy the Verified badge. */
+    public function test_paid_plan_does_not_mark_school_verified(): void
+    {
+        $school = $this->school();
+        $school->update(['verified' => false, 'premium_verified' => false]);
+
+        foreach (['premium', 'enterprise'] as $plan) {
+            app(SubscriptionService::class)->assign($school->id, $plan, 1);
+        }
+
+        $school->refresh();
+        $this->assertFalse((bool) $school->verified);
+        $this->assertFalse((bool) $school->premium_verified);
+    }
+
     public function test_school_can_view_own_subscription_only(): void
     {
         $school = $this->school();

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { replyBadge } from "@/lib/response-time";
 import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { PublicLayout } from "@/components/layout/public-layout";
@@ -13,6 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/lib/store";
+import { JsonLd, SITE_ORIGIN, breadcrumbList } from "@/components/seo/json-ld";
+import { SchoolMap } from "@/components/maps/school-map";
+import { TrainersSection } from "@/components/school/trainers-section";
+import type { InquiryInput } from "@/api-client/generated/api.schemas";
+import { useT } from "@/i18n/use-locale";
 import {
   useGetSchoolBySlug,
   useListReviews,
@@ -24,7 +31,7 @@ import {
 } from "@/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Star, MapPin, Phone, Mail, ShieldCheck, Car, CheckCircle2,
+  Star, MapPin, Phone, Mail, ShieldCheck, Car, CheckCircle2, Zap,
   Clock, MessageCircle, Users, ArrowLeft, Send, BookOpen, ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -71,6 +78,8 @@ export default function SchoolDetailPage() {
   const queryClient = useQueryClient();
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const { userRole, schoolId: mySchoolId } = useAuthStore();
+  const t = useT();
 
   const { data: school, isLoading } = useGetSchoolBySlug(params.slug);
   const { data: reviews } = useListReviews(
@@ -86,19 +95,40 @@ export default function SchoolDetailPage() {
   const createReview = useCreateReview();
 
   const [inquiryForm, setInquiryForm] = useState({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
+  // Anti-spam (DIQ-404): when the form was opened, and a honeypot field people never see.
+  const inquiryStartedAt = useRef(Date.now());
+  const [honeypot, setHoneypot] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  const openInquiry = (open: boolean) => {
+    if (open) inquiryStartedAt.current = Date.now();
+    setInquiryOpen(open);
+  };
   const [reviewForm, setReviewForm] = useState({ authorName: "", rating: 5, content: "" });
 
   const handleInquiry = async () => {
     if (!school) return;
+    // The generated InquiryInput type predates the anti-spam fields; the API requires them.
+    const payload: InquiryInput & { formStartedAt: number; website: string; whatsappOptIn: boolean } = {
+      ...inquiryForm,
+      schoolId: school.id,
+      formStartedAt: inquiryStartedAt.current,
+      website: honeypot,
+      whatsappOptIn,
+    };
     createInquiry.mutate(
-      { data: { ...inquiryForm, schoolId: school.id } },
+      { data: payload },
       {
         onSuccess: () => {
           toast({ title: "Inquiry sent!", description: "The school will contact you shortly." });
           setInquiryOpen(false);
           setInquiryForm({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
+          setWhatsappOptIn(false);
         },
-        onError: () => toast({ title: "Failed to send inquiry", variant: "destructive" }),
+        onError: (err: unknown) => {
+          const data = (err as { status?: number; data?: { message?: string; errors?: Record<string, string[]> } })?.data;
+          const detail = data?.errors ? Object.values(data.errors).flat()[0] : data?.message;
+          toast({ title: "Failed to send inquiry", description: detail, variant: "destructive" });
+        },
       }
     );
   };
@@ -113,10 +143,16 @@ export default function SchoolDetailPage() {
           setReviewOpen(false);
           queryClient.invalidateQueries({ queryKey: getListReviewsQueryKey({ schoolId: school.id }) });
         },
-        onError: () => toast({ title: "Failed to submit review", variant: "destructive" }),
+        onError: (err: unknown) => {
+          const message = (err as { data?: { message?: string } })?.data?.message;
+          toast({ title: "Failed to submit review", description: message, variant: "destructive" });
+        },
       }
     );
   };
+
+  // PBAC: only learners enrolled at this school review from their account (DIQ-407).
+  const canReview = userRole === "learner" && !!school && mySchoolId === school.id;
 
   if (isLoading) {
     return (
@@ -148,8 +184,57 @@ export default function SchoolDetailPage() {
 
   const approvedReviews = (reviews || []).filter(r => r.approved);
 
+  // One source for the visible FAQ and its FAQPage structured data.
+  const faqs = [
+    { q: "How many sessions does a standard course include?", a: "Standard courses typically include 15–30 sessions depending on the package you choose. Check the pricing packages above for specific details." },
+    { q: "Do you offer pickup and drop service?", a: school.hasPickup ? "Yes! This school offers pickup and drop services. Contact them to know the coverage areas." : "This school currently does not offer pickup/drop services. You'll need to visit their centre directly." },
+    { q: "Is the driving test included?", a: "Most packages include assistance with booking your RTO driving test. Please confirm with the school during your inquiry." },
+    { q: "What documents are required for enrollment?", a: "You'll typically need your Aadhaar card, passport-size photos, and a learner's licence (the school can help you obtain one)." },
+  ];
+
+  // DIQ-504: schema.org DrivingSchool (also a LocalBusiness for local search).
+  const schoolLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": ["DrivingSchool", "LocalBusiness"],
+    name: school.name,
+    url: `${SITE_ORIGIN}/school/${school.slug}`,
+    ...(school.description ? { description: school.description } : {}),
+    ...(school.imageUrl ? { image: school.imageUrl } : {}),
+    ...(school.phone ? { telephone: school.phone } : {}),
+    ...(school.email ? { email: school.email } : {}),
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: school.address,
+      addressLocality: school.localityName ?? "Pune",
+      addressRegion: "Maharashtra",
+      addressCountry: "IN",
+    },
+    ...(school.latitude != null && school.longitude != null
+      ? { geo: { "@type": "GeoCoordinates", latitude: school.latitude, longitude: school.longitude } }
+      : {}),
+    ...(school.priceFrom > 0 ? { priceRange: `₹${school.priceFrom}${school.priceTo > school.priceFrom ? `–₹${school.priceTo}` : ""}` } : {}),
+    // Only real, moderated reviews count (never self-declared ratings).
+    ...(school.reviewCount > 0
+      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: school.rating, reviewCount: school.reviewCount, bestRating: 5 } }
+      : {}),
+  };
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  };
+  const crumbs = [
+    { name: "Home", path: "/" },
+    { name: "Driving schools", path: "/search" },
+    ...(school.localityName && school.localitySlug ? [{ name: school.localityName, path: `/locality/${school.localitySlug}` }] : []),
+    { name: school.name, path: `/school/${school.slug}` },
+  ];
+
   return (
     <PublicLayout>
+      <JsonLd data={schoolLd} />
+      <JsonLd data={faqLd} />
+      <JsonLd data={breadcrumbList(crumbs)} />
       {/* Hero banner */}
       <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary/80 to-[hsl(258,60%,35%)] overflow-hidden">
         {school.imageUrl && (
@@ -163,9 +248,17 @@ export default function SchoolDetailPage() {
           <div className="flex items-end gap-4 flex-wrap">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {school.listingType === "trainer" && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0" data-testid="badge-independent-trainer">Independent trainer</Badge>
+                )}
                 {school.verified && (
                   <Badge className="bg-green-500 text-white border-0">
                     <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                  </Badge>
+                )}
+                {replyBadge(school.typicalResponseMinutes) && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0" data-testid="badge-replies">
+                    <Zap className="h-3 w-3 mr-1" /> {replyBadge(school.typicalResponseMinutes)}
                   </Badge>
                 )}
                 {school.hasPickup && <Badge variant="secondary" className="bg-white/20 text-white border-0">Pickup Available</Badge>}
@@ -246,41 +339,49 @@ export default function SchoolDetailPage() {
               </motion.div>
             )}
 
+            <TrainersSection slug={school.slug} />
+
             {/* Reviews */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }} className="rounded-xl border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-lg">Reviews ({approvedReviews.length})</h2>
-                <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" data-testid="button-write-review">Write a Review</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Write a Review</DialogTitle></DialogHeader>
-                    <div className="space-y-4 mt-2">
-                      <div>
-                        <Label>Your Name</Label>
-                        <Input value={reviewForm.authorName} onChange={e => setReviewForm(p => ({ ...p, authorName: e.target.value }))} placeholder="Enter your name" data-testid="input-reviewer-name" />
-                      </div>
-                      <div>
-                        <Label>Rating</Label>
-                        <div className="flex gap-1 mt-1">
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <button key={n} onClick={() => setReviewForm(p => ({ ...p, rating: n }))}>
-                              <Star className={`h-7 w-7 transition-colors ${n <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
-                            </button>
-                          ))}
+                {canReview ? (
+                  <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" data-testid="button-write-review">Write a Review</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Write a Review</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-2">
+                        <div>
+                          <Label>Your Name</Label>
+                          <Input value={reviewForm.authorName} onChange={e => setReviewForm(p => ({ ...p, authorName: e.target.value }))} placeholder="Enter your name" data-testid="input-reviewer-name" />
                         </div>
+                        <div>
+                          <Label>Rating</Label>
+                          <div className="flex gap-1 mt-1">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <button key={n} onClick={() => setReviewForm(p => ({ ...p, rating: n }))}>
+                                <Star className={`h-7 w-7 transition-colors ${n <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Review</Label>
+                          <Textarea value={reviewForm.content} onChange={e => setReviewForm(p => ({ ...p, content: e.target.value }))} placeholder="Share your experience..." rows={4} data-testid="textarea-review-content" />
+                        </div>
+                        <Button onClick={handleReview} disabled={createReview.isPending} className="w-full" data-testid="button-submit-review">
+                          {createReview.isPending ? "Submitting..." : "Submit Review"}
+                        </Button>
                       </div>
-                      <div>
-                        <Label>Review</Label>
-                        <Textarea value={reviewForm.content} onChange={e => setReviewForm(p => ({ ...p, content: e.target.value }))} placeholder="Share your experience..." rows={4} data-testid="textarea-review-content" />
-                      </div>
-                      <Button onClick={handleReview} disabled={createReview.isPending} className="w-full" data-testid="button-submit-review">
-                        {createReview.isPending ? "Submitting..." : "Submit Review"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <p className="text-xs text-muted-foreground max-w-[16rem] text-right" data-testid="text-review-eligibility">
+                    {t("reviewLink.eligibility")}
+                  </p>
+                )}
               </div>
 
               {approvedReviews.length === 0 ? (
@@ -303,16 +404,18 @@ export default function SchoolDetailPage() {
               )}
             </motion.div>
 
+            {/* Location (DIQ-503) */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.22 } }} className="rounded-xl border bg-card p-6">
+              <h2 className="font-bold text-lg mb-1">Location</h2>
+              <p className="text-sm text-muted-foreground mb-4">{school.address}</p>
+              <SchoolMap name={school.name} address={school.address} latitude={school.latitude} longitude={school.longitude} />
+            </motion.div>
+
             {/* FAQ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.25 } }} className="rounded-xl border bg-card p-6">
               <h2 className="font-bold text-lg mb-4">Frequently Asked Questions</h2>
               <Accordion type="single" collapsible>
-                {[
-                  { q: "How many sessions does a standard course include?", a: "Standard courses typically include 15–30 sessions depending on the package you choose. Check the pricing packages above for specific details." },
-                  { q: "Do you offer pickup and drop service?", a: school.hasPickup ? "Yes! This school offers pickup and drop services. Contact them to know the coverage areas." : "This school currently does not offer pickup/drop services. You'll need to visit their centre directly." },
-                  { q: "Is the driving test included?", a: "Most packages include assistance with booking your RTO driving test. Please confirm with the school during your inquiry." },
-                  { q: "What documents are required for enrollment?", a: "You'll typically need your Aadhaar card, passport-size photos, and a learner's licence (the school can help you obtain one)." },
-                ].map((faq, i) => (
+                {faqs.map((faq, i) => (
                   <AccordionItem key={i} value={`faq-${i}`}>
                     <AccordionTrigger className="text-sm font-medium text-left">{faq.q}</AccordionTrigger>
                     <AccordionContent className="text-sm text-muted-foreground">{faq.a}</AccordionContent>
@@ -337,7 +440,7 @@ export default function SchoolDetailPage() {
                 <div className="text-2xl font-bold mb-1">₹{school.priceFrom.toLocaleString()}<span className="text-base font-normal text-muted-foreground"> / course</span></div>
                 <Separator className="my-4" />
 
-                <Dialog open={inquiryOpen} onOpenChange={setInquiryOpen}>
+                <Dialog open={inquiryOpen} onOpenChange={openInquiry}>
                   <DialogTrigger asChild>
                     <Button className="w-full" size="lg" data-testid="button-send-inquiry">
                       <Send className="h-4 w-4 mr-2" /> Send Inquiry
@@ -346,6 +449,13 @@ export default function SchoolDetailPage() {
                   <DialogContent>
                     <DialogHeader><DialogTitle>Send Inquiry to {school.name}</DialogTitle></DialogHeader>
                     <div className="space-y-4 mt-2">
+                      {/* Honeypot: hidden from people and assistive tech; bots tend to fill it. */}
+                      <div aria-hidden="true" className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden">
+                        <label>
+                          Website
+                          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                        </label>
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Label>Your Name</Label>
@@ -373,6 +483,16 @@ export default function SchoolDetailPage() {
                         <Label>Message (optional)</Label>
                         <Textarea value={inquiryForm.message} onChange={e => setInquiryForm(p => ({ ...p, message: e.target.value }))} placeholder="Any specific requirements..." rows={3} data-testid="textarea-inquiry-message" />
                       </div>
+                      <label className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4"
+                          checked={whatsappOptIn}
+                          onChange={e => setWhatsappOptIn(e.target.checked)}
+                          data-testid="checkbox-inquiry-whatsapp"
+                        />
+                        <span>Send me updates about this enquiry on WhatsApp <span className="text-muted-foreground">(optional)</span></span>
+                      </label>
                       <Button onClick={handleInquiry} disabled={createInquiry.isPending} className="w-full" data-testid="button-submit-inquiry">
                         {createInquiry.isPending ? "Sending..." : "Send Inquiry"}
                       </Button>

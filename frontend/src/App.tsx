@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { PlanRequiredListener } from "@/components/plan/plan-required-listener";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -16,6 +17,8 @@ import DrivingRulesPage from "@/pages/driving-rules";
 import ContactPage from "@/pages/contact";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import DataRequestPage from "@/pages/data-request";
@@ -26,12 +29,22 @@ import ProfilePage from "@/pages/dashboard/profile";
 import PackagesPage from "@/pages/dashboard/packages";
 import DashboardReviewsPage from "@/pages/dashboard/reviews";
 import AnalyticsPage from "@/pages/dashboard/analytics";
+import SchoolSettingsPage from "@/pages/dashboard/settings";
+import BillingPage from "@/pages/dashboard/billing";
+import InvoicePage from "@/pages/dashboard/invoice";
 import LearnersPage from "@/pages/dashboard/learners";
 import InstructorsPage from "@/pages/dashboard/instructors";
 import SchedulesPage from "@/pages/dashboard/schedules";
 import VehiclesPage from "@/pages/dashboard/vehicles";
 import SchoolMessagesPage from "@/pages/dashboard/messages";
 import PaymentsPage from "@/pages/dashboard/payments";
+import TeamPage from "@/pages/dashboard/team";
+import TeamAcceptPage from "@/pages/team-accept";
+import ClaimPage from "@/pages/claim";
+import ForListingsPage from "@/pages/for-listings";
+import UnsubscribePage from "@/pages/unsubscribe";
+import AdminOutreachPage from "@/pages/admin/outreach";
+import ReviewViaLinkPage from "@/pages/review-via-link";
 
 import AdminHomePage from "@/pages/admin/index";
 import AdminSchoolsPage from "@/pages/admin/schools";
@@ -40,15 +53,23 @@ import AdminLocalitiesPage from "@/pages/admin/localities";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminAnalyticsPage from "@/pages/admin/analytics";
 import AdminDataRequestsPage from "@/pages/admin/data-requests";
+import AdminMessagesPage from "@/pages/admin/messages";
+import AdminBillingPage from "@/pages/admin/billing";
+import AdminAuditPage from "@/pages/admin/audit";
+import AdminProspectsPage from "@/pages/admin/prospects";
+import SchoolAuditPage from "@/pages/dashboard/audit";
 
 import InstructorHomePage from "@/pages/instructor/index";
 import InstructorSessionsPage from "@/pages/instructor/sessions";
 import InstructorMessagesPage from "@/pages/instructor/messages";
+import InstructorLearnersPage from "@/pages/instructor/learners";
+import InstructorLeavePage from "@/pages/instructor/leave";
 
 import LearnerHomePage from "@/pages/learner/index";
 import LearnerProgressPage from "@/pages/learner/progress";
 import LearnerSessionsPage from "@/pages/learner/sessions";
 import LearnerMessagesPage from "@/pages/learner/messages";
+import LearnerDocumentsPage from "@/pages/learner/documents";
 
 import ComparePage from "@/pages/compare";
 import NotFound from "@/pages/not-found";
@@ -81,7 +102,15 @@ function Router() {
       <Route path="/privacy/data-request" component={DataRequestPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
+      <Route path="/auth/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/auth/reset-password" component={ResetPasswordPage} />
       <Route path="/compare" component={ComparePage} />
+      <Route path="/team/accept" component={TeamAcceptPage} />
+      <Route path="/claim/:token" component={ClaimPage} />
+      <Route path="/for-schools">{() => <ForListingsPage audience="school" />}</Route>
+      <Route path="/for-trainers">{() => <ForListingsPage audience="trainer" />}</Route>
+      <Route path="/unsubscribe/:token" component={UnsubscribePage} />
+      <Route path="/review" component={ReviewViaLinkPage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>
       <Route path="/dashboard/leads">{() => schoolGuard(<LeadsPage />)}</Route>
@@ -91,10 +120,15 @@ function Router() {
       <Route path="/dashboard/vehicles">{() => schoolGuard(<VehiclesPage />)}</Route>
       <Route path="/dashboard/payments">{() => schoolGuard(<PaymentsPage />)}</Route>
       <Route path="/dashboard/messages">{() => schoolGuard(<SchoolMessagesPage />)}</Route>
+      <Route path="/dashboard/team">{() => schoolGuard(<TeamPage />)}</Route>
       <Route path="/dashboard/profile">{() => schoolGuard(<ProfilePage />)}</Route>
       <Route path="/dashboard/packages">{() => schoolGuard(<PackagesPage />)}</Route>
       <Route path="/dashboard/reviews">{() => schoolGuard(<DashboardReviewsPage />)}</Route>
       <Route path="/dashboard/analytics">{() => schoolGuard(<AnalyticsPage />)}</Route>
+      <Route path="/dashboard/settings">{() => schoolGuard(<SchoolSettingsPage />)}</Route>
+      <Route path="/dashboard/audit">{() => schoolGuard(<SchoolAuditPage />)}</Route>
+      <Route path="/dashboard/billing">{() => schoolGuard(<BillingPage />)}</Route>
+      <Route path="/dashboard/billing/invoices/:id">{() => schoolGuard(<InvoicePage />)}</Route>
 
       <Route path="/admin">{() => <AuthGuard requireRole="admin"><AdminHomePage /></AuthGuard>}</Route>
       <Route path="/admin/schools">{() => <AuthGuard requireRole="admin"><AdminSchoolsPage /></AuthGuard>}</Route>
@@ -103,16 +137,24 @@ function Router() {
       <Route path="/admin/users">{() => <AuthGuard requireRole="admin"><AdminUsersPage /></AuthGuard>}</Route>
       <Route path="/admin/analytics">{() => <AuthGuard requireRole="admin"><AdminAnalyticsPage /></AuthGuard>}</Route>
       <Route path="/admin/data-requests">{() => <AuthGuard requireRole="admin"><AdminDataRequestsPage /></AuthGuard>}</Route>
+      <Route path="/admin/messages">{() => <AuthGuard requireRole="admin"><AdminMessagesPage /></AuthGuard>}</Route>
+      <Route path="/admin/billing">{() => <AuthGuard requireRole="admin"><AdminBillingPage /></AuthGuard>}</Route>
+      <Route path="/admin/prospects">{() => <AuthGuard requireRole="admin"><AdminProspectsPage /></AuthGuard>}</Route>
+      <Route path="/admin/outreach">{() => <AuthGuard requireRole="admin"><AdminOutreachPage /></AuthGuard>}</Route>
+      <Route path="/admin/audit">{() => <AuthGuard requireRole="admin"><AdminAuditPage /></AuthGuard>}</Route>
 
       <Route path="/instructor">{() => <AuthGuard requireRole="instructor"><InstructorHomePage /></AuthGuard>}</Route>
       <Route path="/instructor/sessions">{() => <AuthGuard requireRole="instructor"><InstructorSessionsPage /></AuthGuard>}</Route>
       <Route path="/instructor/messages">{() => <AuthGuard requireRole="instructor"><InstructorMessagesPage /></AuthGuard>}</Route>
+      <Route path="/instructor/learners">{() => <AuthGuard requireRole="instructor"><InstructorLearnersPage /></AuthGuard>}</Route>
+      <Route path="/instructor/leave">{() => <AuthGuard requireRole="instructor"><InstructorLeavePage /></AuthGuard>}</Route>
+      {/* Old link: attendance is marked from the sessions calendar. */}
       <Route path="/instructor/attendance">{() => <AuthGuard requireRole="instructor"><InstructorSessionsPage /></AuthGuard>}</Route>
 
       <Route path="/learner">{() => <AuthGuard requireRole="learner"><LearnerHomePage /></AuthGuard>}</Route>
       <Route path="/learner/progress">{() => <AuthGuard requireRole="learner"><LearnerProgressPage /></AuthGuard>}</Route>
       <Route path="/learner/sessions">{() => <AuthGuard requireRole="learner"><LearnerSessionsPage /></AuthGuard>}</Route>
-      <Route path="/learner/documents">{() => <AuthGuard requireRole="learner"><LearnerHomePage /></AuthGuard>}</Route>
+      <Route path="/learner/documents">{() => <AuthGuard requireRole="learner"><LearnerDocumentsPage /></AuthGuard>}</Route>
       <Route path="/learner/messages">{() => <AuthGuard requireRole="learner"><LearnerMessagesPage /></AuthGuard>}</Route>
 
       <Route component={NotFound} />
@@ -129,6 +171,7 @@ function App() {
             <Router />
           </WouterRouter>
           <CookieConsent />
+          <PlanRequiredListener />
           <Toaster />
           <SonnerToaster />
         </TooltipProvider>

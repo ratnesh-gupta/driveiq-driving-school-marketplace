@@ -31,6 +31,7 @@ class Learner extends Model
         'learner_license_number',
         'license_issue_date',
         'license_expiry_date',
+        'whatsapp_opt_in_at',
         'permanent_license_status',
         'status',
         'notes',
@@ -44,6 +45,7 @@ class Learner extends Model
             'expected_completion_date' => 'date',
             'license_issue_date' => 'date',
             'license_expiry_date' => 'date',
+            'whatsapp_opt_in_at' => 'datetime',
         ];
     }
 
@@ -85,5 +87,20 @@ class Learner extends Model
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    /**
+     * Where a learner's WhatsApp messages go (DIQ-1002): their own account's
+     * opted-in number, else the mobile they opted in with on the enquiry.
+     */
+    public function whatsappNumber(): ?string
+    {
+        $user = $this->user_id ? User::find($this->user_id) : null;
+        if ($user) {
+            // An account holder decides for themself, including opting out.
+            return $user->routeNotificationForWhatsapp();
+        }
+
+        return $this->whatsapp_opt_in_at && $this->mobile ? $this->mobile : null;
     }
 }

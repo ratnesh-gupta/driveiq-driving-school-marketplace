@@ -1,3 +1,4 @@
+import { announcePlanRequired } from "@/lib/plan";
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
@@ -42,6 +43,13 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+let _unauthorizedHandler: (() => void) | null = null;
+
+/** Called when an authenticated request gets 401 (e.g. expired token). */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  _unauthorizedHandler = handler;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -363,7 +371,11 @@ export async function customFetch<T = unknown>(
   const response = await fetch(input, { ...init, method, headers });
 
   if (!response.ok) {
+    if (response.status === 401 && headers.has("authorization")) {
+      _unauthorizedHandler?.();
+    }
     const errorData = await parseErrorBody(response, method);
+    if (response.status === 402) announcePlanRequired(errorData);
     throw new ApiError(response, errorData, requestInfo);
   }
 

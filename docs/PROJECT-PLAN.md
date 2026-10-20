@@ -1,4 +1,4 @@
-# DriveIQ — Master Project Plan & Roadmap
+# DriveQ — Master Project Plan & Roadmap
 
 **Version:** 1.0  
 **Date:** June 9, 2026  
@@ -38,7 +38,7 @@ All previous standalone PRDs, roadmaps, and assessment docs are superseded by th
 
 ## 1. Product Vision
 
-### What is DriveIQ?
+### What is DriveQ?
 
 A **hyperlocal, geo-intelligent marketplace** that connects driving learners with verified driving schools — evolving into a **Driving School Operating System (DSOS)** for complete school operations.
 
@@ -87,48 +87,57 @@ Learner Management (Training Lifecycle)
 
 ## 2. Current State
 
+_Updated 2026-10-02 after milestones M1–M10 (PRs #23–#30 and the M10 PR). Phases 3–8 were re-audited against the code in M7; partial items say what is missing._
+
 ### What's Implemented
 
-**Backend (Laravel 13.8 + PostgreSQL):**
-- 6 Models: School, User, Inquiry, Review, DrivePackage, Locality
-- 7 Controllers: School, Inquiry, Review, Package, Locality, Auth, Stats
-- Sanctum token auth (basic registration/login)
-- Haversine geo-distance calculation
-- Role middleware (role field on users table)
-- 15 database migrations
+**Backend (Laravel 13 + PostgreSQL 16/PostGIS), 34 models, 26 API controllers, 40 migrations:**
+- Registration is **Driving School (owner), Independent Trainer (owner of a trainer listing) or Learner**; admins via `php artisan driveiq:create-admin`. School managers are invite-only (owner invites, invitee accepts). Instructors get logins from their school.
+- Sanctum tokens expire (`SANCTUM_EXPIRATION`, default 7 days); logout, password reset, and admin **deactivation** (revokes tokens, blocks login).
+- Authorization through one `SchoolAccess` service: school isolation (`BelongsToSchool` fails closed), owner vs manager, instructors limited to their assigned learners and their own documents.
+- Append-only `audit_logs` (model guard + PostgreSQL trigger); school profile diffs, admin actions, deactivations are logged.
+- Anti-spam: named rate limiters, honeypot + minimum fill time on the inquiry and contact forms.
+- Geo search on PostGIS (`geography` column, `ST_DWithin`/`ST_Distance`), ranking in SQL with SQL-level pagination (`X-Total-Count`), compare API.
+- Review eligibility enforced server-side (enrolled learner, or a one-time link from the inquiry confirmation); abuse reports auto-hide a review at 3 reports; admin-only moderation recomputes ratings.
+- Operations modules: learners, instructors, vehicles, schedules/attendance, progress and driving tests, payments, subscriptions, messaging, notifications, analytics.
+- Private document uploads (learner / instructor / vehicle) on `DOCUMENTS_DISK`, opened only through 5-minute signed links.
+- DPDP: server-side consent records, data-subject requests with consent history, contact inbox, `driveiq:retention` job (dry run unless enabled).
+- Monetization (M6): tier matrix in `config/plans.php` (Basic free: listing + leads; Featured: + learners/documents; Premium/Enterprise: + instructors, schedules, vehicles, payments, advanced analytics); locked modules are read-only (402 on writes); 30-day Premium-feature trial for every school; manual GST invoices paid by UPI/bank and settled by an admin; capped, always-labelled sponsored slots and admin campaign windows; admin console with MRR/ARR, churn, trials and slot use; daily plan reminders/expiry.
+- Lead engine (M5): one lifecycle (New → Contacted → Follow-up → Interested → Converted / Lost), queued email to owner + managers on each new lead (per-school settings), one reminder for unanswered leads, first-response tracking with median / within-1h metrics, notes with follow-up dates and a lead timeline, public "usually replies within" badge.
+- Operations integrity (M7a): foreign IDs are checked against the school, payments only move pending → paid/failed, bookings lock the trainer/vehicle/learner and reject learner double-booking, calendars load by date range, dashboards show real numbers.
+- Operations screens and alerts (M7b): learner detail sheet (profile, licence, assignment history, progress, driving tests, documents); instructor management with set-password login emails and a performance table; trainer portal roster, four-way attendance with session summaries, self-service leave; schedule editing, leave approval with clash list, vehicle add/edit/retire with expiry-driven paper status; learner session history with feedback; public "Meet our trainers"; overview to-dos and completeness; owner and admin audit pages; hourly `driveiq:ops-reminders` (session 24h/2h, licence and vehicle paper expiry, missing documents) and document review notices.
+- WhatsApp/SMS driver layer (M8): opt-ins as consent, lead alerts and reminders to staff, enquiry confirmations, session reminders; masked outbound log.
+- Supply acquisition (M9): listings are unclaimed / draft / published / suspended and only published ones are public; drafts go live once the owner's email is confirmed and phone, locality and map location are set; independent-trainer listings (Basic/Featured plans); admin prospects CRM with CSV import and duplicate checks; pre-built unclaimed listings claimed with a one-time code (email, SMS, or the Google account that manages the business); outreach email campaigns (sequences, daily cap, IST sending hours, RFC 8058 unsubscribe, suppression list, click/claim tracking); Google Ads lead-form webhook; Google Business Profile import and verification; `/for-schools` and `/for-trainers` landing pages with UTM attribution; acquisition funnel and supply-by-locality for admins.
+- Sales kit (M10): product renamed DriveQ in user-facing text (code identifiers, storage keys and `driveiq:*` commands unchanged); `driveiq:demo` showcase data; branded outreach emails with ready-made 3-step sequences for schools and trainers in English, Hindi and Marathi (`outreach_campaigns.language`); DriveQ look for transactional emails; scripted demo videos and screenshots (`marketing/`); school and investor decks published as slide artifacts.
+- PHPUnit on PostgreSQL/PostGIS in CI (311 tests) and Pint lint.
 
-**Frontend (React 19 + Vite + Tailwind 4):**
-- 22 page components (home, search, school-detail, compare, dashboard/*, admin/*)
-- ShadCN + Radix UI component library
-- Zustand stores (location, regulations)
-- TanStack Query for data fetching
-- Framer Motion animations
-- Zod validation with generated schemas
+**Frontend (React 19 + Vite + Tailwind 4), 47 pages:**
+- Public: home, search (radius, distance badges, verified filter), school detail (lazy Google Map, JSON-LD), locality pages (FAQ/Breadcrumb JSON-LD), compare, driving rules, contact, privacy/terms/data requests, review-by-link, invite acceptance, password reset.
+- Portals for school (overview, leads, learners, instructors, vehicles, schedules + leave, packages, payments, reviews, team, analytics, messages, billing, settings, activity log), instructor (overview, sessions, my learners, leave, messages), learner (training, progress, sessions, documents, messages) and admin (schools + verification, reviews, localities, users, analytics, data requests, messages, billing, audit log).
+- i18n (English, Hindi, Marathi) on public pages and navigation.
 
-**Working Features:**
-- Homepage with school listing
-- School search with basic filters
-- School detail pages
-- Locality detail pages
-- Inquiry submission (form + WhatsApp deeplinks)
-- Reviews (create/list, with `auth:sanctum` + throttle on POST)
-- School dashboard: overview, leads, profile, packages, reviews, analytics
-- Admin panel: overview, schools, reviews, localities, users (placeholder)
-- Auth routes: login, register
-- Comparison page skeleton
-- Driving rules page
+### Still Open
 
-### Critical Gaps (Must Fix Before Launch)
-
-| Gap | Risk | Phase |
-|-----|------|-------|
-| NO `BelongsToSchool` trait — queries not auto-scoped | **DATA LEAK** | 0 |
-| NO server-side authorization in controllers | **DATA LEAK** | 0 |
-| Users table missing `school_id` foreign key | **BROKEN ISOLATION** | 0 |
-| No rate limiting on most endpoints | **ABUSE** | 0 |
-| Review eligibility not enforced server-side | **SPAM** | 2 |
-| No audit logging | **COMPLIANCE** | 0 |
-| 25+ domain models missing (Learner, Instructor, Vehicle, Schedule, etc.) | **INCOMPLETE** | 5-8 |
+| Gap | Phase |
+|-----|-------|
+| Admin review moderation has no bulk actions | 2 |
+| "Near me" entry point on the homepage (search page has it) | 1 (M11) |
+| Production launch readiness: images, reverse proxy/TLS, trusted proxies, security headers, Spaces, backups, deep health check, deploy job, production seed (audit 2026-09-30) | M11 |
+| Sales kit: native-speaker review of Hindi/Marathi email and caption copy; investor deck numbers (⟨fill in⟩); voice-over/music for videos | M10 follow-up |
+| Outreach: automatic bounce/complaint handling (needs the mailbox's bounce feed); reply detection (admins mark "Replied") | M9 follow-up |
+| Google Business: review sync and replies, posts | Growth |
+| A real WhatsApp/SMS provider driver, plus inbound replies (STOP) and delivery receipts. The driver layer, opt-ins and four message types are built (M8). | Messaging |
+| OTP / mobile login | Auth |
+| Lead auto-assignment to a specific manager | Lead engine |
+| Online plan payments (Razorpay checkout + webhook); GST e-invoicing (IRN) | Monetization |
+| Training-record and account erasure automation (retention job covers leads, messages, contact, closed requests) | DPDP |
+| OTP / mobile login for trainers and learners (needs an SMS provider) | 5, 7 |
+| Trainer working hours, capacity limits, alternative-trainer suggestions, reschedule time window | 6 |
+| Learner ratings of trainers; attendance certificate; RTO directory | 5, 8 |
+| Logo/banner uploads, rich-text description, structured opening hours, website field, profile-view tracking | 3 |
+| Online package payments and package expiry | 7 |
+| OpenAPI spec regeneration (several client types were added by hand) | Tooling |
+| Portal pages outside navigation are English-only | i18n |
 
 ---
 
@@ -256,34 +265,34 @@ $allData = Model::withoutGlobalScope('school')->get();
 **Goal:** Make backend production-safe  
 **Timeline:** 2-4 weeks  
 **Priority:** CRITICAL — must complete before any external testing  
-**Status:** In Progress (partial auth + review throttle done)
+**Status:** Done (M1/M2, 2026-09)
 
 ### Scope
 
 #### 0.1 Authorization Enforcement (Week 1)
-- [ ] Add `school_id` to users table (migration)
-- [ ] Create `BelongsToSchool` trait with Global Scope
-- [ ] Apply trait to: Inquiry, Review, DrivePackage, School (where applicable)
-- [ ] Update all controllers to enforce school ownership on mutations
-- [ ] Write isolation tests (user from school A cannot see school B data)
+- [x] Add `school_id` to users table (migration)
+- [x] Create `BelongsToSchool` trait with Global Scope
+- [x] Apply trait to: Inquiry, Review, DrivePackage, School (where applicable)
+- [x] Update all controllers to enforce school ownership on mutations
+- [x] Write isolation tests (user from school A cannot see school B data)
 
 #### 0.2 Authentication Hardening (Week 2)
-- [ ] Harden Sanctum token lifecycle (expiry, refresh)
-- [ ] Implement role-based middleware enforcement on all protected routes
-- [ ] Add `school_id` assignment during registration/admin-invite flow
-- [ ] Protect admin-only routes (school approval, user management, review moderation)
+- [x] Harden Sanctum token lifecycle (expiry, refresh)
+- [x] Implement role-based middleware enforcement on all protected routes
+- [x] Add `school_id` assignment during registration/admin-invite flow
+- [x] Protect admin-only routes (school approval, user management, review moderation)
 
 #### 0.3 Rate Limiting & Anti-Spam (Week 2-3)
 - [x] Rate limit on `POST /reviews` (10 per minute) — DONE
 - [x] Rate limit on auth endpoints — DONE
-- [ ] Rate limit on `POST /inquiries` (5 per minute per IP)
-- [ ] Rate limit on `POST /schools` (admin only)
-- [ ] CAPTCHA or honeypot on public inquiry form
+- [x] Rate limit on `POST /inquiries` (5 per minute per IP)
+- [x] Rate limit on `POST /schools` (admin only)
+- [x] CAPTCHA or honeypot on public inquiry form
 
 #### 0.4 Audit & Event Logging (Week 3-4)
-- [ ] Create `audit_logs` table (actor, action, resource, old_value, new_value, timestamp)
-- [ ] Log: lead status changes, review moderation, admin actions, school profile updates
-- [ ] Immutable audit log (no deletes)
+- [x] Create `audit_logs` table (actor, action, resource, old_value, new_value, timestamp)
+- [x] Log: lead status changes, review moderation, admin actions, school profile updates
+- [x] Immutable audit log (no deletes)
 
 ### Acceptance Criteria
 - No unauthenticated user can mutate data
@@ -305,27 +314,27 @@ Protected APIs require valid auth; abuse controls active; school isolation enfor
 ### Scope
 
 #### 1.1 PostGIS Setup & Schema
-- [ ] Enable PostGIS extension on PostgreSQL
-- [ ] Add `geography` column to schools table (or use existing lat/lng with ST_DWithin)
-- [ ] Create spatial index on school locations
+- [x] Enable PostGIS extension on PostgreSQL
+- [x] Add `geography` column to schools table (or use existing lat/lng with ST_DWithin)
+- [x] Create spatial index on school locations
 - [ ] Seed Pune school locations with accurate coordinates
 
 #### 1.2 Radius Search API
-- [ ] `GET /api/schools?lat=X&lng=Y&radius=2` (2km, 5km, 10km options)
-- [ ] ST_DWithin queries replacing current Haversine (more accurate, index-friendly)
+- [x] `GET /api/schools?lat=X&lng=Y&radius=2` (2km, 5km, 10km options)
+- [x] ST_DWithin queries replacing current Haversine (more accurate, index-friendly)
 - [ ] Fallback to text-based locality search when geo unavailable
 
 #### 1.3 Geo Ranking v1
-- [ ] Ranking formula: `distance_score + rating_score + review_count_score + verified_bonus + premium_bonus`
-- [ ] Weights documented and tunable
-- [ ] Deterministic results (same input = same output)
+- [x] Ranking formula: `distance_score + rating_score + review_count_score + verified_bonus + premium_bonus`
+- [x] Weights documented and tunable
+- [x] Deterministic results (same input = same output)
 
 #### 1.4 Frontend Geo Integration
-- [ ] Browser geolocation consent flow ("Allow location for nearby schools")
+- [x] Browser geolocation consent flow ("Allow location for nearby schools")
 - [ ] "Near Me" entry point on homepage
-- [ ] Radius selector on search page (2km / 5km / 10km toggle)
-- [ ] Google Maps embed on school detail pages
-- [ ] Distance badge on school cards ("1.2 km away")
+- [x] Radius selector on search page (2km / 5km / 10km toggle)
+- [x] Google Maps embed on school detail pages
+- [x] Distance badge on school cards ("1.2 km away")
 
 #### 1.5 Locality Landing Pages
 - [ ] Programmatic SEO templates for Pune localities
@@ -354,25 +363,25 @@ See `docs/Features/Geo-Aware.md` for the full geo-aware driving rules & governme
 ### Scope
 
 #### 2.1 Verification Model
-- [ ] Verification fields on schools: `phone_verified`, `business_verified`, `location_verified`, `premium_verified`
+- [x] Verification fields on schools: `phone_verified`, `business_verified`, `location_verified`, `premium_verified`
 - [ ] Verification workflow: school submits docs → admin reviews → badge granted
-- [ ] Verification badges displayed on search results, school detail, comparison
+- [x] Verification badges displayed on search results, school detail, comparison
 
 #### 2.2 Review Eligibility Enforcement
-- [ ] Server-side check: reviewer must have submitted inquiry OR be enrolled learner
-- [ ] Block ineligible reviews at API level (not just frontend)
-- [ ] Eligible reason stored: `inquiry_id` or `learner_id`
+- [x] Server-side check: reviewer must have submitted inquiry OR be enrolled learner
+- [x] Block ineligible reviews at API level (not just frontend)
+- [x] Eligible reason stored: `inquiry_id` or `learner_id`
 
 #### 2.3 Abuse Reporting & Moderation
-- [ ] `POST /api/reviews/{id}/report` — abuse report endpoint
-- [ ] Moderation queue for admin (pending/approved/rejected reviews)
-- [ ] Auto-flag reviews with high report count
+- [x] `POST /api/reviews/{id}/report` — abuse report endpoint
+- [x] Moderation queue for admin (pending/approved/rejected reviews)
+- [x] Auto-flag reviews with high report count
 - [ ] Admin moderation dashboard with bulk actions
 
 #### 2.4 Trust Signals in UI
-- [ ] Verification badges on school cards (search results)
+- [x] Verification badges on school cards (search results)
 - [ ] Trust score or verification level on school detail
-- [ ] "Verified" filter on search page
+- [x] "Verified" filter on search page
 - [ ] Review count and recency displayed prominently
 
 ### Acceptance Criteria
@@ -397,15 +406,15 @@ Review eligibility blocking server-side; abuse reports actionable; verification 
 ### Scope
 
 #### 3.1 School Profile Enhancement
-- [ ] Profile completeness scoring (% with nudges for missing fields)
+- [x] Profile completeness scoring (% with nudges for missing fields)
 - [ ] Logo + banner image uploads
 - [ ] Rich description editor
-- [ ] Service area definition (localities served, pickup radius)
-- [ ] Operational hours (weekday, Saturday, Sunday, holiday)
-- [ ] Contact methods (phone, WhatsApp, email, website)
-- [ ] Language options available
-- [ ] Vehicle types offered flags
-- [ ] Convenience flags: `has_female_instructor`, `has_pickup_drop`, `has_weekend_batches`, `has_automatic_car`, etc.
+- [x] Service area definition (localities served, pickup radius)
+- [ ] Operational hours (weekday, Saturday, Sunday, holiday). Partial: free-text timings and batch slots, no structured per-day hours
+- [ ] Contact methods (phone, WhatsApp, email, website). Partial: no website field
+- [x] Language options available
+- [x] Vehicle types offered flags (plus transmission and starting price)
+- [x] Convenience flags: `has_female_instructor`, `has_pickup_drop`, `has_weekend_batches`, `has_automatic_car`, etc.
 
 **New School Fields (for comparison engine):**
 
@@ -426,31 +435,31 @@ Review eligibility blocking server-side; abuse reports actionable; verification 
 | `total_instructors` | integer | Instructor count |
 
 #### 3.2 Admin & Team Management
-- [ ] `school_admins` table (school_id, user_id, role, invited_by, accepted_at)
-- [ ] Invite flow: owner sends email/SMS invite → invitee registers → linked to school
-- [ ] School-level roles: Owner, Manager (subset permissions)
-- [ ] Add/remove/deactivate team members
-- [ ] Permission enforcement per school role
+- [x] `school_admins` table (school_id, user_id, role, invited_by, accepted_at)
+- [x] Invite flow: owner sends email invite → invitee registers → linked to school (SMS not yet)
+- [x] School-level roles: Owner, Manager (subset permissions)
+- [x] Add/remove/deactivate team members
+- [x] Permission enforcement per school role
 
 #### 3.3 School Settings & Configuration
-- [ ] `school_settings` table (JSON key-value per school)
-- [ ] Notification preferences (email, SMS, in-app toggles)
+- [x] `school_settings` table (JSON key-value per school)
+- [x] Notification preferences (email, in-app toggles, reminder threshold; SMS not yet delivered)
 - [ ] Lead auto-assignment rules (future)
 - [ ] Integration settings placeholder (Google Business API keys, etc.)
-- [ ] Timezone and locale settings
+- [x] Timezone and locale settings
 
 #### 3.4 School Operations Dashboard
-- [ ] Key metrics cards: total leads, inquiries this month, response rate, conversion rate
-- [ ] Recent activity log (new inquiries, reviews, profile views)
-- [ ] Pending tasks/actions (unresponded leads, pending reviews)
-- [ ] Quick stats: this month vs. last month comparison
-- [ ] Profile completeness bar with "complete your profile" CTA
+- [x] Key metrics cards: total leads, inquiries this month, response rate, conversion rate (+ median reply time)
+- [ ] Recent activity log (new inquiries, reviews, profile views). Partial: owner activity log page and recent inquiries; profile views are not tracked
+- [x] Pending tasks/actions (unresponded leads, leave, unassigned learners, documents to verify, expired vehicle papers, pending reviews)
+- [x] Quick stats: this month vs. last month comparison (leads and new learners)
+- [x] Profile completeness bar with "complete your profile" CTA
 
 #### 3.5 Audit Logging
-- [ ] All admin actions logged (immutable `audit_logs` table)
-- [ ] Who changed what, when, old value → new value
-- [ ] Viewable by school owner in settings
-- [ ] Platform admin can view all audit logs
+- [x] All admin actions logged (immutable `audit_logs` table)
+- [x] Who changed what, when, old value → new value
+- [x] Viewable by school owner (Activity log page; owner only)
+- [x] Platform admin can view all audit logs
 
 ### Data Model
 
@@ -503,8 +512,8 @@ Schools can manage profile, settings, and admin team end-to-end. Training bookin
 ### Scope
 
 #### 4.1 Subscription Tiers
-- [ ] `subscriptions` table: school_id, plan, status, starts_at, expires_at, auto_renew
-- [ ] `plans` table: name, price, features (JSON), limits
+- [x] `subscriptions` table: school_id, plan, status, starts_at, expires_at, auto_renew
+- [x] `plans` table: name, price, features (JSON), limits
 
 | Tier | Price/month | Features |
 |------|------------|----------|
@@ -514,20 +523,20 @@ Schools can manage profile, settings, and admin team end-to-end. Training bookin
 | Enterprise | Rs 14,999+ | Multi-branch, fleet management, advanced reporting, API access |
 
 #### 4.2 Listing Tier Logic
-- [ ] Free listings: appear in search with standard ranking
-- [ ] Featured listings: ranking boost, highlighted card in search
-- [ ] Premium listings: top placement, sponsored badge, homepage featured section
+- [x] Free listings: appear in search with standard ranking
+- [x] Featured listings: ranking boost, highlighted card in search
+- [x] Premium listings: top placement, sponsored badge, homepage featured section
 
 #### 4.3 Premium Ranking Controls
-- [ ] Admin control plane for featured inventory (how many sponsored slots per page)
-- [ ] Campaign windows (featured placement for X days)
-- [ ] School-side subscription status visibility + renewal reminders
+- [x] Admin control plane for featured inventory (how many sponsored slots per page)
+- [x] Campaign windows (featured placement for X days)
+- [x] School-side subscription status visibility + renewal reminders
 
 #### 4.4 Admin Monetization Dashboard
-- [ ] Active subscriptions by tier
-- [ ] Revenue tracking (MRR, churn)
-- [ ] Expiring subscriptions alerts
-- [ ] Featured slot utilization
+- [x] Active subscriptions by tier
+- [x] Revenue tracking (MRR, churn)
+- [x] Expiring subscriptions alerts
+- [x] Featured slot utilization
 
 ### Exit Criteria
 Premium visibility logic operational; free + paid listing states both work; admin can manage inventory.
@@ -544,44 +553,44 @@ Premium visibility logic operational; free + paid listing states both work; admi
 ### Scope
 
 #### 5.1 Instructor Profiles
-- [ ] `instructors` table: school_id, user_id, name, mobile, email, gender, dob, address
-- [ ] Employment info: employee_id, joining_date, status, employment_type (full-time/part-time/contract)
-- [ ] Driving credentials: license_number, license_category, license_expiry, years_experience
-- [ ] Training skills: vehicle types (car, automatic, motorcycle, scooter, commercial), women_instructor flag
-- [ ] Languages spoken
-- [ ] Public profile visibility controls (opt-in/opt-out of marketplace display)
+- [x] `instructors` table: school_id, user_id, name, mobile, email, gender, dob, address
+- [x] Employment info: employee_id, joining_date, status, employment_type (full-time/part-time/contract)
+- [x] Driving credentials: license_number, license_category, license_expiry, years_experience
+- [x] Training skills: vehicle types (car, automatic, motorcycle, scooter, commercial), women_instructor flag
+- [x] Languages spoken
+- [x] Public profile visibility controls (opt-in/opt-out of marketplace display)
 
 #### 5.2 Instructor Documents
-- [ ] `instructor_documents` table: instructor_id, type, file_path, status, verified_by, verified_at
-- [ ] Document types: driving license, Aadhaar, PAN, photo, certificates
-- [ ] Status tracking: pending → uploaded → verified → rejected
+- [x] `instructor_documents` table: instructor_id, type, file_path, status, verified_by, verified_at
+- [x] Document types: driving license, Aadhaar, PAN, photo, certificates
+- [x] Status tracking: pending → uploaded → verified → rejected
 
 #### 5.3 Instructor Authentication
-- [ ] School admin creates instructor account (admin-initiated, not self-signup)
-- [ ] OTP sent to instructor phone/email for activation
-- [ ] Instructor login with email/mobile + password (or OTP)
-- [ ] Protected routes: `/instructor/dashboard`, `/instructor/learners`, `/instructor/schedule`, etc.
-- [ ] Depends on Phase 0 auth infrastructure
+- [x] School admin creates instructor account (admin-initiated, not self-signup)
+- [ ] OTP sent to instructor phone/email for activation. Partial: email set-password link instead of OTP; SMS needs a provider
+- [ ] Instructor login with email/mobile + password (or OTP). Partial: email + password only
+- [x] Protected routes: `/instructor/dashboard`, `/instructor/learners`, `/instructor/schedule`, etc.
+- [x] Depends on Phase 0 auth infrastructure
 
 #### 5.4 Instructor Dashboard (MVP)
-- [ ] Overview cards: today's sessions, upcoming sessions, assigned learners, attendance %
-- [ ] Learner roster: list of assigned learners (name, phone, vehicle type, package, progress)
-- [ ] Basic session attendance marking (present/absent/rescheduled/cancelled)
-- [ ] Simple trainer notes (text field per learner per session)
+- [x] Overview cards: today's sessions, upcoming sessions, assigned learners, attendance %
+- [x] Learner roster: list of assigned learners (name, phone, vehicle type, package, progress)
+- [x] Basic session attendance marking (present/absent/rescheduled/cancelled)
+- [x] Simple trainer notes (text field per learner per session)
 
 #### 5.5 School Admin — Instructor Management
-- [ ] View all instructors + status (active/inactive)
-- [ ] Assign instructors to school
-- [ ] View trainer performance (sessions completed, avg rating)
-- [ ] Manage trainer availability (mark as active/inactive)
-- [ ] Trainer workload overview
+- [x] View all instructors + status (active/inactive)
+- [x] Assign instructors to school
+- [ ] View trainer performance (sessions completed, avg rating). Partial: sessions, attendance and completion are shown; no ratings until learners can rate trainers
+- [x] Manage trainer availability (mark as active/inactive)
+- [x] Trainer workload overview
 
 #### 5.6 Public Marketplace Integration
-- [ ] "Meet Our Trainers" section on school detail page
-- [ ] Trainer cards: photo, name, experience, languages, specialization, rating
+- [x] "Meet Our Trainers" section on school detail page
+- [x] Trainer cards: photo, name, experience, languages, specialization, rating
 - [ ] Learner ratings of trainers (1-5 stars, after session completion)
-- [ ] Search filter: "Female Instructor available"
-- [ ] Trainer cards visible only for opted-in instructors
+- [x] Search filter: "Female Instructor available"
+- [x] Trainer cards visible only for opted-in instructors
 
 ### Data Model
 
@@ -637,37 +646,37 @@ Schools can onboard trainers; learners see trainer profiles; ratings functional.
 ### Scope
 
 #### 6.1 Scheduling System
-- [ ] `schedules` table: school_id, learner_id, instructor_id, vehicle_id, session_date, start_time, end_time, pickup_location, status
-- [ ] Calendar view (month/week/day)
-- [ ] Create/edit sessions (date, time, learner, vehicle, pickup)
-- [ ] Rescheduling workflow (allowed 1hr to 10min before session start)
+- [x] `schedules` table: school_id, learner_id, instructor_id, vehicle_id, session_date, start_time, end_time, pickup_location, status
+- [x] Calendar view (month/week, loads the visible range)
+- [x] Create/edit sessions (date, time, learner, vehicle, pickup)
+- [ ] Rescheduling workflow (allowed 1hr to 10min before session start). Partial: staff can move or cancel any open session; no time-window policy yet
 
 #### 6.2 Conflict Detection
-- [ ] Prevent overlapping session assignments per instructor
+- [x] Prevent overlapping session assignments per instructor (and per vehicle and learner, with row locks)
 - [ ] Warn when trainer at capacity (max sessions/day configurable)
 - [ ] Suggest alternative trainers if conflict exists
 
 #### 6.3 Availability Management
 - [ ] Trainers set working days/hours
-- [ ] Leave requests (pending/approved/rejected)
-- [ ] Admin approves/rejects leave
-- [ ] Calendar reflects availability + leave
+- [x] Leave requests (pending/approved/rejected)
+- [x] Admin approves/rejects leave (clashing sessions are listed)
+- [ ] Calendar reflects availability + leave. Partial: approved leave blocks booking; the calendar does not shade leave days
 
 #### 6.4 Attendance Tracking
-- [ ] Trainer marks attendance: present, absent, rescheduled, cancelled
-- [ ] Auto-sync with session completion status
+- [x] Trainer marks attendance: present, absent, rescheduled, cancelled
+- [x] Auto-sync with session completion status
 - [ ] Attendance report (for payroll reference)
 
 #### 6.5 Session Notes & Feedback
-- [ ] Trainer submits post-session summary
-- [ ] Notes on learner performance, areas for improvement
-- [ ] Visible to school admin (and to learner in Phase 7)
+- [x] Trainer submits post-session summary
+- [x] Notes on learner performance, areas for improvement
+- [x] Visible to school admin (and to learner in Phase 7)
 
 #### 6.6 Vehicle Management
-- [ ] `vehicles` table: school_id, registration_number, type, transmission, fuel_type, status
-- [ ] Vehicle documents: insurance, pollution cert, registration
-- [ ] Vehicle availability tracking
-- [ ] Vehicle assignment to sessions
+- [x] `vehicles` table: school_id, registration_number, type, transmission, fuel_type, status
+- [x] Vehicle documents: insurance, pollution cert, registration (status follows expiry)
+- [x] Vehicle availability tracking (active / maintenance / retired)
+- [x] Vehicle assignment to sessions
 
 ### Data Model
 
@@ -712,46 +721,46 @@ Schedules prevent conflicts; leave management operational; session history track
 ### Scope
 
 #### 7.1 Lead Conversion
-- [ ] "Convert to Learner" one-click on inquiry record
-- [ ] Auto-populate learner record from inquiry data
-- [ ] Lead status: new → contacted → interested → enrolled → converted
+- [x] "Convert to Learner" one-click on inquiry record
+- [x] Auto-populate learner record from inquiry data
+- [x] Lead status: new → contacted → follow-up → interested → converted / lost
 
 #### 7.2 Learner Profiles
-- [ ] `learners` table: school_id, name, mobile, email, gender, dob, address, emergency_contact
-- [ ] Training info: vehicle_type, package_id, start_date, expected_completion, assigned_instructor_id
-- [ ] License info: learner_license_number, issue_date, expiry_date, permanent_license_status
-- [ ] Status: active, inactive, completed, suspended
+- [x] `learners` table: school_id, name, mobile, email, gender, dob, address, emergency_contact
+- [x] Training info: vehicle_type, package_id, start_date, expected_completion, assigned_instructor_id
+- [x] License info: learner_license_number, issue_date, expiry_date, permanent_license_status
+- [x] Status: active, inactive, completed, suspended
 
 #### 7.3 Document Management
-- [ ] `learner_documents` table: learner_id, type, file_path, status, expiry_date
-- [ ] Required docs: Aadhaar, PAN, passport photo, learner license, medical certificate
-- [ ] Status tracking: pending → uploaded → verified → rejected
-- [ ] Expiry alerts (learner license expiring soon)
+- [x] `learner_documents` table: learner_id, type, file_path, status, expiry_date
+- [x] Required docs: Aadhaar, PAN, passport photo, learner license, medical certificate
+- [x] Status tracking: pending → uploaded → verified → rejected
+- [x] Expiry alerts (learner license expiring soon)
 
 #### 7.4 Training Assignment
-- [ ] School admin assigns: learner → instructor → vehicle
-- [ ] Assignment triggers notification to instructor
-- [ ] Assignment history tracked
+- [x] School admin assigns: learner → instructor → vehicle
+- [x] Assignment triggers notification to instructor
+- [x] Assignment history tracked
 
 #### 7.5 Package Purchase & Payments
-- [ ] Online payment integration for learner packages
-- [ ] Package purchase flow (select package → pay → enrolled)
-- [ ] Invoice/receipt history
-- [ ] Payment status tracking
+- [ ] Online payment integration for learner packages (not yet: Razorpay is a later milestone)
+- [ ] Package purchase flow (select package → pay → enrolled). Partial: staff record purchases and cash/UPI/bank payments
+- [x] Invoice/receipt history
+- [x] Payment status tracking (pending → paid / failed, final)
 
 #### 7.6 Learner Portal (Basic)
-- [ ] Learner login (mobile + OTP)
-- [ ] View assigned trainer + vehicle
-- [ ] View upcoming sessions (from Phase 6 schedules)
-- [ ] View document status
-- [ ] Submit missing documents
-- [ ] View training progress
+- [ ] Learner login (mobile + OTP). Partial: email + password; OTP needs an SMS provider
+- [x] View assigned trainer + vehicle
+- [x] View upcoming sessions (from Phase 6 schedules)
+- [x] View document status
+- [x] Submit missing documents
+- [x] View training progress
 
 #### 7.7 Notifications
-- [ ] Session reminders (24h, 2h before)
-- [ ] Missing document alerts
-- [ ] Document verification status updates
-- [ ] Package expiry warnings
+- [x] Session reminders (24h, 2h before; in-app, and WhatsApp for people who opted in)
+- [x] Missing document alerts
+- [x] Document verification status updates
+- [ ] Package expiry warnings (packages have no validity period yet)
 
 ### Learner Lifecycle
 
@@ -803,20 +812,20 @@ Schools can onboard learners end-to-end; lead conversion works; learners see tra
 ### Scope
 
 #### 8.1 Progress Tracking
-- [ ] Define training skills: vehicle controls, parking, reverse, traffic navigation, night driving, highway driving
-- [ ] Trainer updates skill percentage after each session
-- [ ] Learner sees progress bar per skill
-- [ ] Overall completion percentage
+- [x] Define training skills: vehicle controls, parking, reverse, traffic navigation, night driving, highway driving
+- [x] Trainer updates skill percentage after each session
+- [x] Learner sees progress bar per skill
+- [x] Overall completion percentage
 
 #### 8.2 Session History
-- [ ] Learner views past sessions with dates, trainer, notes
-- [ ] Trainer feedback visible to learner
+- [x] Learner views past sessions with dates, trainer, notes
+- [x] Trainer feedback visible to learner
 - [ ] Attendance certificate download (optional)
 
 #### 8.3 Driving Test Tracking
-- [ ] Test date, RTO location, attempt number
-- [ ] Status: scheduled → completed → passed/failed
-- [ ] Link to learner's license upgrade journey
+- [x] Test date, RTO location, attempt number
+- [x] Status: scheduled → completed → passed/failed
+- [x] Link to learner's license upgrade journey (a pass sets the permanent licence status)
 - [ ] RTO directory integration (from Geo-Aware module)
 
 ### Data Model
@@ -1046,6 +1055,9 @@ Phase 10: Analytics (depends on Phase 5-8)
 ---
 
 ## 18. Go-to-Market Strategy
+
+### Supply first (M9)
+Before learners are invited, schools and independent trainers are brought on board: prospects are listed (by hand, CSV, or Google Ads lead forms), a hidden listing is prepared for each, and a short outreach email sequence invites the owner to claim it. Google Business Profile owners can prove ownership and import their details in one step. Track it in Admin → Prospects (funnel, supply by locality) and Admin → Outreach.
 
 ### Launch 1: Marketplace MVP (Week 12)
 **Target:** Schools looking for lead generation  

@@ -8,6 +8,10 @@ class ListSchoolsRequest extends BaseFormRequest
     {
         return [
             'locality' => ['nullable', 'string'],
+            'listingType' => ['nullable', 'string', 'in:school,trainer'],
+            // Admin only (ignored for everyone else): every status, or one.
+            'includeHidden' => ['nullable', 'boolean'],
+            'listingStatus' => ['nullable', 'string', 'in:unclaimed,draft,published,suspended'],
             'vehicleType' => ['nullable', 'string'],
             'minRating' => ['nullable', 'numeric', 'min:0', 'max:5'],
             'hasPickup' => ['nullable', 'boolean'],

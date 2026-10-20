@@ -69,7 +69,7 @@ export default function DataRequestPage() {
             <p className="font-medium mb-2">Thank you</p>
             <p className="text-muted-foreground">
               Your request was recorded. We may contact you at the email provided to verify identity
-              before fulfilling the request. Grievance: privacy@driveiq.in
+              before fulfilling the request. Grievance: privacy@driveq.in
             </p>
           </div>
         ) : (
@@ -79,7 +79,7 @@ export default function DataRequestPage() {
               <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="email">Email used on DriveIQ</Label>
+              <Label htmlFor="email">Email used on DriveQ</Label>
               <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>

@@ -16,12 +16,13 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/" className="font-bold text-xl text-primary tracking-tight">DriveIQ</Link>
+            <Link href="/" className="font-bold text-xl text-primary tracking-tight">DriveQ</Link>
             <nav className="hidden md:flex gap-4">
               <Link href="/search" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{t("nav.search")}</Link>
               <Link href="/driving-rules" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{t("nav.drivingRules")}</Link>
               <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{t("nav.about")}</Link>
               <Link href="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{t("nav.contact")}</Link>
+              <Link href="/for-schools" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors" data-testid="link-list-your-school">{t("nav.listYourSchool")}</Link>
             </nav>
           </div>
 
@@ -61,6 +62,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/driving-rules" className="text-sm font-medium">{t("nav.drivingRules")}</Link>
                   <Link href="/about" className="text-sm font-medium">{t("nav.about")}</Link>
                   <Link href="/contact" className="text-sm font-medium">{t("nav.contact")}</Link>
+                  <Link href="/for-schools" className="text-sm font-medium">{t("nav.listYourSchool")}</Link>
                   <Link href="/privacy" className="text-sm font-medium">{t("common.privacy")}</Link>
                   <Link href="/terms" className="text-sm font-medium">{t("common.terms")}</Link>
                   <hr className="my-2" />
@@ -87,7 +89,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <footer className="border-t bg-muted/40 py-12">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="font-bold text-lg mb-4">DriveIQ</h3>
+            <h3 className="font-bold text-lg mb-4">DriveQ</h3>
             <p className="text-sm text-muted-foreground">{t("nav.tagline")}</p>
           </div>
           <div>
@@ -112,13 +114,14 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               <li><Link href="/privacy" className="hover:text-primary">{t("legal.privacy")}</Link></li>
               <li><Link href="/terms" className="hover:text-primary">{t("legal.terms")}</Link></li>
               <li><Link href="/privacy/data-request" className="hover:text-primary">{t("legal.dataRights")}</Link></li>
-              <li><Link href="/auth/register" className="hover:text-primary">{t("nav.partnerWithUs")}</Link></li>
+              <li><Link href="/for-schools" className="hover:text-primary">{t("nav.partnerWithUs")}</Link></li>
+              <li><Link href="/for-trainers" className="hover:text-primary">{t("nav.forTrainers")}</Link></li>
               <li><Link href="/auth/login" className="hover:text-primary">{t("nav.schoolLogin")}</Link></li>
             </ul>
           </div>
         </div>
         <div className="container mx-auto px-4 mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} DriveIQ
+          &copy; {new Date().getFullYear()} DriveQ
           {" · "}
           <Link href="/privacy" className="hover:text-primary">{t("common.privacy")}</Link>
           {" · "}

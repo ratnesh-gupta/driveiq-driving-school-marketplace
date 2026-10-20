@@ -8,35 +8,32 @@ use Illuminate\Support\Collection;
 class ProgressService
 {
     /**
-     * Ensure default skill rows exist for a learner; return current snapshot.
+     * Current progress for every skill. Read-only: skills without a stored
+     * row are reported at 0% instead of being created on each view.
      */
     public function snapshot(int $learnerId, int $schoolId): array
     {
-        foreach (TrainingProgress::SKILLS as $skill) {
-            TrainingProgress::withoutGlobalScope('school')->firstOrCreate(
-                ['learner_id' => $learnerId, 'skill_name' => $skill],
-                ['school_id' => $schoolId, 'percentage' => 0]
-            );
-        }
-
-        $rows = TrainingProgress::withoutGlobalScope('school')
+        $stored = TrainingProgress::withoutGlobalScope('school')
             ->where('learner_id', $learnerId)
-            ->orderBy('skill_name')
-            ->get();
+            ->where('school_id', $schoolId)
+            ->get()
+            ->keyBy('skill_name');
 
-        $overall = $rows->count() > 0
-            ? (int) round($rows->avg('percentage'))
-            : 0;
+        $skills = collect(TrainingProgress::SKILLS)->sort()->values()->map(function (string $skill) use ($stored) {
+            $p = $stored->get($skill);
+
+            return [
+                'skillName' => $skill,
+                'percentage' => (int) ($p->percentage ?? 0),
+                'notes' => $p?->notes,
+                'updatedAt' => $p?->updated_at?->toISOString(),
+                'sessionId' => $p?->session_id,
+            ];
+        });
 
         return [
-            'skills' => $rows->map(fn (TrainingProgress $p) => [
-                'skillName' => $p->skill_name,
-                'percentage' => (int) $p->percentage,
-                'notes' => $p->notes,
-                'updatedAt' => $p->updated_at?->toISOString(),
-                'sessionId' => $p->session_id,
-            ])->values()->all(),
-            'overallCompletion' => $overall,
+            'skills' => $skills->all(),
+            'overallCompletion' => (int) round($skills->avg('percentage')),
         ];
     }
 

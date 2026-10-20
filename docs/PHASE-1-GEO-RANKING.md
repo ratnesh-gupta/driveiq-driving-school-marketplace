@@ -43,12 +43,18 @@ rankingScore =
 
 ### Sort order
 
-- `sortBy=rank`:
-  1. **Top placement** first: schools on a plan listed in
-     `geo.top_placement_plans` (default `premium`, `enterprise`).
-  2. Then `rankingScore` descending.
-  3. Then distance ascending.
+- `sortBy=rank` (and search without a location):
+  1. **Sponsored slots** (M6/DIQ-805): at most `sponsored_slots_per_page`
+     (admin setting, default 2) sponsor-eligible schools are pinned to the top,
+     best `rankingScore` first. Sponsor-eligible = a plan in
+     `geo.top_placement_plans` (default `premium`, `enterprise`) or a live
+     `featured_placements` campaign (`search_top`, or `locality` for the
+     locality being browsed). Trials are never sponsor-eligible.
+  2. Everyone else, including sponsor-eligible schools beyond the cap, by
+     `rankingScore` descending (the plan boost is part of the score).
+  3. Then distance ascending (geo only).
   4. Then `id` (deterministic tie-break).
+- Without a location the score uses the same weights minus the distance term.
 - `sortBy=distance`: distance, then plan boost, verified, rating, `id`.
 
 Weights, review cap, and top-placement plans live in `backend/config/geo.php`
@@ -58,4 +64,7 @@ and are tunable without code changes.
 
 - `distanceKm` — rounded to 2 decimals when geo mode is active
 - `rankingScore` — present when geo mode is active
-- `isSponsored` — true for paid sponsored tiers
+- `isSponsored` — paid top placement (plan or campaign); always labelled "Sponsored" in the UI
+- `isFeatured` — Featured plan (boost + highlighted card, labelled "Featured")
+- `isPinned` — occupies one of the capped sponsored slots in this result set
+- `listingTier` — `basic` | `featured` | `premium` | `enterprise`

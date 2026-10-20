@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Store, Star, MapPin, Users, LogOut, Menu, BarChart3, Shield } from "lucide-react";
+import { LayoutDashboard, Store, Star, MapPin, Users, LogOut, Menu, BarChart3, Shield, Inbox, IndianRupee, History, Target, Send } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RoleConsentGate } from "@/components/legal/role-consent-gate";
@@ -18,10 +18,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin", label: t("adminNav.overview"), icon: LayoutDashboard },
     { href: "/admin/analytics", label: t("adminNav.analytics"), icon: BarChart3 },
     { href: "/admin/schools", label: t("adminNav.schools"), icon: Store },
+    { href: "/admin/prospects", label: t("adminNav.prospects"), icon: Target },
+    { href: "/admin/outreach", label: t("adminNav.outreach"), icon: Send },
     { href: "/admin/reviews", label: t("adminNav.reviews"), icon: Star },
     { href: "/admin/localities", label: t("adminNav.localities"), icon: MapPin },
     { href: "/admin/users", label: t("adminNav.users"), icon: Users },
     { href: "/admin/data-requests", label: t("adminNav.dataRequests"), icon: Shield },
+    { href: "/admin/messages", label: t("adminNav.messages"), icon: Inbox },
+    { href: "/admin/billing", label: t("adminNav.billing"), icon: IndianRupee },
+    { href: "/admin/audit", label: t("adminNav.audit"), icon: History },
   ];
 
   const SidebarContent = () => (

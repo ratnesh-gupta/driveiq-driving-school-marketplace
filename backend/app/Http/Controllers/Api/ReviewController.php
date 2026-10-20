@@ -34,12 +34,15 @@ class ReviewController extends Controller
             $query->where('school_id', $request->input('schoolId'));
         }
 
-        // Public default: only approved reviews unless school/admin asks for pending.
+        // Public default: only approved reviews. Pending (unmoderated) reviews
+        // are visible to admins, and to a school only for its own reviews.
         $user = $request->user('sanctum');
         $includePending = $request->boolean('includePending')
             && $user
-            && (method_exists($user, 'isAdmin') && $user->isAdmin()
-                || method_exists($user, 'isSchool') && $user->isSchool());
+            && ($user->isAdmin()
+                || ($user->isSchool()
+                    && $request->filled('schoolId')
+                    && (int) $request->input('schoolId') === (int) $user->school_id));
 
         if (! $includePending) {
             $query->where('approved', true);
@@ -63,7 +66,7 @@ class ReviewController extends Controller
         }
 
         $data['user_id'] = $user->id;
-        $data['inquiry_id'] = $check['inquiry_id'];
+        $data['learner_id'] = $check['learner_id'];
         $data['eligibility_source'] = $check['source'];
         $data['approved'] = false; // moderation queue by default
         $data['author_name'] = $data['author_name'] ?? $user->name;
@@ -76,6 +79,62 @@ class ReviewController extends Controller
         ]));
 
         return response()->json(new ReviewResource($review), 201);
+    }
+
+    /** Public: what a one-time inquiry review link is for (DIQ-407 path B). */
+    public function showInquiryReview(string $token): JsonResponse
+    {
+        $inquiry = $this->eligibility->inquiryForToken($token);
+
+        if (! $inquiry) {
+            return response()->json(['message' => 'This review link is invalid, expired or already used.'], 404);
+        }
+
+        return response()->json([
+            'schoolId' => $inquiry->school_id,
+            'schoolName' => $inquiry->school?->name,
+            'schoolSlug' => $inquiry->school?->slug,
+            'authorName' => $inquiry->name,
+        ]);
+    }
+
+    /** Public: submit a review with a one-time inquiry link; no account needed. */
+    public function storeViaInquiry(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+            'authorName' => ['required', 'string', 'max:255'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'content' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $inquiry = $this->eligibility->inquiryForToken($data['token']);
+
+        if (! $inquiry) {
+            return response()->json(['message' => 'This review link is invalid, expired or already used.'], 404);
+        }
+
+        $review = Review::withoutGlobalScope('school')->create([
+            'school_id' => $inquiry->school_id,
+            'inquiry_id' => $inquiry->id,
+            'eligibility_source' => 'inquiry',
+            'author_name' => $data['authorName'],
+            'rating' => $data['rating'],
+            'content' => $data['content'],
+            'approved' => false, // moderation queue
+        ]);
+
+        // Single use.
+        $inquiry->forceFill(['review_token_hash' => null, 'review_token_expires_at' => null])->save();
+
+        AuditLog::log('create', 'Review', $review->id, [], [
+            'school_id' => $review->school_id,
+            'inquiry_id' => $inquiry->id,
+            'rating' => $review->rating,
+            'eligibility_source' => 'inquiry',
+        ], (int) $review->school_id);
+
+        return response()->json(new ReviewResource($review->load('school')), 201);
     }
 
     public function update(UpdateReviewRequest $request, int $id): JsonResponse

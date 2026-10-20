@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    // DIQ-1106: Google Ads lead form webhook. The same key is entered in the
+    // lead form's "Webhook integration" settings; Google sends it as google_key.
+    'google_ads' => [
+        'webhook_key' => env('GOOGLE_ADS_WEBHOOK_KEY'),
+    ],
+
+    // DIQ-1107: Google Business Profile connect (OAuth web client).
+    'google' => [
+        'client_id' => env('GOOGLE_OAUTH_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_OAUTH_CLIENT_SECRET'),
+    ],
+
 ];

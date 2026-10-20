@@ -1,14 +1,30 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAcquisitionController;
+use App\Http\Controllers\Api\AdminMonetizationController;
+use App\Http\Controllers\Api\AdminOutreachController;
+use App\Http\Controllers\Api\AdminProspectController;
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\ConsentController;
+use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\DataSubjectRequestController;
+use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\GoogleAdsLeadController;
+use App\Http\Controllers\Api\GoogleBusinessController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
+use App\Http\Controllers\Api\LeadNoteController;
 use App\Http\Controllers\Api\LearnerController;
+use App\Http\Controllers\Api\ListingClaimController;
 use App\Http\Controllers\Api\LocalityController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OutboundMessageController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProgressController;
@@ -21,6 +37,7 @@ use App\Http\Controllers\Api\SchoolTeamController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\WhatsAppPreferenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', fn () => response()->json([
@@ -30,13 +47,23 @@ Route::get('/healthz', fn () => response()->json([
 ]));
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth');
+    // DIQ-1102: the link in the email; the signature is the authentication.
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->whereNumber('id')
+        ->middleware(['signed', 'throttle:public-lookups'])
+        ->name('verification.verify');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])
+        ->middleware(['auth:sanctum', 'throttle:6,1']);
 });
 
 Route::prefix('schools')->group(function (): void {
     Route::get('/', [SchoolController::class, 'index']);
     Route::get('/featured', [SchoolController::class, 'featured']);
+    Route::get('/compare', [SchoolController::class, 'compare']);
     Route::get('/slug/{slug}', [SchoolController::class, 'showBySlug']);
     Route::get('/slug/{slug}/trainers', [InstructorController::class, 'publicTrainers']);
     Route::get('/{id}', [SchoolController::class, 'show'])->whereNumber('id');
@@ -49,23 +76,61 @@ Route::prefix('localities')->group(function (): void {
 });
 
 Route::get('/reviews', [ReviewController::class, 'index']);
+// One-time review link from an inquiry confirmation email (DIQ-407).
+Route::get('/reviews/via-inquiry/{token}', [ReviewController::class, 'showInquiryReview'])->middleware('throttle:public-lookups');
+Route::post('/reviews/via-inquiry', [ReviewController::class, 'storeViaInquiry'])->middleware('throttle:public-forms');
 Route::post('/reviews', [ReviewController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:10,1']);
 
 Route::post('/inquiries', [InquiryController::class, 'store'])
-    ->middleware('throttle:10,1');
+    ->middleware('throttle:inquiries');
+
+// Manager invitations (DIQ-403): usable before the invitee has an account.
+Route::get('/team/invitations/{token}', [SchoolTeamController::class, 'showInvitation'])
+    ->middleware('throttle:public-lookups');
+Route::post('/team/accept', [SchoolTeamController::class, 'accept'])->middleware('throttle:public-forms');
+
+// Claiming a pre-built listing (DIQ-1104): the token in the link is the key.
+Route::prefix('claims/{token}')->group(function (): void {
+    Route::get('/', [ListingClaimController::class, 'show'])->middleware('throttle:public-lookups');
+    Route::post('/code', [ListingClaimController::class, 'sendCode'])->middleware('throttle:public-forms');
+    Route::post('/complete', [ListingClaimController::class, 'complete'])->middleware('throttle:public-forms');
+    Route::post('/decline', [ListingClaimController::class, 'decline'])->middleware('throttle:public-forms');
+    Route::get('/google', [GoogleBusinessController::class, 'claimConnect'])->middleware('throttle:public-forms');
+});
+
+// Google Business Profile OAuth return (DIQ-1107); the encrypted state says who and why.
+Route::get('/google-business/callback', [GoogleBusinessController::class, 'callback'])
+    ->middleware('throttle:public-lookups')->name('google-business.callback');
+
+// Google Ads lead form webhook (DIQ-1106); authenticated by the shared google_key.
+Route::post('/webhooks/google-ads/lead', GoogleAdsLeadController::class)->middleware('throttle:60,1');
+
+// One-click unsubscribe from outreach email (DIQ-1105, RFC 8058).
+Route::post('/outreach/unsubscribe/{token}', [AdminOutreachController::class, 'unsubscribe'])->middleware('throttle:public-lookups');
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
-    ->middleware('throttle:5,1');
+    ->middleware('throttle:public-forms');
+
+Route::post('/contact', [ContactMessageController::class, 'store'])->middleware('throttle:public-forms');
+
+// Consent records (DIQ-604). Optional auth: anonymous calls may only record
+// the cookie banner choice.
+Route::post('/consents', [ConsentController::class, 'store'])->middleware('throttle:consents');
 
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/plans', [SubscriptionController::class, 'plans']);
 Route::get('/training-skills', [ProgressController::class, 'skillsCatalog']);
 
-Route::prefix('stats')->group(function (): void {
-    Route::get('/overview', [StatsController::class, 'overview']);
-    Route::get('/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
-});
+Route::get('/stats/overview', [StatsController::class, 'overview']);
+
+// Private document download (DIQ-601): only reachable through a short-lived
+// signed URL issued by the authenticated /documents/{kind}/{id}/link.
+Route::get('/documents/{kind}/{id}/file', [DocumentController::class, 'file'])
+    ->whereIn('kind', ['learner', 'instructor', 'vehicle'])
+    ->whereNumber('id')
+    ->middleware('signed')
+    ->name('documents.file');
 
 Route::middleware('auth:sanctum')->group(function (): void {
 
@@ -76,9 +141,19 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
+    Route::get('/consents', [ConsentController::class, 'index']);
+    Route::get('/me/whatsapp', [WhatsAppPreferenceController::class, 'show']);
+    Route::put('/me/whatsapp', [WhatsAppPreferenceController::class, 'update'])->middleware('throttle:30,1');
+    Route::delete('/consents/{purpose}', [ConsentController::class, 'destroy']);
+
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])
         ->whereNumber('id')
         ->middleware('throttle:10,1');
+
+    Route::get('/documents/{kind}/{id}/link', [DocumentController::class, 'link'])
+        ->whereIn('kind', ['learner', 'instructor', 'vehicle'])
+        ->whereNumber('id')
+        ->middleware('throttle:60,1');
 
     Route::get('/admin/ping', fn () => response()->json(['ok' => true]))->middleware('role:admin');
     Route::get('/school/ping', fn () => response()->json(['ok' => true]))->middleware('role:school,admin');
@@ -91,15 +166,26 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/messages/threads/{id}/read', [MessageController::class, 'markRead'])->whereNumber('id');
     });
 
-    Route::middleware('role:instructor,school,admin')->group(function (): void {
+    // plan.features runs after the role check (DIQ-802; routes in config/plans.php).
+    Route::middleware(['role:instructor,school,admin', 'plan.features'])->group(function (): void {
         Route::get('/instructor/me', [InstructorController::class, 'me']);
         Route::get('/instructor/sessions', [ScheduleController::class, 'instructorSessions']);
+        Route::get('/instructor/learners', [InstructorController::class, 'myLearners']);
+        Route::get('/instructor/leave-requests', [ScheduleController::class, 'myLeave']);
+        Route::post('/instructor/leave-requests', [ScheduleController::class, 'requestMyLeave']);
         Route::post('/schedules/{id}/attendance', [ScheduleController::class, 'markAttendance'])->whereNumber('id');
         Route::put('/learners/{id}/progress', [ProgressController::class, 'update'])->whereNumber('id');
+
+        // Staff manage any instructor's documents; an instructor only their own.
+        Route::get('/instructors/{id}/documents', [InstructorController::class, 'listDocuments'])->whereNumber('id');
+        Route::post('/instructors/{id}/documents', [InstructorController::class, 'addDocument'])->whereNumber('id');
+        Route::patch('/instructors/{id}/documents/{docId}', [InstructorController::class, 'updateDocument'])
+            ->whereNumber(['id', 'docId']);
     });
 
-    Route::middleware('role:learner,school,admin,instructor')->group(function (): void {
+    Route::middleware(['role:learner,school,admin,instructor', 'plan.features'])->group(function (): void {
         Route::get('/learner/me', [LearnerController::class, 'me']);
+        Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
         Route::post('/learners/{id}/documents', [LearnerController::class, 'addDocument'])->whereNumber('id');
         Route::get('/learners/{id}/progress', [ProgressController::class, 'show'])->whereNumber('id');
         Route::get('/learners/{id}/sessions', [ProgressController::class, 'sessionHistory'])->whereNumber('id');
@@ -109,6 +195,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::middleware('role:admin')->group(function (): void {
         Route::post('/schools', [SchoolController::class, 'store']);
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
+        Route::patch('/admin/schools/{id}/listing-status', [SchoolController::class, 'updateListingStatus'])->whereNumber('id');
         Route::post('/localities', [LocalityController::class, 'store']);
 
         // Review moderation is platform-admin only; schools can report a review instead.
@@ -119,28 +206,75 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/review-reports/{id}', [ReviewController::class, 'resolveReport'])->whereNumber('id');
 
         Route::get('/admin/subscriptions/overview', [SubscriptionController::class, 'overview']);
+        Route::get('/admin/subscriptions', [AdminMonetizationController::class, 'subscriptions']);
+        Route::get('/admin/placements', [AdminMonetizationController::class, 'placements']);
+        Route::post('/admin/placements', [AdminMonetizationController::class, 'storePlacement']);
+        Route::post('/admin/placements/{id}/end', [AdminMonetizationController::class, 'endPlacement'])->whereNumber('id');
+        Route::get('/admin/marketplace-settings', [AdminMonetizationController::class, 'settings']);
+        Route::put('/admin/marketplace-settings', [AdminMonetizationController::class, 'updateSettings']);
+        Route::get('/admin/billing/invoices', [BillingController::class, 'adminIndex']);
+        Route::post('/admin/billing/invoices/{id}/record-payment', [BillingController::class, 'recordPayment'])->whereNumber('id');
+        Route::post('/admin/billing/invoices/{id}/void', [BillingController::class, 'void'])->whereNumber('id');
         Route::post('/admin/subscriptions', [SubscriptionController::class, 'assign']);
         Route::post('/admin/subscriptions/{schoolId}/cancel', [SubscriptionController::class, 'cancel'])
             ->whereNumber('schoolId');
 
         Route::get('/admin/analytics', [AnalyticsController::class, 'platform']);
+        Route::get('/admin/audit-logs', [AuditLogController::class, 'index']);
+
+        Route::get('/admin/users', [AdminUserController::class, 'index']);
+        Route::patch('/admin/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
+
+        Route::get('/admin/contact-messages', [ContactMessageController::class, 'index']);
+        Route::get('/admin/outbound-messages', [OutboundMessageController::class, 'index']);
+
+        // School and trainer acquisition (DIQ-1103, funnel DIQ-1109).
+        Route::get('/admin/acquisition', AdminAcquisitionController::class);
+        Route::get('/admin/prospects', [AdminProspectController::class, 'index']);
+        Route::post('/admin/prospects', [AdminProspectController::class, 'store']);
+        Route::post('/admin/prospects/import', [AdminProspectController::class, 'import']);
+        Route::patch('/admin/prospects/{id}', [AdminProspectController::class, 'update'])->whereNumber('id');
+        Route::post('/admin/prospects/{id}/listing', [AdminProspectController::class, 'createListing'])->whereNumber('id');
+        Route::post('/admin/prospects/{id}/claim-link', [ListingClaimController::class, 'adminLink'])->whereNumber('id');
+
+        // Outreach email (DIQ-1105).
+        Route::get('/admin/outreach', [AdminOutreachController::class, 'overview']);
+        Route::get('/admin/outreach/campaigns', [AdminOutreachController::class, 'index']);
+        Route::post('/admin/outreach/campaigns', [AdminOutreachController::class, 'store']);
+        Route::patch('/admin/outreach/campaigns/{id}', [AdminOutreachController::class, 'update'])->whereNumber('id');
+        Route::post('/admin/outreach/campaigns/{id}/enroll', [AdminOutreachController::class, 'enroll'])->whereNumber('id');
+        Route::post('/admin/outreach/campaigns/{id}/test', [AdminOutreachController::class, 'test'])->whereNumber('id');
+        Route::get('/admin/outreach/messages', [AdminOutreachController::class, 'messages']);
+        Route::post('/admin/outreach/messages/{id}/undeliverable', [AdminOutreachController::class, 'undeliverable'])->whereNumber('id');
+        Route::patch('/admin/contact-messages/{id}', [ContactMessageController::class, 'update'])->whereNumber('id');
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
     });
 
-    Route::middleware('role:school,admin')->group(function (): void {
+    Route::middleware(['role:school,admin', 'plan.features'])->group(function (): void {
         Route::patch('/schools/{id}', [SchoolController::class, 'update'])->whereNumber('id');
+
+        // Google Business Profile (DIQ-1107).
+        Route::get('/schools/{id}/google-business', [GoogleBusinessController::class, 'status'])->whereNumber('id');
+        Route::post('/schools/{id}/google-business/connect', [GoogleBusinessController::class, 'connect'])->whereNumber('id');
+        Route::get('/schools/{id}/google-business/locations', [GoogleBusinessController::class, 'locations'])->whereNumber('id');
+        Route::post('/schools/{id}/google-business/import', [GoogleBusinessController::class, 'import'])->whereNumber('id');
+        Route::delete('/schools/{id}/google-business', [GoogleBusinessController::class, 'disconnect'])->whereNumber('id');
 
         Route::get('/inquiries', [InquiryController::class, 'index']);
         Route::patch('/inquiries/{id}', [InquiryController::class, 'update'])->whereNumber('id');
         Route::post('/inquiries/{id}/convert', [LearnerController::class, 'convertInquiry'])->whereNumber('id');
+        Route::get('/inquiries/{id}/timeline', [LeadNoteController::class, 'timeline'])->whereNumber('id');
+        Route::post('/inquiries/{id}/notes', [LeadNoteController::class, 'store'])->whereNumber('id');
 
         Route::post('/packages', [PackageController::class, 'store']);
         Route::patch('/packages/{id}', [PackageController::class, 'update'])->whereNumber('id');
         Route::delete('/packages/{id}', [PackageController::class, 'delete'])->whereNumber('id');
 
         Route::get('/schools/{id}/dashboard', [SchoolDashboardController::class, 'show'])->whereNumber('id');
+        // A school's lead/review counts are private to that school and admins.
+        Route::get('/stats/school/{schoolId}', [StatsController::class, 'school'])->whereNumber('schoolId');
         Route::get('/schools/{id}/audit-logs', [SchoolDashboardController::class, 'auditLogs'])->whereNumber('id');
         Route::get('/schools/{id}/settings', [SchoolSettingsController::class, 'show'])->whereNumber('id');
         Route::put('/schools/{id}/settings', [SchoolSettingsController::class, 'update'])->whereNumber('id');
@@ -149,6 +283,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/schools/{id}/team/{memberId}', [SchoolTeamController::class, 'remove'])
             ->whereNumber(['id', 'memberId']);
 
+        Route::get('/schools/{id}/entitlements', [SubscriptionController::class, 'entitlements'])->whereNumber('id');
+        Route::get('/schools/{id}/billing/invoices', [BillingController::class, 'index'])->whereNumber('id');
+        Route::post('/schools/{id}/billing/invoices', [BillingController::class, 'store'])->whereNumber('id');
+        Route::get('/schools/{id}/billing/invoices/{invoiceId}', [BillingController::class, 'show'])
+            ->whereNumber(['id', 'invoiceId']);
+        Route::post('/schools/{id}/billing/invoices/{invoiceId}/cancel', [BillingController::class, 'cancel'])
+            ->whereNumber(['id', 'invoiceId']);
         Route::get('/schools/{id}/subscription', [SubscriptionController::class, 'showForSchool'])
             ->whereNumber('id');
 
@@ -157,15 +298,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/instructors/{id}', [InstructorController::class, 'show'])->whereNumber('id');
         Route::patch('/instructors/{id}', [InstructorController::class, 'update'])->whereNumber('id');
         Route::delete('/instructors/{id}', [InstructorController::class, 'destroy'])->whereNumber('id');
-
-        Route::get('/instructors/{id}/documents', [InstructorController::class, 'listDocuments'])->whereNumber('id');
-        Route::post('/instructors/{id}/documents', [InstructorController::class, 'addDocument'])->whereNumber('id');
-        Route::patch('/instructors/{id}/documents/{docId}', [InstructorController::class, 'updateDocument'])
-            ->whereNumber(['id', 'docId']);
+        Route::post('/instructors/{id}/login', [InstructorController::class, 'sendLogin'])->whereNumber('id');
 
         Route::get('/schools/{id}/vehicles', [VehicleController::class, 'index'])->whereNumber('id');
         Route::post('/schools/{id}/vehicles', [VehicleController::class, 'store'])->whereNumber('id');
         Route::patch('/vehicles/{id}', [VehicleController::class, 'update'])->whereNumber('id');
+        Route::get('/vehicles/{id}/documents', [VehicleController::class, 'listDocuments'])->whereNumber('id');
         Route::post('/vehicles/{id}/documents', [VehicleController::class, 'addDocument'])->whereNumber('id');
 
         Route::get('/schools/{id}/schedules', [ScheduleController::class, 'index'])->whereNumber('id');
@@ -181,7 +319,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/learners/{id}', [LearnerController::class, 'show'])->whereNumber('id');
         Route::patch('/learners/{id}', [LearnerController::class, 'update'])->whereNumber('id');
         Route::post('/learners/{id}/assign', [LearnerController::class, 'assign'])->whereNumber('id');
-        Route::get('/learners/{id}/documents', [LearnerController::class, 'listDocuments'])->whereNumber('id');
+        Route::get('/learners/{id}/assignments', [LearnerController::class, 'assignments'])->whereNumber('id');
         Route::patch('/learners/{id}/documents/{docId}', [LearnerController::class, 'updateDocument'])
             ->whereNumber(['id', 'docId']);
 

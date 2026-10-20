@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\School;
 use App\Services\SubscriptionService;
+use App\Support\Entitlements;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -33,7 +34,7 @@ class SubscriptionController extends Controller
 
     public function showForSchool(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->authorizeSchool($request, $schoolId)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -52,6 +53,23 @@ class SubscriptionController extends Controller
         return response()->json($this->serialize($sub));
     }
 
+    /** What the school's plan and trial unlock (DIQ-802). */
+    public function entitlements(Request $request, int $schoolId, Entitlements $entitlements): JsonResponse
+    {
+        if ($deny = $this->access()->school($request, $schoolId, allowInstructor: true)) {
+            return $deny;
+        }
+
+        $type = School::whereKey($schoolId)->value('listing_type') ?? 'school';
+
+        return response()->json([
+            'schoolId' => $schoolId,
+            ...$entitlements->forSchool($schoolId),
+            'listingType' => $type,
+            'availablePlans' => config('plans.listing_types.'.$type, []),
+        ]);
+    }
+
     public function assign(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -61,6 +79,11 @@ class SubscriptionController extends Controller
             'autoRenew' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $type = School::whereKey($data['schoolId'])->value('listing_type');
+        if (! in_array($data['planCode'], config('plans.listing_types.'.$type, []), true)) {
+            return response()->json(['message' => 'Validation failed', 'errors' => ['planCode' => ['This plan is not available for this listing type.']]], 422);
+        }
 
         $sub = $this->subscriptions->assign(
             (int) $data['schoolId'],
@@ -122,23 +145,5 @@ class SubscriptionController extends Controller
             'rankingBoost' => (int) ($sub->plan?->ranking_boost ?? 0),
             'features' => $sub->plan?->features ?? [],
         ];
-    }
-
-    private function authorizeSchool(Request $request, int $schoolId): ?JsonResponse
-    {
-        if (! School::find($schoolId)) {
-            return response()->json(['message' => 'School not found'], 404);
-        }
-
-        $user = $request->user();
-        if ($user->isAdmin()) {
-            return null;
-        }
-
-        if ((int) $user->school_id !== $schoolId) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        return null;
     }
 }

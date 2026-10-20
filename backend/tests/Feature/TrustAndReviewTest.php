@@ -3,11 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Inquiry;
+use App\Models\Learner;
 use App\Models\Locality;
 use App\Models\Review;
 use App\Models\School;
 use App\Models\User;
+use App\Notifications\InquiryConfirmation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -31,100 +35,141 @@ class TrustAndReviewTest extends TestCase
         ]);
     }
 
-    public function test_review_without_inquiry_is_forbidden(): void
+    /** A learner account enrolled at the school (DIQ-407 path A). */
+    private function enrolledLearner(School $school, string $email): User
     {
-        $school = $this->schoolWithLocality();
-        $user = User::factory()->create(['role' => 'user', 'email' => 'learner@example.com']);
+        $user = User::factory()->create(['role' => 'learner', 'email' => $email, 'school_id' => $school->id]);
+        Learner::withoutGlobalScope('school')->create([
+            'school_id' => $school->id,
+            'user_id' => $user->id,
+            'name' => 'Learner',
+            'status' => 'active',
+        ]);
 
-        Sanctum::actingAs($user);
+        return $user;
+    }
 
-        $this->postJson('/api/reviews', [
+    private function reviewPayload(School $school, array $overrides = []): array
+    {
+        return array_merge([
             'schoolId' => $school->id,
             'authorName' => 'Learner',
             'rating' => 5,
             'content' => 'Great',
-        ])->assertForbidden();
+        ], $overrides);
     }
 
-    public function test_review_allowed_after_inquiry_with_matching_email(): void
+    public function test_account_that_is_not_enrolled_cannot_review(): void
     {
         $school = $this->schoolWithLocality();
-        $user = User::factory()->create(['role' => 'user', 'email' => 'learner2@example.com']);
+        $user = User::factory()->create(['role' => 'learner', 'email' => 'learner@example.com']);
 
+        // Even with a matching enquiry: that path is the emailed one-time link now.
         Inquiry::withoutGlobalScope('school')->create([
-            'school_id' => $school->id,
-            'name' => 'Learner',
-            'phone' => '9888888888',
-            'email' => 'learner2@example.com',
-            'vehicle_type' => 'car',
-            'status' => 'pending',
+            'school_id' => $school->id, 'name' => 'L', 'phone' => '9888888888',
+            'email' => 'learner@example.com', 'vehicle_type' => 'car', 'status' => 'pending',
         ]);
 
         Sanctum::actingAs($user);
+        $this->postJson('/api/reviews', $this->reviewPayload($school))->assertForbidden();
 
-        $this->postJson('/api/reviews', [
-            'schoolId' => $school->id,
-            'authorName' => 'Learner',
-            'rating' => 5,
-            'content' => 'Great experience after enquiry',
-        ])
+        // School staff cannot review either (PBAC: create = learner).
+        Sanctum::actingAs(User::factory()->create(['role' => 'school', 'school_id' => $school->id]));
+        $this->postJson('/api/reviews', $this->reviewPayload($school))->assertForbidden();
+    }
+
+    public function test_enrolled_learner_can_review_once(): void
+    {
+        $school = $this->schoolWithLocality();
+        Sanctum::actingAs($this->enrolledLearner($school, 'learner2@example.com'));
+
+        $this->postJson('/api/reviews', $this->reviewPayload($school, ['content' => 'Great trainer']))
             ->assertCreated()
             ->assertJsonPath('approved', false)
-            ->assertJsonPath('eligibilitySource', 'inquiry');
+            ->assertJsonPath('eligibilitySource', 'learner');
+
+        $this->postJson('/api/reviews', $this->reviewPayload($school, ['content' => 'Second']))
+            ->assertForbidden();
     }
 
-    public function test_duplicate_review_blocked(): void
+    public function test_learner_of_another_school_cannot_review(): void
     {
         $school = $this->schoolWithLocality();
-        $user = User::factory()->create(['role' => 'user', 'email' => 'dup@example.com']);
+        $other = School::create(['name' => 'Other', 'slug' => 'other-trust']);
+        Sanctum::actingAs($this->enrolledLearner($other, 'elsewhere@example.com'));
 
-        Inquiry::withoutGlobalScope('school')->create([
-            'school_id' => $school->id,
-            'name' => 'Dup',
-            'phone' => '9777777777',
-            'email' => 'dup@example.com',
-            'vehicle_type' => 'car',
-        ]);
+        $this->postJson('/api/reviews', $this->reviewPayload($school))->assertForbidden();
+    }
 
-        Sanctum::actingAs($user);
+    public function test_inquirer_reviews_once_via_emailed_link(): void
+    {
+        Notification::fake();
+        $school = $this->schoolWithLocality();
 
-        $this->postJson('/api/reviews', [
+        $this->postJson('/api/inquiries', [
             'schoolId' => $school->id,
-            'authorName' => 'Dup',
-            'rating' => 4,
-            'content' => 'First',
+            'name' => 'Enquirer',
+            'phone' => '9777777777',
+            'email' => 'enquirer@example.com',
+            'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
         ])->assertCreated();
 
-        $this->postJson('/api/reviews', [
-            'schoolId' => $school->id,
-            'authorName' => 'Dup',
-            'rating' => 3,
-            'content' => 'Second',
-        ])->assertForbidden();
+        $url = null;
+        Notification::assertSentTo(new AnonymousNotifiable, InquiryConfirmation::class, function (InquiryConfirmation $n) use (&$url) {
+            $url = $n->reviewUrl;
+
+            return true;
+        });
+        $this->assertStringStartsWith(config('app.frontend_url').'/review?token=', $url);
+        parse_str(parse_url($url, PHP_URL_QUERY), $query);
+        $token = $query['token'];
+
+        $this->getJson('/api/reviews/via-inquiry/'.$token)
+            ->assertOk()
+            ->assertJsonPath('schoolName', 'Trust School')
+            ->assertJsonPath('authorName', 'Enquirer');
+
+        $this->postJson('/api/reviews/via-inquiry', [
+            'token' => $token, 'authorName' => 'Enquirer', 'rating' => 4, 'content' => 'Helpful on the phone',
+        ])->assertCreated()
+            ->assertJsonPath('approved', false)
+            ->assertJsonPath('eligibilitySource', 'inquiry');
+
+        // Single use.
+        $this->postJson('/api/reviews/via-inquiry', [
+            'token' => $token, 'authorName' => 'Again', 'rating' => 1, 'content' => 'Second try',
+        ])->assertNotFound();
+        $this->getJson('/api/reviews/via-inquiry/'.$token)->assertNotFound();
+    }
+
+    public function test_inquiry_without_email_gets_no_link_and_bad_tokens_fail(): void
+    {
+        Notification::fake();
+        $school = $this->schoolWithLocality();
+
+        $this->postJson('/api/inquiries', [
+            'schoolId' => $school->id, 'name' => 'No Email', 'phone' => '9777777700', 'vehicleType' => 'car',
+            'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
+        ])->assertCreated();
+
+        Notification::assertNothingSent();
+        $this->postJson('/api/reviews/via-inquiry', [
+            'token' => 'made-up', 'authorName' => 'X', 'rating' => 5, 'content' => 'Fake',
+        ])->assertNotFound();
     }
 
     public function test_report_review_and_list_for_admin(): void
     {
         $school = $this->schoolWithLocality();
-        $reviewer = User::factory()->create(['role' => 'user', 'email' => 'rev@example.com']);
-        $reporter = User::factory()->create(['role' => 'user']);
+        $reviewer = $this->enrolledLearner($school, 'rev@example.com');
+        $reporter = User::factory()->create(['role' => 'learner']);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        Inquiry::withoutGlobalScope('school')->create([
-            'school_id' => $school->id,
-            'name' => 'Rev',
-            'phone' => '9666666666',
-            'email' => 'rev@example.com',
-            'vehicle_type' => 'car',
-        ]);
-
         Sanctum::actingAs($reviewer);
-        $created = $this->postJson('/api/reviews', [
-            'schoolId' => $school->id,
-            'authorName' => 'Rev',
-            'rating' => 2,
-            'content' => 'Spammy content',
-        ])->assertCreated();
+        $created = $this->postJson('/api/reviews', $this->reviewPayload($school, [
+            'authorName' => 'Rev', 'rating' => 2, 'content' => 'Spammy content',
+        ]))->assertCreated();
 
         $reviewId = $created->json('id');
 
