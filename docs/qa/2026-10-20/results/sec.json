@@ -1,0 +1,117 @@
+[
+ {
+  "id": "S1 owner cannot self-verify / fake rating",
+  "ok": true,
+  "note": "status=200 verified=undefined premium=undefined rating=undefined reviewCount=undefined (before verified=undefined)"
+ },
+ {
+  "id": "S2 owner cannot publish/feature via mass assignment",
+  "ok": true,
+  "note": "status=200 listingStatus=undefined featured=undefined/undefined keys=1"
+ },
+ {
+  "id": "S3 unverified/new school not publicly listed",
+  "ok": true,
+  "note": "status=200"
+ },
+ {
+  "id": "S4 SQLi probes on /schools do not 500",
+  "ok": true,
+  "note": "all 4xx/2xx"
+ },
+ {
+  "id": "S5 absurd geo params handled",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "S5b invalid geo params handled",
+  "ok": true,
+  "note": "status=422 {\"errors\":{\"radiusKm\":[\"The radius km field must be at least 1.\"]}}"
+ },
+ {
+  "id": "S6 CORS does not allow arbitrary origin",
+  "ok": true,
+  "note": "ACAO=http://localhost:5173 creds=null"
+ },
+ {
+  "id": "S7 security headers present (nosniff/frame/HSTS/CSP)",
+  "ok": false,
+  "note": "x-content-type-options=NO x-frame-options=NO strict-transport-security=NO content-security-policy=NO referrer-policy=NO permissions-policy=NO"
+ },
+ {
+  "id": "S8 errors don't leak SQL/stack (APP_DEBUG)",
+  "ok": false,
+  "note": "status=500 {     \"message\": \"SQLSTATE[22P02]: Invalid text representation: 7 ERROR:  invali"
+ },
+ {
+  "id": "S9 unknown API route → JSON 404",
+  "ok": true,
+  "note": "status=404"
+ },
+ {
+  "id": "S10 inquiry accepts XSS text as data (output encoding is UI job)",
+  "ok": true,
+  "note": "status=201 {\"id\":7,\"schoolId\":1,\"schoolName\":\"Skyline Driving Academy\",\"name\":\"<img src=x onerror=alert(1)>\",\"p"
+ },
+ {
+  "id": "S11 overlong name/short phone rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "S11b non-numeric phone rejected",
+  "ok": false,
+  "note": "status=201 (phone rule is only string|max:255)"
+ },
+ {
+  "id": "S12 too-fast submission rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "S12b honeypot field rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "S13 token invalid after logout",
+  "ok": true,
+  "note": "status=401"
+ },
+ {
+  "id": "S14 login brute force throttled (429)",
+  "ok": true,
+  "note": "422,429,429,429,429,429,429,429,429,429,429,429"
+ },
+ {
+  "id": "S15 forgot-password does not enumerate users",
+  "ok": true,
+  "note": "known=429 unknown=429"
+ },
+ {
+  "id": "S15b login error identical for known/unknown",
+  "ok": true,
+  "note": "429/429"
+ },
+ {
+  "id": "S16 cannot self-register as admin",
+  "ok": false,
+  "note": "status=429"
+ },
+ {
+  "id": "S17 weak password rejected server-side",
+  "ok": false,
+  "note": "status=429"
+ },
+ {
+  "id": "S18 garbage bearer → 401",
+  "ok": true,
+  "note": "status=401"
+ },
+ {
+  "id": "S19 2MB contact message rejected (no max)",
+  "ok": true,
+  "note": "status=422"
+ }
+]

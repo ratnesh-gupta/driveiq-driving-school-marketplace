@@ -1,0 +1,27 @@
+[
+ {
+  "id": "C1 concurrent identical session creates → exactly 1 booked",
+  "ok": true,
+  "note": "created=1 of 12"
+ },
+ {
+  "id": "C2 concurrent duplicate vehicle → exactly 1",
+  "ok": true,
+  "note": "created=1"
+ },
+ {
+  "id": "C3 concurrent mark-paid → single paid transition",
+  "ok": true,
+  "note": "200s=1"
+ },
+ {
+  "id": "C4 concurrent reviews by same learner → at most 1",
+  "ok": true,
+  "note": "created=0"
+ },
+ {
+  "id": "C5 inquiry flood throttled to ~5/min/IP",
+  "ok": true,
+  "note": "{\"201\":5,\"429\":25}"
+ }
+]
