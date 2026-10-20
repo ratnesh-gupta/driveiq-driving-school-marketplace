@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { LearnerLayout } from "@/components/layout/learner-layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchLearnerMe } from "@/lib/ops-api";
+import { fetchLearnerMe, retryUnlessNotFound } from "@/lib/ops-api";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Phone } from "lucide-react";
@@ -12,6 +12,7 @@ export default function LearnerHomePage() {
   const { data, isLoading } = useQuery({
     queryKey: ["learner", "me"],
     queryFn: fetchLearnerMe,
+    retry: retryUnlessNotFound,
   });
 
   const learner = data?.learner as Record<string, unknown> | undefined;

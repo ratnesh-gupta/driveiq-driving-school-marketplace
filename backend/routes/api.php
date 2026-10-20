@@ -139,7 +139,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->whereUuid('id');
 
     Route::get('/consents', [ConsentController::class, 'index']);
     Route::get('/me/whatsapp', [WhatsAppPreferenceController::class, 'show']);

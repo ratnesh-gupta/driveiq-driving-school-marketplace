@@ -5,12 +5,13 @@ import { LearnerLayout } from "@/components/layout/learner-layout";
 import { DocumentsPanel } from "@/components/documents-panel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchLearnerMe } from "@/lib/ops-api";
+import { fetchLearnerMe, retryUnlessNotFound } from "@/lib/ops-api";
 
 export default function LearnerDocumentsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["learner", "me"],
     queryFn: fetchLearnerMe,
+    retry: retryUnlessNotFound,
   });
 
   const learnerId = (data?.learner as { id?: number } | undefined)?.id;

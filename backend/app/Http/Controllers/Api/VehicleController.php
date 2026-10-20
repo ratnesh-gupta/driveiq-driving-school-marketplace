@@ -7,10 +7,12 @@ use App\Models\AuditLog;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use App\Support\DocumentStorage;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
+use Illuminate\Validation\ValidationException;
 
 class VehicleController extends Controller
 {
@@ -62,7 +64,9 @@ class VehicleController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $vehicle = Vehicle::withoutGlobalScope('school')->create([
+        // Two simultaneous requests can both pass the validator; the unique index
+        // then decides, and the loser must get the same 422 as a normal duplicate.
+        $vehicle = $this->orDuplicateError(fn () => Vehicle::withoutGlobalScope('school')->create([
             'school_id' => $schoolId,
             'registration_number' => strtoupper($data['registrationNumber']),
             'type' => $data['type'] ?? 'car',
@@ -72,7 +76,7 @@ class VehicleController extends Controller
             'make_model' => $data['makeModel'] ?? null,
             'year' => $data['year'] ?? null,
             'notes' => $data['notes'] ?? null,
-        ]);
+        ]));
 
         AuditLog::log('create', 'Vehicle', $vehicle->id, [], ['registration' => $vehicle->registration_number]);
 
@@ -120,7 +124,7 @@ class VehicleController extends Controller
         }
 
         $old = $vehicle->only(array_keys($payload));
-        $vehicle->fill($payload)->save();
+        $this->orDuplicateError(fn () => $vehicle->fill($payload)->save());
 
         AuditLog::log('update', 'Vehicle', $vehicle->id, $old, $payload, (int) $vehicle->school_id);
 
@@ -184,6 +188,17 @@ class VehicleController extends Controller
     {
         if (is_string($request->input('registrationNumber'))) {
             $request->merge(['registrationNumber' => strtoupper(trim($request->input('registrationNumber')))]);
+        }
+    }
+
+    private function orDuplicateError(\Closure $write): mixed
+    {
+        try {
+            return $write();
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages([
+                'registrationNumber' => 'The registration number has already been taken.',
+            ]);
         }
     }
 

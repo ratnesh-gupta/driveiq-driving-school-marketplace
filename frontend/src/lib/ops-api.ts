@@ -10,6 +10,19 @@ function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
+/** Error from `request` that keeps the HTTP status so callers can branch on it. */
+export class HttpError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "HttpError";
+  }
+}
+
+/** TanStack Query `retry` option: a 404 is an answer ("nothing here"), not a failure worth retrying. */
+export function retryUnlessNotFound(failureCount: number, error: unknown): boolean {
+  return !(error instanceof HttpError && error.status === 404) && failureCount < 1;
+}
+
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getStoredToken();
   const headers: Record<string, string> = {
@@ -34,7 +47,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     } catch {
       /* ignore */
     }
-    throw new Error(message);
+    throw new HttpError(message, res.status);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
