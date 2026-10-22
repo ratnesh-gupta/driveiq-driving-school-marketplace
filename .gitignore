@@ -40,6 +40,7 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.docker.example
+!.env.production.example
 *.key
 auth.json
 
