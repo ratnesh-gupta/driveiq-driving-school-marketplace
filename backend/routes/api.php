@@ -261,6 +261,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/schools/{id}/google-business', [GoogleBusinessController::class, 'disconnect'])->whereNumber('id');
 
         Route::get('/inquiries', [InquiryController::class, 'index']);
+        Route::get('/inquiries/summary', [InquiryController::class, 'summary']);
         Route::patch('/inquiries/{id}', [InquiryController::class, 'update'])->whereNumber('id');
         Route::post('/inquiries/{id}/convert', [LearnerController::class, 'convertInquiry'])->whereNumber('id');
         Route::get('/inquiries/{id}/timeline', [LeadNoteController::class, 'timeline'])->whereNumber('id');

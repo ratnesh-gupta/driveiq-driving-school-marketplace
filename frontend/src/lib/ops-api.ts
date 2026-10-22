@@ -54,6 +54,45 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   return text ? JSON.parse(text) : (undefined as T);
 }
 
+/** A page of a paged list endpoint (DIQ-1305): rows plus X-Total-Count. */
+export type Page<T> = { items: T[]; total: number };
+
+export async function requestPage<T>(path: string, params: Record<string, string | number | undefined>): Promise<Page<T>> {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") q.set(k, String(v));
+  const token = getStoredToken();
+  const res = await fetch(apiUrl(`${path}?${q}`), {
+    headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (res.status === 401 && token) handleUnauthorized();
+  if (!res.ok) throw new HttpError(`Request failed (${res.status})`, res.status);
+  return { items: (await res.json()) as T[], total: Number(res.headers.get("X-Total-Count") ?? 0) };
+}
+
+export type LeadListParams = {
+  page: number;
+  perPage: number;
+  status?: string;
+  search?: string;
+  followUpDue?: boolean;
+  sort?: "newest" | "oldest_waiting";
+};
+
+export function listInquiriesPage<T>(p: LeadListParams) {
+  return requestPage<T>("/api/inquiries", {
+    page: p.page, perPage: p.perPage, status: p.status, search: p.search,
+    followUpDue: p.followUpDue ? 1 : undefined, sort: p.sort === "oldest_waiting" ? p.sort : undefined,
+  });
+}
+
+export function fetchInquirySummary() {
+  return request<{ byStatus: Record<string, number>; total: number }>("/api/inquiries/summary");
+}
+
+export function listLearnersPage<T>(schoolId: number, p: { page: number; perPage: number; status?: string; search?: string }) {
+  return requestPage<T>(`/api/schools/${schoolId}/learners`, { page: p.page, perPage: p.perPage, status: p.status, search: p.search });
+}
+
 export function fetchSchoolAnalytics(schoolId: number) {
   return request<Record<string, unknown>>(`/api/schools/${schoolId}/analytics`);
 }
