@@ -55,6 +55,12 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     // SPA origin, used for links in emails (password reset, invites).
+    /*
+    | Proxies whose X-Forwarded-* headers are trusted (DIQ-1302): a comma
+    | separated list of IPs/CIDR ranges, "*" for any, empty for none.
+    */
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+
     'frontend_url' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/'),
 
     /*
