@@ -16,6 +16,7 @@ class SchoolResource extends JsonResource
             // DIQ-1101: "school" or "trainer" (independent trainer).
             'listingType' => $this->listing_type ?? 'school',
             'listingStatus' => $this->listing_status ?? 'published',
+            'archivedAt' => $this->archived_at?->toIso8601String(),
             'localityId' => $this->locality_id,
             'localityName' => $this->whenLoaded('locality', fn () => $this->locality->name),
             'localitySlug' => $this->whenLoaded('locality', fn () => $this->locality?->slug),

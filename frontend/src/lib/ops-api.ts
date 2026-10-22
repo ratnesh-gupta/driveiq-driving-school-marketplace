@@ -366,6 +366,15 @@ export function updateListingStatus(schoolId: number, status: "suspended" | "pub
   });
 }
 
+/** Archive a school (DIQ-1304): hidden, staff signed out, records kept. `confirm` is its slug. */
+export function archiveSchool(schoolId: number, confirm: string) {
+  return request<void>(`/api/schools/${schoolId}?confirm=${encodeURIComponent(confirm)}`, { method: "DELETE" });
+}
+
+export function restoreSchool(schoolId: number) {
+  return request<{ listingStatus: string }>(`/api/admin/schools/${schoolId}/restore`, { method: "POST" });
+}
+
 export type VerificationFlags = {
   verified: boolean;
   phoneVerified: boolean;

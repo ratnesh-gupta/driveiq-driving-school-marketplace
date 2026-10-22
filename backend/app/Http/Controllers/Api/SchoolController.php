@@ -132,6 +132,9 @@ class SchoolController extends Controller
         if ($school->listing_status === 'unclaimed') {
             return response()->json(['message' => 'Unclaimed listings go live when their owner claims them.'], 422);
         }
+        if ($school->archived_at) {
+            return response()->json(['message' => 'This school is archived. Restore it first.'], 422);
+        }
 
         $old = $school->listing_status;
         $school->forceFill(['listing_status' => $data['status']])->save();
@@ -142,7 +145,11 @@ class SchoolController extends Controller
         return response()->json(['listingStatus' => $school->listing_status]);
     }
 
-    public function delete(int $id): JsonResponse
+    /**
+     * DELETE /schools/{id} (admin): archives the school (DIQ-1304). The admin
+     * types the school's slug to confirm, as in the dialog.
+     */
+    public function delete(Request $request, int $id): JsonResponse
     {
         $school = School::find($id);
 
@@ -150,8 +157,26 @@ class SchoolController extends Controller
             return response()->json(['message' => 'School not found'], 404);
         }
 
-        $this->schoolService->delete($school);
+        if ($request->query('confirm') !== $school->slug) {
+            return response()->json(['message' => 'Type the school\'s web address name ('.$school->slug.') to confirm.'], 422);
+        }
+
+        $this->schoolService->archive($school, $request->query('reason'));
 
         return response()->json(null, 204);
+    }
+
+    /** POST /admin/schools/{id}/restore: undo an archive. */
+    public function restore(int $id): JsonResponse
+    {
+        $school = School::find($id);
+
+        if (! $school) {
+            return response()->json(['message' => 'School not found'], 404);
+        }
+
+        $this->schoolService->restore($school);
+
+        return response()->json(['listingStatus' => $school->fresh()->listing_status]);
     }
 }

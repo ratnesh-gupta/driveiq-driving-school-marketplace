@@ -193,6 +193,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/schools', [SchoolController::class, 'store']);
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
         Route::patch('/admin/schools/{id}/listing-status', [SchoolController::class, 'updateListingStatus'])->whereNumber('id');
+        Route::post('/admin/schools/{id}/restore', [SchoolController::class, 'restore'])->whereNumber('id');
         Route::post('/localities', [LocalityController::class, 'store']);
 
         // Review moderation is platform-admin only; schools can report a review instead.
