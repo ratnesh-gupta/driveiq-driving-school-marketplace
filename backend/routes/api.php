@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\GoogleAdsLeadController;
 use App\Http\Controllers\Api\GoogleBusinessController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LeadNoteController;
@@ -40,11 +41,7 @@ use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\WhatsAppPreferenceController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/healthz', fn () => response()->json([
-    'status' => 'ok',
-    'service' => 'driveiq-backend',
-    'timestamp' => now()->toIso8601String(),
-]));
+Route::get('/healthz', HealthController::class)->middleware('throttle:60,1');
 
 Route::prefix('auth')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');

@@ -13,6 +13,13 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // Demo users with known passwords must never reach production (DIQ-1303).
+        if (app()->isProduction()) {
+            $this->command?->error('DatabaseSeeder loads demo data and refuses to run in production. Use: php artisan db:seed --class=ReferenceDataSeeder');
+
+            return;
+        }
+
         $this->call([
             UsersSeeder::class,
             LocalitiesSeeder::class,

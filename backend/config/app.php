@@ -76,6 +76,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Scheduled jobs ("02:30", "03:15") run on Pune time; stored times stay UTC.
+    'schedule_timezone' => env('SCHEDULE_TIMEZONE', 'Asia/Kolkata'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

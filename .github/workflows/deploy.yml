@@ -1,0 +1,48 @@
+name: Deploy
+
+# One-click production deploy (DIQ-1303): Actions › Deploy › Run workflow.
+# Checks out the chosen commit on the server and runs deploy/deploy.sh,
+# which builds, restarts and waits for /api/healthz.
+#
+# Repository secrets: DEPLOY_HOST (server IP or name), DEPLOY_USER (ubuntu),
+# DEPLOY_SSH_KEY (private key whose public half is in the server's
+# ~/.ssh/authorized_keys), DEPLOY_KNOWN_HOSTS (output of ssh-keyscan <host>).
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or commit to deploy"
+        required: true
+        default: main
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Resolve commit
+        id: sha
+        run: |
+          sha=$(git ls-remote "https://github.com/${{ github.repository }}.git" "${{ inputs.ref }}" | head -n1 | cut -f1)
+          if [ -z "$sha" ]; then sha="${{ inputs.ref }}"; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Set up SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Deploy ${{ steps.sha.outputs.sha }}
+        env:
+          SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "set -e; cd /opt/driveq && git fetch --prune origin && git checkout --force '$SHA' && deploy/deploy.sh"
