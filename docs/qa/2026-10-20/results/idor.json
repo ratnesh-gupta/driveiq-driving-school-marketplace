@@ -1,0 +1,1890 @@
+[
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/dashboard",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/payments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/leave-requests",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/audit-logs",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/analytics",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/analytics/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/subscription",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/entitlements",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/google-business",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/stats/school/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/inquiries?schoolId=1",
+  "s": 200,
+  "bad": true,
+  "snip": "[]"
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/inquiries/1/timeline",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/inquiries/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/inquiries/1/notes",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/inquiries/1/convert",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "DELETE",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/instructors/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/instructors/1/login",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/learners/1/assign",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/learners/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/learners/1/progress",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PUT",
+  "p": "/learners/1/progress",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/learners/1/sessions",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/learners/1/driving-tests",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/learners/1/assignments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/vehicles/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/vehicles/1/documents",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/schedules/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schedules/1/attendance",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/payments/1/mark-paid",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/payments/1/mark-failed",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/leave-requests/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/packages/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "DELETE",
+  "p": "/packages/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PATCH",
+  "p": "/schools/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "PUT",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "DELETE",
+  "p": "/schools/1/team/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/payments/package",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/messages/threads/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/messages/threads/1/read",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "owner2",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices/1/cancel",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/dashboard",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/payments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/leave-requests",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/audit-logs",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/analytics",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/analytics/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/subscription",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/entitlements",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/google-business",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/stats/school/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/inquiries?schoolId=1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/inquiries/1/timeline",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/inquiries/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/inquiries/1/notes",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/inquiries/1/convert",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "DELETE",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/instructors/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/instructors/1/login",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/learners/1/assign",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/learners/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/learners/1/progress",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PUT",
+  "p": "/learners/1/progress",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/learners/1/sessions",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/learners/1/driving-tests",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/learners/1/assignments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/vehicles/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/vehicles/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/schedules/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schedules/1/attendance",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/payments/1/mark-paid",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/payments/1/mark-failed",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/leave-requests/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/packages/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "DELETE",
+  "p": "/packages/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PATCH",
+  "p": "/schools/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "PUT",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "DELETE",
+  "p": "/schools/1/team/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/payments/package",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/messages/threads/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/messages/threads/1/read",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learnerNew",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices/1/cancel",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/dashboard",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/payments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/leave-requests",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/audit-logs",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/analytics",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/analytics/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/subscription",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/entitlements",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/google-business",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/stats/school/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/inquiries?schoolId=1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/inquiries/1/timeline",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/inquiries/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/inquiries/1/notes",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/inquiries/1/convert",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "DELETE",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/instructors/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/instructors/1/login",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/learners/1/assign",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/learners/1/documents",
+  "s": 200,
+  "bad": true,
+  "snip": "[]"
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/learners/1/progress",
+  "s": 200,
+  "bad": true,
+  "snip": "{\"learnerId\":1,\"learnerName\":\"Asha Patil\",\"skills\":[{\"skillName\":\"highway_driving\",\"percentage\":0,\"notes\":null,\"updatedAt\":null,\"sessionId\":"
+ },
+ {
+  "who": "learner",
+  "m": "PUT",
+  "p": "/learners/1/progress",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/learners/1/sessions",
+  "s": 200,
+  "bad": true,
+  "snip": "[{\"id\":1,\"sessionDate\":\"2026-10-21\",\"startTime\":\"07:00\",\"endTime\":\"08:00\",\"status\":\"scheduled\",\"instructorName\":\"Neha Kulkarni\",\"pickupLocat"
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/learners/1/driving-tests",
+  "s": 200,
+  "bad": true,
+  "snip": "[]"
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/learners/1/assignments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/vehicles/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/vehicles/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/schedules/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schedules/1/attendance",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/payments/1/mark-paid",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/payments/1/mark-failed",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/leave-requests/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/packages/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "DELETE",
+  "p": "/packages/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PATCH",
+  "p": "/schools/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "PUT",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "DELETE",
+  "p": "/schools/1/team/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/payments/package",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/messages/threads/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/messages/threads/1/read",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "learner",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices/1/cancel",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/dashboard",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/payments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/leave-requests",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/audit-logs",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/analytics",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/analytics/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/subscription",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/entitlements",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/google-business",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/stats/school/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/inquiries?schoolId=1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/inquiries/1/timeline",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/inquiries/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/inquiries/1/notes",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/inquiries/1/convert",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "DELETE",
+  "p": "/instructors/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/instructors/1/documents",
+  "s": 200,
+  "bad": true,
+  "snip": "[]"
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/instructors/1/login",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/learners/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/learners/1/assign",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/learners/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/learners/1/progress",
+  "s": 200,
+  "bad": true,
+  "snip": "{\"learnerId\":1,\"learnerName\":\"Asha Patil\",\"skills\":[{\"skillName\":\"highway_driving\",\"percentage\":0,\"notes\":null,\"updatedAt\":null,\"sessionId\":"
+ },
+ {
+  "who": "instructor",
+  "m": "PUT",
+  "p": "/learners/1/progress",
+  "s": 422,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/learners/1/sessions",
+  "s": 200,
+  "bad": true,
+  "snip": "[{\"id\":1,\"sessionDate\":\"2026-10-21\",\"startTime\":\"07:00\",\"endTime\":\"08:00\",\"status\":\"scheduled\",\"instructorName\":\"Neha Kulkarni\",\"pickupLocat"
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/learners/1/driving-tests",
+  "s": 200,
+  "bad": true,
+  "snip": "[]"
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/learners/1/assignments",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/vehicles/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/vehicles/1/documents",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/schedules/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schedules/1/attendance",
+  "s": 422,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/payments/1/mark-paid",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/payments/1/mark-failed",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/leave-requests/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/packages/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "DELETE",
+  "p": "/packages/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PATCH",
+  "p": "/schools/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "PUT",
+  "p": "/schools/1/settings",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/team",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "DELETE",
+  "p": "/schools/1/team/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/learners",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/vehicles",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/instructors",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/schedules",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/payments/package",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/messages/threads/1",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/messages/threads/1/read",
+  "s": 404,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "GET",
+  "p": "/schools/1/billing/invoices/1",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ },
+ {
+  "who": "instructor",
+  "m": "POST",
+  "p": "/schools/1/billing/invoices/1/cancel",
+  "s": 403,
+  "bad": false,
+  "snip": ""
+ }
+]

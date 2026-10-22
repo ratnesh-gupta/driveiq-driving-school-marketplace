@@ -353,7 +353,9 @@ export async function customFetch<T = unknown>(
     headers.set("content-type", "application/json");
   }
 
-  if (responseType === "json" && !headers.has("accept")) {
+  // Always ask for JSON on API calls (except raw text/blob downloads): without it
+  // Laravel answers validation errors with a 302 redirect instead of a 422.
+  if (responseType !== "text" && responseType !== "blob" && !headers.has("accept")) {
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 

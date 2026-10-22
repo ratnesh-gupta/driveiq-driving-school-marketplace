@@ -1,0 +1,117 @@
+[
+ {
+  "id": "M1 owner invites manager",
+  "ok": true,
+  "note": "status=201 {\"id\":3,\"userId\":null,\"name\":null,\"email\":\"mgr_855461@example.com\",\"role\":\"manager\",\"status\":\"pending\",\"invitedAt\":\"2026"
+ },
+ {
+  "id": "M2 manager accepts invite",
+  "ok": true,
+  "note": "status=200 {\"user\":{\"id\":10,\"name\":\"QA Manager\",\"email\":\"mgr_855461@example.com\",\"email_verified_at\":\"2026-10-20T08:44:17.000000Z\",\"created_at\":\"2026-1"
+ },
+ {
+  "id": "M3 invite token single-use",
+  "ok": true,
+  "note": "status=404"
+ },
+ {
+  "id": "M4 manager can log in",
+  "ok": true,
+  "note": "token=true"
+ },
+ {
+  "id": "M5 manager GET /schools/1/learners",
+  "ok": true,
+  "note": "status=200 expected 200 "
+ },
+ {
+  "id": "M5 manager GET /inquiries",
+  "ok": true,
+  "note": "status=200 expected 200 "
+ },
+ {
+  "id": "M5 manager GET /schools/1/schedules",
+  "ok": true,
+  "note": "status=200 expected 200 "
+ },
+ {
+  "id": "M5 manager GET /schools/1/payments",
+  "ok": true,
+  "note": "status=200 expected 200 "
+ },
+ {
+  "id": "M5 manager POST /schools/1/vehicles",
+  "ok": true,
+  "note": "status=201 expected 201 "
+ },
+ {
+  "id": "M5 manager GET /schools/1/team",
+  "ok": true,
+  "note": "status=200 expected [200,403] "
+ },
+ {
+  "id": "M5 manager POST /schools/1/team",
+  "ok": true,
+  "note": "status=403 expected 403 "
+ },
+ {
+  "id": "M5 manager DELETE /schools/1/team/1",
+  "ok": true,
+  "note": "status=403 expected 403 "
+ },
+ {
+  "id": "M5 manager GET /schools/1/subscription",
+  "ok": true,
+  "note": "status=200 expected [200,403] "
+ },
+ {
+  "id": "M5 manager GET /schools/1/billing/invoices",
+  "ok": true,
+  "note": "status=200 expected [200,403] "
+ },
+ {
+  "id": "M5 manager POST /schools/1/billing/invoices",
+  "ok": true,
+  "note": "status=403 expected 403 "
+ },
+ {
+  "id": "M5 manager PUT /schools/1/settings",
+  "ok": true,
+  "note": "status=422 expected [403,422] "
+ },
+ {
+  "id": "M5 manager PATCH /schools/1",
+  "ok": false,
+  "note": "status=200 expected [403,422] {\"id\":1,\"name\":\"Mgr Rename\",\"slug\":\"skyline-driving-academy\",\"listingType\":\"scho"
+ },
+ {
+  "id": "M5 manager GET /schools/1/audit-logs",
+  "ok": true,
+  "note": "status=403 expected [200,403] "
+ },
+ {
+  "id": "M5 manager GET /schools/1/google-business",
+  "ok": true,
+  "note": "status=200 expected [200,403] "
+ },
+ {
+  "id": "M5 manager DELETE /schools/1/google-business",
+  "ok": true,
+  "note": "status=403 expected 403 "
+ },
+ {
+  "id": "M5 manager GET /admin/users",
+  "ok": true,
+  "note": "status=403 expected 403 "
+ },
+ {
+  "id": "M5 manager GET /schools/7/learners",
+  "ok": true,
+  "note": "status=403 expected [403,404] "
+ },
+ {
+  "id": "M6 removed manager loses access immediately",
+  "ok": true,
+  "note": "remove=204 afterAccess=401"
+ }
+]

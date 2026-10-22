@@ -287,4 +287,16 @@ class SecurityRegressionTest extends TestCase
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
         $this->getJson($url)->assertOk()->assertJsonCount(1);
     }
+
+    public function test_include_pending_must_be_a_numeric_boolean_not_the_word_true(): void
+    {
+        // The school dashboard sends includePending=1; "true" is rejected with a
+        // JSON 422 (and a redirect for clients that do not ask for JSON).
+        [$owner, $school] = $this->makeSchoolWithOwner('pending-flag');
+        Sanctum::actingAs($owner);
+
+        $this->getJson("/api/reviews?schoolId={$school->id}&includePending=true")
+            ->assertStatus(422)->assertJsonValidationErrors('includePending');
+        $this->getJson("/api/reviews?schoolId={$school->id}&includePending=1")->assertOk();
+    }
 }

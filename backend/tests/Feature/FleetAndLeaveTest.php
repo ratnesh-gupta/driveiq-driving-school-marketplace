@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -75,5 +76,27 @@ class FleetAndLeaveTest extends TestCase
 
         // The clashing session can still be cancelled (DIQ-903).
         $this->patchJson("/api/schedules/{$clash->id}", ['status' => 'cancelled'])->assertOk();
+    }
+
+    public function test_losing_a_duplicate_vehicle_race_is_a_422_not_a_500(): void
+    {
+        $sid = $this->school->id;
+        $this->postJson("/api/schools/{$sid}/vehicles", ['registrationNumber' => 'MH12AA0100', 'type' => 'car'])->assertCreated();
+        $this->postJson("/api/schools/{$sid}/vehicles", ['registrationNumber' => 'mh12aa0100'])
+            ->assertStatus(422)->assertJsonValidationErrors('registrationNumber');
+
+        // A concurrent request wins between validation and insert: the unique index decides.
+        $raced = false; // one-shot: the listener outlives this test, so keep it inert afterwards
+        Vehicle::creating(function (Vehicle $v) use ($sid, &$raced) {
+            if ($raced) {
+                return;
+            }
+            $raced = true;
+            DB::table('vehicles')->insert([
+                'school_id' => $sid, 'registration_number' => 'MH12AA0200', 'type' => 'car', 'status' => 'active',
+            ]);
+        });
+        $this->postJson("/api/schools/{$sid}/vehicles", ['registrationNumber' => 'MH12AA0200'])
+            ->assertStatus(422)->assertJsonValidationErrors('registrationNumber');
     }
 }

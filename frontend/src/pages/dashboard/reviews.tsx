@@ -36,7 +36,8 @@ export default function DashboardReviewsPage() {
   const schoolId = useSchoolId();
   // Own school's reviews including those awaiting moderation (the API only
   // honours includePending for the signed-in school's own id).
-  const reviewParams: ListReviewsParams & { includePending: boolean } = { schoolId: schoolId!, includePending: true };
+  // Sent as 1, not true: Laravel's `boolean` rule rejects the string "true".
+  const reviewParams: ListReviewsParams & { includePending: number } = { schoolId: schoolId!, includePending: 1 };
   const { data: reviews, isLoading } = useListReviews(reviewParams, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey(reviewParams) } });
 
   const [reportingId, setReportingId] = useState<number | null>(null);

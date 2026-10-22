@@ -1,0 +1,192 @@
+[
+ {
+  "id": "B1 create session",
+  "ok": true,
+  "note": "status=201 {\"id\":2,\"schoolId\":1,\"learnerId\":1,\"learnerName\":null,\"instructorId\":1,\"instructorName\":\"Neha Kulkar"
+ },
+ {
+  "id": "B2 overlapping session for same instructor rejected",
+  "ok": true,
+  "note": "status=422 {\"message\":\"Validation failed\",\"errors\":{\"instructor_id\":[\"Instructor already has an overlapping session.\"]}}"
+ },
+ {
+  "id": "B3 same learner double-booked rejected",
+  "ok": true,
+  "note": "status=422 {\"message\":\"Validation failed\",\"errors\":{\"learner_id\":[\"Learner already has an overlapping session.\"]}}"
+ },
+ {
+  "id": "B4 end before start rejected",
+  "ok": true,
+  "note": "status=422 {\"message\":\"Validation failed\",\"errors\":{\"end_time\":[\"End time must be after start time.\"]}}"
+ },
+ {
+  "id": "B5 session in the past rejected",
+  "ok": false,
+  "note": "status=201 {\"id\":3,\"schoolId\":1,\"learnerId\":null,\"learnerName\":null,\"instructorId\":1,\"instructorName\":\"Neha Kul"
+ },
+ {
+  "id": "B6 cross-school instructorId injection rejected",
+  "ok": true,
+  "note": "status=422 {\"message\":\"Validation failed\",\"errors\":{\"instructor_id\":[\"Instructor not available.\"]}}"
+ },
+ {
+  "id": "B7 cross-school vehicle/learner injection rejected",
+  "ok": true,
+  "note": "status=422 {\"message\":\"Validation failed\",\"errors\":{\"learnerId\":[\"The selected learner id is invalid.\"]}}"
+ },
+ {
+  "id": "B8 learner cannot mark attendance",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "B9 other-school owner cannot mark attendance",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "B10 assigned trainer marks attendance (future session)",
+  "ok": true,
+  "note": "status=200 {\"id\":1,\"scheduleId\":2,\"status\":\"present\",\"sessionStatus\":\"completed\",\"markedAt\":\"2026-10-20T08:17:2 (marking a FUTURE session present should arguably be rejected)"
+ },
+ {
+  "id": "B11 add vehicle",
+  "ok": true,
+  "note": "status=201"
+ },
+ {
+  "id": "B12 duplicate registration (case-insens.) rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "B13 same reg in other school allowed? (info)",
+  "ok": true,
+  "note": "status=201"
+ },
+ {
+  "id": "B14 bad vehicle type/year rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "B15 negative package price rejected",
+  "ok": true,
+  "note": "status=422 {\"errors\":{\"price\":[\"The price field must be at least 0.\"],\"transmission\":[\"The transmission field is required.\"]}}"
+ },
+ {
+  "id": "B16 purchase package (pending)",
+  "ok": true,
+  "note": "status=201 {\"payment\":{\"id\":1,\"schoolId\":1,\"invoiceId\":1,\"learnerId\":1,\"learnerName\":\"Asha Patil\",\"purpose\":\"package\",\"packageId\":1,\"packageName\":\"Starter Manual\",\"amount\""
+ },
+ {
+  "id": "B17 mark-paid then paid again is idempotent/blocked",
+  "ok": true,
+  "note": "first=200 second=422"
+ },
+ {
+  "id": "B18 paid payment cannot be marked failed",
+  "ok": true,
+  "note": "status=422 {\"message\":\"Validation failed\",\"errors\":{\"status\":[\"This payment is already paid.\"]}}"
+ },
+ {
+  "id": "B19 trainer cannot mark paid",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "B20 other school cannot bill school1 learner",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "B21 trainer requests leave",
+  "ok": true,
+  "note": "status=201 {\"id\":1,\"instructorId\":1,\"instructorName\":\"Neha Kulkarni\",\"startDate\":\"2026-10-23\",\"endDate\":\"2026-10-23\",\"reason\":\"QA leave\",\"status\":\"pend"
+ },
+ {
+  "id": "B22 leave in past rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "B23 leave end<start rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "B24 owner approves leave",
+  "ok": true,
+  "note": "status=200 {\"id\":1,\"instructorId\":1,\"instructorName\":\"Neha Kulkarni\",\"startDate\":\"2026-10-23\",\"endDate\":\"2026-10-23\",\"reason\":\"QA leave\",\"status\":\"approved\",\"reviewedAt\":\"2026-10-20T08:17:24.000000Z\",\"clashingSe"
+ },
+ {
+  "id": "B25 trainer cannot self-approve leave",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "B26 add note",
+  "ok": true,
+  "note": "status=201 {\"type\":\"note\",\"id\":1,\"at\":\"2026-10-20T08:17:24.000000Z\",\"body\":\"<script>alert(1)<\\/script> note\",\"f"
+ },
+ {
+  "id": "B27 anon includePending=1 must not expose pending reviews",
+  "ok": true,
+  "note": "status=200 pending visible=0 total=2"
+ },
+ {
+  "id": "B28 ineligible learner review rejected (server-side)",
+  "ok": true,
+  "note": "status=403 {\"message\":\"Only learners enrolled with this school can review it from their account. If you enquired, use the review li"
+ },
+ {
+  "id": "B29 anonymous review rejected",
+  "ok": true,
+  "note": "status=401"
+ },
+ {
+  "id": "B30 rating 9 rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "B31 enrolled learner can review",
+  "ok": true,
+  "note": "status=201 {\"id\":10,\"schoolId\":1,\"schoolName\":\"Skyline Driving Academy\",\"authorName\":\"Asha\",\"rating\":4,\"content\":\"<img src=x onerror=alert(1)> QA revie"
+ },
+ {
+  "id": "B32 duplicate review by same learner rejected",
+  "ok": true,
+  "note": "status=403 {\"message\":\"You have already reviewed this school.\"}"
+ },
+ {
+  "id": "B33 review auto-hidden after 3 reports",
+  "ok": true,
+  "note": "still public=false"
+ },
+ {
+  "id": "B34 duplicate report by same user blocked",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "B35 school owner cannot delete reviews (admin-only)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "B36 deactivated user token revoked",
+  "ok": true,
+  "note": "status=401"
+ },
+ {
+  "id": "B37 deactivated user cannot log in",
+  "ok": true,
+  "note": "status=429"
+ },
+ {
+  "id": "B38 admin cannot deactivate self (lockout)",
+  "ok": true,
+  "note": "status=422 {\"message\":\"You cannot deactivate your own account\"}"
+ }
+]

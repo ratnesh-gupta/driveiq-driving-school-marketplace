@@ -7,6 +7,7 @@ use App\Models\Locality;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -178,5 +179,15 @@ class NotificationTest extends TestCase
 
         $this->postJson('/api/notifications/'.$n->id.'/read')
             ->assertNotFound();
+    }
+
+    public function test_marking_a_notification_with_a_malformed_id_is_a_404_not_a_500(): void
+    {
+        [$owner] = $this->makeSchoolOwner('notify-school-bad-id');
+        Sanctum::actingAs($owner);
+
+        $this->postJson('/api/notifications/1/read')->assertNotFound();
+        $this->postJson('/api/notifications/abc/read')->assertNotFound();
+        $this->postJson('/api/notifications/'.Str::uuid().'/read')->assertNotFound();
     }
 }

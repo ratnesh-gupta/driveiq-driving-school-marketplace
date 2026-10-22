@@ -1,0 +1,187 @@
+[
+ {
+  "id": "A-S15 forgot-password does not enumerate users",
+  "ok": true,
+  "note": "known=200 {\"message\":\"If an account exists for that email, a reset lin | unknown=200 {\"message\":\"If an account exists for that email, a reset lin"
+ },
+ {
+  "id": "A-S15b login error identical for known/unknown",
+  "ok": true,
+  "note": "422:{\"message\":\"Validation failed\",\"errors\":{\"email\":[\"The provided creden | 422:{\"message\":\"Validation failed\",\"errors\":{\"email\":[\"The provided creden"
+ },
+ {
+  "id": "A-S16 cannot self-register as admin",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "A-S17 weak password rejected server-side",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "A-S14 brute force locked out after ≤5 attempts per account",
+  "ok": true,
+  "note": "422,422,422,429,429,429,429,429"
+ },
+ {
+  "id": "R1 owner creates learner B",
+  "ok": true,
+  "note": "status=201 id=2"
+ },
+ {
+  "id": "R2 owner creates instructor B",
+  "ok": true,
+  "note": "status=201 {\"id\":2,\"schoolId\":1,\"name\":\"Trainer B QA\",\"gender\":null,\"yearsExperience\":0,\"skills\":[],\"languages\":[],\"womenInstructor\":false,\"publicVisible\":false,"
+ },
+ {
+  "id": "R3 learner GET /learners/2 blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 learner GET /learners/2/progress blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 learner GET /learners/2/sessions blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 learner GET /learners/2/documents blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 instructor GET /learners/2 blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 instructor GET /learners/2/progress blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 instructor GET /learners/2/sessions blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 instructor GET /learners/2/documents blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 instructor GET /instructors/2 blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R3 instructor GET /instructors/2/documents blocked (not own/assigned)",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R4 trainer cannot list ALL school learners",
+  "ok": true,
+  "note": "status=403 count=-"
+ },
+ {
+  "id": "R5 trainer cannot see payments",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R6 learner cannot see payments",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "R7 learner cannot edit own status/assignment",
+  "ok": true,
+  "note": "status=403 {\"message\":\"Forbidden\"}"
+ },
+ {
+  "id": "R8 learner cannot set own progress",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "U1 valid PDF accepted",
+  "ok": true,
+  "note": "status=201"
+ },
+ {
+  "id": "U2 .php rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "U3 php payload with .jpg ext rejected (content sniff)",
+  "ok": true,
+  "note": "status=422 {\"message\":\"Validation failed\",\"errors\":{\"file\":[\"The file field must be a file of type: p"
+ },
+ {
+  "id": "U4 svg rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "U5 >5MB rejected",
+  "ok": true,
+  "note": "status=422"
+ },
+ {
+  "id": "U6 path-traversal filename handled",
+  "ok": true,
+  "note": "status=201 passwd.pdf"
+ },
+ {
+  "id": "U7 learner cannot upload to another learner",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "U8 other school cannot upload to school1 learner",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "U9 owner of doc gets signed link",
+  "ok": true,
+  "note": "status=200"
+ },
+ {
+  "id": "U10 other school denied doc link",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "U10b unrelated learner denied doc link",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "U10c anon denied doc link",
+  "ok": true,
+  "note": "status=401"
+ },
+ {
+  "id": "U11 signed link downloads file w/o auth",
+  "ok": true,
+  "note": "status=200 ct=application/pdf cd=inline; filename=passwd.pdf xcto=nosniff"
+ },
+ {
+  "id": "U12 tampered signature rejected",
+  "ok": true,
+  "note": "status=403"
+ },
+ {
+  "id": "U12b id swap with same signature rejected",
+  "ok": true,
+  "note": "status=403"
+ }
+]
