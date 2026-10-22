@@ -1,0 +1,44 @@
+# Production image for the API, queue worker and scheduler (DIQ-1301).
+# PHP-FPM with OPcache; dependencies are baked in at build time, nothing is
+# installed when the container starts. The local dev stack keeps using
+# ./Dockerfile with a bind mount.
+
+# --- Composer dependencies -------------------------------------------------
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction --no-progress
+COPY . .
+RUN composer dump-autoload --no-dev --no-scripts --optimize --classmap-authoritative
+
+# --- Runtime ---------------------------------------------------------------
+FROM php:8.3-fpm-alpine
+
+RUN apk add --no-cache postgresql-libs icu-libs libzip fcgi \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS postgresql-dev icu-dev libzip-dev linux-headers \
+    && docker-php-ext-install -j"$(nproc)" pdo_pgsql pcntl opcache intl bcmath zip \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps \
+    && rm -rf /tmp/pear
+
+COPY docker/php.ini /usr/local/etc/php/conf.d/zz-driveq.ini
+COPY docker/fpm.conf /usr/local/etc/php-fpm.d/zz-driveq.conf
+COPY docker/entrypoint.sh /usr/local/bin/driveq-entrypoint
+
+WORKDIR /var/www/html
+COPY --from=vendor --chown=www-data:www-data /app /var/www/html
+
+RUN chmod +x /usr/local/bin/driveq-entrypoint \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs storage/app/private storage/app/public bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && php artisan package:discover --ansi
+
+USER www-data
+
+# FPM answers liveness pings on /fpm-ping (see docker/fpm.conf).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 || exit 1
+
+ENTRYPOINT ["driveq-entrypoint"]
+CMD ["php-fpm"]

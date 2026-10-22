@@ -129,3 +129,32 @@ jobs:
         run: pnpm build
         env:
           VITE_API_BASE_URL: http://localhost:8000
+
+  images:
+    name: Production images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f backend/Dockerfile.prod -t driveq-app:ci backend
+
+      - name: Build web image
+        run: docker build -f frontend/Dockerfile.prod -t driveq-web:ci frontend
+
+      - name: Validate Caddyfile
+        run: docker run --rm driveq-web:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: API image boots and answers through Caddy
+        run: |
+          docker network create dq
+          docker run -d --name app --network dq \
+            -e APP_KEY=base64:$(openssl rand -base64 32) -e APP_ENV=production \
+            -e CACHE_STORE=array -e SESSION_DRIVER=array -e QUEUE_CONNECTION=sync -e LOG_CHANNEL=stderr \
+            driveq-app:ci
+          docker run -d --name web --network dq -p 8080:80 driveq-web:ci
+          for i in $(seq 1 30); do curl -fsS http://localhost:8080/up >/dev/null && break; sleep 1; done
+          curl -fsS http://localhost:8080/up
+          curl -fsS http://localhost:8080/ | grep -q '<div id="root">'
+          curl -fsSI http://localhost:8080/ | grep -qi 'x-content-type-options: nosniff'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/assets/missing.js)" = 404

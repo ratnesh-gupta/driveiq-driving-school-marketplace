@@ -11,10 +11,10 @@ Branch naming (per CLAUDE.md §9): `bugfix/<slug>` for defects, `feature/<slug>`
 
 | Pri | PR | Branch | Fixes | Effort | Blocks launch? |
 |---|---|---|---|---|---|
-| P0 | 1 | `infra/prod-hardening` | INF-01, INF-02, BUG-08 | 1–2 d | **Yes** |
-| P0 | 2 | `bugfix/quick-wins-reviews-notifications` | BUG-01, BUG-11, BUG-15, BUG-13 | 0.5 d | No (BUG-01 breaks a core page) |
-| P1 | 3 | `bugfix/school-soft-delete-retention` | BUG-04 | 1 d | Yes, before real data |
-| P1 | 4 | `bugfix/pagination-leads-learners-search` | BUG-02, BUG-03 | 2 d | Yes at scale |
+| P0 | 1 | `infra/prod-hardening` | INF-01, INF-02, BUG-08 | 1–2 d | **Yes** — done in M11a (DIQ-1301–1303) |
+| P0 | 2 | `bugfix/quick-wins-reviews-notifications` | BUG-01, BUG-11, BUG-15, BUG-13 | 0.5 d | Done (#32) |
+| P1 | 3 | `bugfix/school-soft-delete-retention` | BUG-04 | 1 d | Done in M11a (DIQ-1304) |
+| P1 | 4 | `bugfix/pagination-leads-learners-search` | BUG-02, BUG-03 | 2 d | Done in M11a (DIQ-1305) |
 | P2 | 5 | `bugfix/scheduling-integrity` | BUG-05 | 0.5–1 d | No |
 | P2 | 6 | `bugfix/homepage-trust-and-near-me` | BUG-09, BUG-12 | 0.5–1 d | Trust/legal |
 | P2 | 7 | `feature/start-conversation` | BUG-10 | 1–2 d | No |

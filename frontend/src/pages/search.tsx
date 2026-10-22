@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/public-layout";
@@ -11,7 +11,11 @@ import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useListSchools, useListLocalities } from "@/api-client";
+import { useListLocalities } from "@/api-client";
+import type { School } from "@/api-client/generated/api.schemas";
+import { useQuery } from "@tanstack/react-query";
+import { requestPage } from "@/lib/ops-api";
+import { Pager } from "@/components/pager";
 import { SchoolsMap, hasMapsKey } from "@/components/maps/schools-map";
 import type { ListSchoolsParams } from "@/api-client/generated/api.schemas";
 import { Search, SlidersHorizontal, X, MapPin, Car } from "lucide-react";
@@ -71,7 +75,26 @@ export default function SearchPage() {
     return p;
   }, [locality, vehicleType, transmission, listingType, hasPickup, womenInstructor, weekendClasses, verifiedOnly, minRating, maxPrice, nearMe, geo, radiusKm]);
 
-  const { data: schools, isLoading } = useListSchools(params);
+  // The API pages and ranks in SQL; show the real total and page through it (DIQ-1305, QA BUG-03).
+  const PER_PAGE = 24;
+  const [page, setPage] = useState(1);
+  const paramsKey = JSON.stringify(params);
+  useEffect(() => setPage(1), [paramsKey]);
+  const { data: result, isLoading } = useQuery({
+    queryKey: ["schools-search", params, page],
+    queryFn: () => requestPage<School>("/api/schools", {
+      ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, v === true ? 1 : (v as string | number)])),
+      limit: PER_PAGE,
+      offset: (page - 1) * PER_PAGE,
+    }),
+    placeholderData: (prev) => prev,
+  });
+  const schools = result?.items;
+  const total = result?.total ?? 0;
+  const goToPage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const activeFilterCount = [
     locality, vehicleType, transmission, listingType, hasPickup, womenInstructor,
@@ -380,7 +403,7 @@ export default function SearchPage() {
                 </h1>
                 {!isLoading && (
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    {schools?.length || 0} schools found
+                    {total} {total === 1 ? "school" : "schools"} found
                     {nearMe && geo && ` within ${radiusKm}km`}
                   </p>
                 )}
@@ -452,6 +475,9 @@ export default function SearchPage() {
                   ))}
                 </AnimatePresence>
               </motion.div>
+            )}
+            {!isLoading && total > PER_PAGE && (
+              <Pager page={page} perPage={PER_PAGE} total={total} onPage={goToPage} noun="schools" />
             )}
           </div>
         </div>

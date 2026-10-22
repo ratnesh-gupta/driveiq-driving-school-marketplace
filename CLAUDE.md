@@ -2,7 +2,7 @@
 
 **Status:** MVP Development in Progress  
 **Target Market:** Pune, India (Initial Phase)  
-**Current Phase:** M1–M10 done (security, RBAC, geo search, uploads, DPDP, lead engine, monetization, operations reconciliation of phases 3–8, WhatsApp driver layer, school/trainer acquisition, DriveQ sales kit); next: M11 cheap pilot launch (infrastructure)  
+**Current Phase:** M1–M10 done, M11a (launch blockers) in review; next: M11b design pass D1–D20, M11c SEO basics, then the AWS go-live (docs/DEPLOY.md)  
 **Last Updated:** 2026-10-02  
 **Master Plan:** `docs/PROJECT-PLAN.md` — single source of truth for scope, phasing, and requirements
 
@@ -730,7 +730,8 @@ Current single-branch design naturally extends to this model.
 ✅ WhatsApp (M8): provider-neutral driver layer (`log`/`null`), opt-in recorded as consent, lead alerts/reminders to staff, enquiry confirmations, session reminders; masked outbound log for admins  
 ✅ Acquisition (M9): listing status (unclaimed/draft/published/suspended; only published is public, use `School::public()` scope), independent-trainer listings, owner email verification gates publishing, prospects CRM + CSV import, claim links with one-time codes, outreach email campaigns (`driveiq:outreach`, separate `outreach` mailer, suppression list), Google Ads lead webhook, Google Business Profile import, `/for-schools` + `/for-trainers` landing pages, admin funnel  
 ✅ Sales kit (M10): user-facing name is **DriveQ** (code identifiers, `driveiq_*` storage keys, `driveiq:*` commands and demo logins keep the old name); `driveiq:demo` showcase data (refuses production); branded outreach emails + presets in en/hi/mr (`config/outreach_presets.php`, `config/outreach_copy.php`); `marketing/` scripts for demo videos and screenshots  
-✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build in CI  
+✅ Launch blockers (M11a): `docker-compose.prod.yaml` (PHP-FPM + Caddy HTTPS, worker, scheduler, Postgres, Redis) for one AWS Mumbai server, `deploy/` scripts (setup, deploy, S3 backup/restore), GitHub "Deploy" workflow, `TRUSTED_PROXIES`, security headers, deep `/api/healthz`, `ReferenceDataSeeder` for production; schools are archived (`archived_at`), never hard-deleted while money records are within 8 years (`driveiq:purge-school`); list endpoints page with `?page/perPage` + `X-Total-Count` (`PagesResults` trait)  
+✅ PHPUnit on PostgreSQL/PostGIS in CI + Pint lint; frontend typecheck/build and production image builds in CI  
 
 ### Demo/Non-Production Behaviors
 ⚠️ Mail defaults to the `log` driver; configure `MAIL_*` before launch (password reset, invites, review links)  

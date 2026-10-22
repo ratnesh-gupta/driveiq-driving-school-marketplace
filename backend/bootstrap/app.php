@@ -2,9 +2,12 @@
 
 use App\Http\Middleware\EnforcePlanFeatures;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\TrustConfiguredProxies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -18,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // DIQ-1302: forwarded headers only from TRUSTED_PROXIES; security headers everywhere.
+        $middleware->replace(TrustProxies::class, TrustConfiguredProxies::class);
+        $middleware->append(SecurityHeaders::class);
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'plan.features' => EnforcePlanFeatures::class,

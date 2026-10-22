@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { leadStatusColor, leadStatusLabel } from "@/lib/lead-status";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetSchoolStats, useListInquiries, getGetSchoolStatsQueryKey, getListInquiriesQueryKey } from "@/api-client";
+import { useGetSchoolStats, getGetSchoolStatsQueryKey } from "@/api-client";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { TrendingUp, Users, Star, MessageCircle, AlertCircle, Timer, Zap, Hourglass, GraduationCap, ChevronRight, ClipboardList } from "lucide-react";
 import { Link } from "wouter";
@@ -10,7 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchSchoolDashboard } from "@/lib/ops-api";
+import { fetchSchoolDashboard, listInquiriesPage } from "@/lib/ops-api";
+import type { Inquiry } from "@/api-client/generated/api.schemas";
 import { formatDuration } from "@/lib/response-time";
 import { GoLiveChecklist } from "@/components/go-live-checklist";
 
@@ -44,7 +45,13 @@ function vsLastMonth(now: number, prev: number): string {
 export default function DashboardHomePage() {
   const schoolId = useSchoolId();
   const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId, queryKey: getGetSchoolStatsQueryKey(schoolId!) } });
-  const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) } });
+  // Only the five newest are shown, so only five are fetched (DIQ-1305).
+  const { data: recent } = useQuery({
+    queryKey: ["inquiries-recent", schoolId],
+    queryFn: () => listInquiriesPage<Inquiry>({ page: 1, perPage: 5 }),
+    enabled: !!schoolId,
+  });
+  const inquiries = recent?.items;
 
   const { data: dashboard } = useQuery({
     queryKey: ["school-dashboard", schoolId],

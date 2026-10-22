@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\PagesResults;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Inquiry;
@@ -25,6 +26,8 @@ use Illuminate\Validation\ValidationException;
 
 class LearnerController extends Controller
 {
+    use PagesResults;
+
     public function __construct(
         private readonly NotificationService $notifications,
     ) {}
@@ -35,6 +38,8 @@ class LearnerController extends Controller
             return $deny;
         }
 
+        $request->validate(['search' => ['nullable', 'string', 'max:100']]);
+
         $query = Learner::withoutGlobalScope('school')
             ->with(['instructor:id,name', 'vehicle:id,registration_number', 'package:id,name,price'])
             ->where('school_id', $schoolId)
@@ -44,9 +49,16 @@ class LearnerController extends Controller
             $query->where('status', $request->query('status'));
         }
 
-        return response()->json(
-            $query->limit(200)->get()->map(fn (Learner $l) => $this->serialize($l, full: true))
-        );
+        // Name or mobile (DIQ-1305).
+        if ($request->filled('search')) {
+            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($request->query('search'))).'%';
+            $query->where(fn ($q) => $q->where('name', 'ilike', $term)->orWhere('mobile', 'ilike', $term));
+        }
+
+        // Paged with ?page/?perPage (the Learners page); pickers get a capped list.
+        [$rows, $headers] = $this->pageResults($query, $request);
+
+        return response()->json($rows->map(fn (Learner $l) => $this->serialize($l, full: true)))->withHeaders($headers);
     }
 
     public function store(Request $request, int $schoolId): JsonResponse

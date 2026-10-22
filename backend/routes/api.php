@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\GoogleAdsLeadController;
 use App\Http\Controllers\Api\GoogleBusinessController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\InstructorController;
 use App\Http\Controllers\Api\LeadNoteController;
@@ -40,11 +41,7 @@ use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\WhatsAppPreferenceController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/healthz', fn () => response()->json([
-    'status' => 'ok',
-    'service' => 'driveiq-backend',
-    'timestamp' => now()->toIso8601String(),
-]));
+Route::get('/healthz', HealthController::class)->middleware('throttle:60,1');
 
 Route::prefix('auth')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
@@ -196,6 +193,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/schools', [SchoolController::class, 'store']);
         Route::delete('/schools/{id}', [SchoolController::class, 'delete'])->whereNumber('id');
         Route::patch('/admin/schools/{id}/listing-status', [SchoolController::class, 'updateListingStatus'])->whereNumber('id');
+        Route::post('/admin/schools/{id}/restore', [SchoolController::class, 'restore'])->whereNumber('id');
         Route::post('/localities', [LocalityController::class, 'store']);
 
         // Review moderation is platform-admin only; schools can report a review instead.
@@ -263,6 +261,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('/schools/{id}/google-business', [GoogleBusinessController::class, 'disconnect'])->whereNumber('id');
 
         Route::get('/inquiries', [InquiryController::class, 'index']);
+        Route::get('/inquiries/summary', [InquiryController::class, 'summary']);
         Route::patch('/inquiries/{id}', [InquiryController::class, 'update'])->whereNumber('id');
         Route::post('/inquiries/{id}/convert', [LearnerController::class, 'convertInquiry'])->whereNumber('id');
         Route::get('/inquiries/{id}/timeline', [LeadNoteController::class, 'timeline'])->whereNumber('id');
