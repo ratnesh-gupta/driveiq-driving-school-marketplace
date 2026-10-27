@@ -7,11 +7,11 @@ COMPOSE_FILE  ?= docker-compose.yaml
 PROD_FILE     ?= docker-compose.prod.yaml
 
 DC            := $(COMPOSE) -f $(COMPOSE_FILE)
-DC_PROD       := $(COMPOSE) -f $(PROD_FILE)
+DC_PROD       := $(COMPOSE) -f $(PROD_FILE) --env-file .env.production
 
 BACKEND       := $(DC) exec -T backend
 BACKEND_TTY   := $(DC) exec backend
-PROD_BACKEND  := $(DC_PROD) exec -T backend
+PROD_BACKEND  := $(DC_PROD) exec -T app
 
 .PHONY: help demo up down restart ps logs logs-backend logs-frontend \
 	up-infra \
@@ -128,6 +128,7 @@ frontend-check:
 # ── Production compose ──────────────────────────────────────
 
 prod-up:
+	@test -f .env.production || (echo 'Missing .env.production: copy deploy/.env.production.example and fill it in' && exit 1)
 	$(DC_PROD) up -d --build
 
 prod-down:
@@ -139,5 +140,6 @@ prod-logs:
 prod-migrate:
 	$(PROD_BACKEND) php artisan migrate --force
 
+# Reference data only (localities). Never the demo seeders.
 prod-seed:
-	$(PROD_BACKEND) php artisan db:seed --force
+	$(PROD_BACKEND) php artisan db:seed --class=ReferenceDataSeeder --force

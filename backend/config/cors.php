@@ -20,7 +20,7 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => ['X-Total-Count'],
+    'exposed_headers' => ['X-Total-Count', 'X-Page', 'X-Per-Page'],
 
     'max_age' => 0,
 

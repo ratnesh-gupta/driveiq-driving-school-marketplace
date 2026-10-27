@@ -73,6 +73,7 @@ class School extends Model
             'vehicle_types' => 'array',
             'transmission' => 'array',
             'service_areas' => 'array',
+            'archived_at' => 'datetime',
             'rating' => 'float',
             'price_from' => 'float',
             'price_to' => 'float',
@@ -116,6 +117,12 @@ class School extends Model
                 app(SubscriptionService::class)->startTrial($school->id);
             }
         });
+    }
+
+    /** Subquery of archived school ids (DIQ-1304): reminders skip these schools. */
+    public static function archivedIds()
+    {
+        return static::query()->whereNotNull('archived_at')->select('id');
     }
 
     public function scopePublic($query)

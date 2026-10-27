@@ -109,7 +109,8 @@ _Updated 2026-10-02 after milestones M1–M10 (PRs #23–#30 and the M10 PR). Ph
 - WhatsApp/SMS driver layer (M8): opt-ins as consent, lead alerts and reminders to staff, enquiry confirmations, session reminders; masked outbound log.
 - Supply acquisition (M9): listings are unclaimed / draft / published / suspended and only published ones are public; drafts go live once the owner's email is confirmed and phone, locality and map location are set; independent-trainer listings (Basic/Featured plans); admin prospects CRM with CSV import and duplicate checks; pre-built unclaimed listings claimed with a one-time code (email, SMS, or the Google account that manages the business); outreach email campaigns (sequences, daily cap, IST sending hours, RFC 8058 unsubscribe, suppression list, click/claim tracking); Google Ads lead-form webhook; Google Business Profile import and verification; `/for-schools` and `/for-trainers` landing pages with UTM attribution; acquisition funnel and supply-by-locality for admins.
 - Sales kit (M10): product renamed DriveQ in user-facing text (code identifiers, storage keys and `driveiq:*` commands unchanged); `driveiq:demo` showcase data; branded outreach emails with ready-made 3-step sequences for schools and trainers in English, Hindi and Marathi (`outreach_campaigns.language`); DriveQ look for transactional emails; scripted demo videos and screenshots (`marketing/`); school and investor decks published as slide artifacts.
-- PHPUnit on PostgreSQL/PostGIS in CI (311 tests) and Pint lint.
+- Launch blockers (M11a): production Docker stack for one AWS server (PHP-FPM + Caddy with automatic HTTPS, worker, scheduler), trusted-proxy aware rate limits, security headers, deep `/api/healthz`, nightly S3 backups and restore, one-click GitHub deploy, reference-data-only production seed; schools are archived instead of deleted (money records protected by the database); leads, learners and search are paged on the server.
+- PHPUnit on PostgreSQL/PostGIS in CI (337 tests), Pint lint, and a CI build of both production images.
 
 **Frontend (React 19 + Vite + Tailwind 4), 47 pages:**
 - Public: home, search (radius, distance badges, verified filter), school detail (lazy Google Map, JSON-LD), locality pages (FAQ/Breadcrumb JSON-LD), compare, driving rules, contact, privacy/terms/data requests, review-by-link, invite acceptance, password reset.
@@ -122,7 +123,7 @@ _Updated 2026-10-02 after milestones M1–M10 (PRs #23–#30 and the M10 PR). Ph
 |-----|-------|
 | Admin review moderation has no bulk actions | 2 |
 | "Near me" entry point on the homepage (search page has it) | 1 (M11) |
-| Production launch readiness: images, reverse proxy/TLS, trusted proxies, security headers, Spaces, backups, deep health check, deploy job, production seed (audit 2026-09-30) | M11 |
+| Production launch: the code side (images, Caddy/TLS, trusted proxies, security headers, backups to S3, deep health check, deploy workflow, production seed) shipped in M11a; still to do: create the AWS server, domain, SES mail, then the go-live checklist in docs/DEPLOY.md | M11 |
 | Sales kit: native-speaker review of Hindi/Marathi email and caption copy; investor deck numbers (⟨fill in⟩); voice-over/music for videos | M10 follow-up |
 | Outreach: automatic bounce/complaint handling (needs the mailbox's bounce feed); reply detection (admins mark "Replied") | M9 follow-up |
 | Google Business: review sync and replies, posts | Growth |

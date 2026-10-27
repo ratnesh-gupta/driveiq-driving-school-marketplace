@@ -16,6 +16,8 @@ export interface School {
   /** DIQ-1101 (added manually, include in next OpenAPI spec regen) */
   listingType?: "school" | "trainer";
   listingStatus?: "unclaimed" | "draft" | "published" | "suspended";
+  /** DIQ-1304: set while the school is archived (added manually, include in next OpenAPI spec regen) */
+  archivedAt?: string | null;
   localityId: number;
   /** @nullable */
   localityName?: string | null;

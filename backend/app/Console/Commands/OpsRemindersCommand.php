@@ -69,6 +69,7 @@ class OpsRemindersCommand extends Command
         $sent = 0;
 
         Schedule::withoutGlobalScope('school')
+            ->whereNotIn('school_id', School::archivedIds())
             ->with(['instructor.user'])
             ->whereIn('status', ['scheduled', 'rescheduled'])
             ->whereNull('reminded_2h_at')
@@ -136,6 +137,7 @@ class OpsRemindersCommand extends Command
         $sent = 0;
 
         Learner::withoutGlobalScope('school')
+            ->whereNotIn('school_id', School::archivedIds())
             ->where('status', 'active')
             ->whereNotNull('license_expiry_date')
             ->where('license_expiry_date', '<=', now()->addDays(self::LICENCE_WARNING_DAYS)->toDateString())
@@ -168,6 +170,7 @@ class OpsRemindersCommand extends Command
         $sent = 0;
 
         VehicleDocument::withoutGlobalScope('school')
+            ->whereNotIn('school_id', School::archivedIds())
             ->with(['vehicle' => fn ($q) => $q->withoutGlobalScope('school')])
             ->whereNotNull('expiry_date')
             ->where('expiry_date', '<=', now()->addDays(self::VEHICLE_WARNING_DAYS)->toDateString())
@@ -201,6 +204,7 @@ class OpsRemindersCommand extends Command
         $sent = 0;
 
         Learner::withoutGlobalScope('school')
+            ->whereNotIn('school_id', School::archivedIds())
             ->where('status', 'active')
             ->whereNotNull('user_id')
             ->whereNull('documents_nudged_at')

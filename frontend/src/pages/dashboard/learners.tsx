@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LearnerDetailSheet } from "@/components/learners/learner-detail-sheet";
 import { useSchoolId } from "@/hooks/use-school-id";
-import { createLearner, listLearners } from "@/lib/ops-api";
-import { ChevronRight, GraduationCap, Plus } from "lucide-react";
+import { createLearner, listLearnersPage } from "@/lib/ops-api";
+import { Pager } from "@/components/pager";
+import { ChevronRight, GraduationCap, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 type LearnerRow = {
@@ -34,11 +35,17 @@ export default function LearnersPage() {
   const [email, setEmail] = useState("");
   const [openId, setOpenId] = useState<number | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["learners", schoolId],
-    queryFn: () => listLearners(schoolId!) as Promise<LearnerRow[]>,
+  // Paged on the server (DIQ-1305).
+  const PER_PAGE = 25;
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const { data: result, isLoading } = useQuery({
+    queryKey: ["learners", schoolId, "page", page, search.trim()],
+    queryFn: () => listLearnersPage<LearnerRow>(schoolId!, { page, perPage: PER_PAGE, search: search.trim() || undefined }),
     enabled: !!schoolId,
+    placeholderData: (prev) => prev,
   });
+  const data = result?.items;
 
   const create = useMutation({
     mutationFn: () => createLearner(schoolId!, { name, mobile, email }),
@@ -75,12 +82,17 @@ export default function LearnersPage() {
         </div>
       )}
 
+      <div className="relative mb-4 max-w-xs">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name or mobile" aria-label="Search learners" className="pl-8" data-testid="input-search-learners" />
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
       ) : !data?.length ? (
         <div className="py-16 text-center text-muted-foreground">
           <GraduationCap className="h-10 w-10 mx-auto mb-2 opacity-30" />
-          No learners yet. Convert a lead or add one manually.
+          {search.trim() ? `No learners match "${search.trim()}".` : "No learners yet. Convert a lead or add one manually."}
         </div>
       ) : (
         <div className="rounded-xl border bg-card divide-y">
@@ -106,6 +118,7 @@ export default function LearnersPage() {
           ))}
         </div>
       )}
+      <Pager page={page} perPage={PER_PAGE} total={result?.total ?? 0} onPage={setPage} noun="learners" />
       {schoolId && (
         <LearnerDetailSheet
           learnerId={openId}

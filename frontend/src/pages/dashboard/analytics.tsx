@@ -1,7 +1,9 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { LEAD_STATUSES, leadStatusLabel } from "@/lib/lead-status";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetSchoolStats, useListInquiries, useListReviews, getGetSchoolStatsQueryKey, getListInquiriesQueryKey, getListReviewsQueryKey } from "@/api-client";
+import { useGetSchoolStats, useListReviews, getGetSchoolStatsQueryKey, getListReviewsQueryKey } from "@/api-client";
+import { useQuery } from "@tanstack/react-query";
+import { fetchInquirySummary } from "@/lib/ops-api";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Users, Star, CheckCircle2 } from "lucide-react";
@@ -10,7 +12,8 @@ const COLORS = ["hsl(38,92%,50%)", "hsl(221,83%,53%)", "hsl(239,60%,60%)", "hsl(
 export default function AnalyticsPage() {
   const schoolId = useSchoolId();
   const { data: stats, isLoading } = useGetSchoolStats(schoolId!, { query: { enabled: !!schoolId, queryKey: getGetSchoolStatsQueryKey(schoolId!) } });
-  const { data: inquiries } = useListInquiries({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey({ schoolId: schoolId! }) } });
+  // Counts by status from the server, so the chart stays right however many leads there are (DIQ-1305).
+  const { data: summary } = useQuery({ queryKey: ["inquiries-summary", schoolId], queryFn: fetchInquirySummary, enabled: !!schoolId });
   const { data: reviews } = useListReviews({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey({ schoolId: schoolId! }) } });
 
   // Last six months from the API, oldest first; months with no enquiries are included as 0.
@@ -32,7 +35,7 @@ export default function AnalyticsPage() {
   // Colour follows the status (not the slice index), so it stays stable when some statuses are empty.
   const statusData = LEAD_STATUSES.map((s, idx) => ({
     name: leadStatusLabel(s),
-    value: (inquiries || []).filter(i => i.status === s).length,
+    value: summary?.byStatus[s] ?? 0,
     color: COLORS[idx % COLORS.length],
   })).filter(d => d.value > 0);
 

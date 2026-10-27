@@ -5,17 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useDeleteSchool } from "@/api-client";
 import type { School } from "@/api-client/generated/api.schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listSchoolsPage, updateListingStatus, updateSchoolVerification, type VerificationFlags } from "@/lib/ops-api";
-import { ShieldCheck, Trash2, Building2, Star, Phone, Briefcase, MapPin, Crown } from "lucide-react";
+import { archiveSchool, listSchoolsPage, restoreSchool, updateListingStatus, updateSchoolVerification, type VerificationFlags } from "@/lib/ops-api";
+import { ShieldCheck, Archive, Building2, Star, Phone, Briefcase, MapPin, Crown } from "lucide-react";
 
 const PAGE_SIZE = 25;
 
@@ -54,6 +54,7 @@ export default function AdminSchoolsPage() {
   const [reviewing, setReviewing] = useState<School | null>(null);
   const [flags, setFlags] = useState<VerificationFlags | null>(null);
   const [deleting, setDeleting] = useState<School | null>(null);
+  const [confirmSlug, setConfirmSlug] = useState("");
   const [status, setStatus] = useState("");
 
   const queryKey = ["admin", "schools", page, status];
@@ -87,17 +88,26 @@ export default function AdminSchoolsPage() {
     onError: (e: Error) => toast({ title: "Could not update verification", description: e.message, variant: "destructive" }),
   });
 
-  const deleteSchool = useDeleteSchool();
-  const confirmDelete = () => {
-    if (!deleting) return;
-    deleteSchool.mutate({ id: deleting.id }, {
-      onSuccess: () => {
-        toast({ title: "School removed", description: deleting.name });
-        setDeleting(null);
-        queryClient.invalidateQueries({ queryKey: ["admin", "schools"] });
-      },
-    });
-  };
+  // DIQ-1304: "delete" archives. The listing is hidden and staff are signed
+  // out; every record is kept and the school can be restored.
+  const archive = useMutation({
+    mutationFn: (school: School) => archiveSchool(school.id, confirmSlug.trim()),
+    onSuccess: (_, school) => {
+      toast({ title: "School archived", description: `${school.name} is hidden and its staff are signed out. Restore it any time.` });
+      setDeleting(null);
+      setConfirmSlug("");
+      queryClient.invalidateQueries({ queryKey: ["admin", "schools"] });
+    },
+    onError: (e: Error) => toast({ title: "Could not archive the school", description: e.message, variant: "destructive" }),
+  });
+  const restore = useMutation({
+    mutationFn: (school: School) => restoreSchool(school.id),
+    onSuccess: (_, school) => {
+      toast({ title: "School restored", description: `${school.name}: staff can sign in again.` });
+      queryClient.invalidateQueries({ queryKey: ["admin", "schools"] });
+    },
+    onError: (e: Error) => toast({ title: "Could not restore the school", description: e.message, variant: "destructive" }),
+  });
 
   const openReview = (school: School) => {
     setReviewing(school);
@@ -159,9 +169,13 @@ export default function AdminSchoolsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={`border-0 text-xs ${STATUS_CLASS[school.listingStatus ?? "published"]}`} data-testid={`status-school-${school.id}`}>
-                        {STATUS_LABEL[school.listingStatus ?? "published"]}
-                      </Badge>
+                      {school.archivedAt ? (
+                        <Badge className="border-0 text-xs bg-muted text-muted-foreground" data-testid={`status-school-${school.id}`}>Archived</Badge>
+                      ) : (
+                        <Badge className={`border-0 text-xs ${STATUS_CLASS[school.listingStatus ?? "published"]}`} data-testid={`status-school-${school.id}`}>
+                          {STATUS_LABEL[school.listingStatus ?? "published"]}
+                        </Badge>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{school.localityName || "—"}</td>
                     <td className="px-4 py-3">
@@ -188,19 +202,27 @@ export default function AdminSchoolsPage() {
                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openReview(school)} data-testid={`button-review-school-${school.id}`}>
                           Review
                         </Button>
-                        {school.listingStatus === "published" && (
-                          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => setListing.mutate({ school, next: "suspended" })} data-testid={`button-suspend-school-${school.id}`}>
-                            Hide
-                          </Button>
-                        )}
-                        {school.listingStatus === "suspended" && (
-                          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => setListing.mutate({ school, next: "published" })} data-testid={`button-restore-school-${school.id}`}>
+                        {school.archivedAt ? (
+                          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={restore.isPending} onClick={() => restore.mutate(school)} data-testid={`button-unarchive-school-${school.id}`}>
                             Restore
                           </Button>
+                        ) : (
+                          <>
+                            {school.listingStatus === "published" && (
+                              <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => setListing.mutate({ school, next: "suspended" })} data-testid={`button-suspend-school-${school.id}`}>
+                                Hide
+                              </Button>
+                            )}
+                            {school.listingStatus === "suspended" && (
+                              <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => setListing.mutate({ school, next: "published" })} data-testid={`button-restore-school-${school.id}`}>
+                                Show again
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" aria-label={`Archive ${school.name}`} onClick={() => { setConfirmSlug(""); setDeleting(school); }} data-testid={`button-delete-school-${school.id}`}>
+                              <Archive className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
                         )}
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" aria-label={`Delete ${school.name}`} onClick={() => setDeleting(school)} data-testid={`button-delete-school-${school.id}`}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -264,15 +286,27 @@ export default function AdminSchoolsPage() {
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Archive {deleting?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the school and its listing permanently. Its audit history is kept.
+              The listing disappears from DriveQ and the school's owner, managers and trainers are signed out.
+              Learners, payments, invoices and history are kept, and you can restore the school later.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="archive-confirm" className="text-sm">
+              Type <span className="font-mono font-semibold">{deleting?.slug}</span> to confirm
+            </Label>
+            <Input id="archive-confirm" value={confirmSlug} onChange={(e) => setConfirmSlug(e.target.value)} autoComplete="off" data-testid="input-archive-confirm" />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete">
-              Delete
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); if (deleting) archive.mutate(deleting); }}
+              disabled={!deleting || confirmSlug.trim() !== deleting.slug || archive.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Archive school
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

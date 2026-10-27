@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\InquiryCreated;
+use App\Http\Controllers\Concerns\PagesResults;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreInquiryRequest;
 use App\Http\Requests\Api\UpdateInquiryRequest;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 class InquiryController extends Controller
 {
+    use PagesResults;
+
     public function index(Request $request): JsonResponse
     {
         $request->validate([
@@ -26,6 +29,7 @@ class InquiryController extends Controller
             'status' => ['nullable', 'string', Rule::in(Inquiry::STATUSES)],
             'followUpDue' => ['nullable', 'boolean'],
             'sort' => ['nullable', 'string', 'in:newest,oldest_waiting'],
+            'search' => ['nullable', 'string', 'max:100'],
         ]);
 
         // BelongsToSchool global scope auto-filters for school users.
@@ -53,7 +57,38 @@ class InquiryController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        return response()->json(InquiryResource::collection($query->get()));
+        // Name, phone or email (DIQ-1305).
+        if ($request->filled('search')) {
+            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($request->input('search'))).'%';
+            $query->where(fn ($q) => $q->where('name', 'ilike', $term)
+                ->orWhere('phone', 'ilike', $term)
+                ->orWhere('email', 'ilike', $term));
+        }
+
+        [$rows, $headers] = $this->pageResults($query, $request);
+
+        return response()->json(InquiryResource::collection($rows))->withHeaders($headers);
+    }
+
+    /**
+     * GET /inquiries/summary: lead counts by status for the caller's school
+     * (DIQ-1305). Charts use this instead of downloading every lead.
+     */
+    public function summary(Request $request): JsonResponse
+    {
+        $request->validate(['schoolId' => ['nullable', 'integer']]);
+
+        $query = Inquiry::query();
+        if ($request->filled('schoolId') && $request->user()?->isAdmin()) {
+            $query->where('school_id', $request->input('schoolId'));
+        }
+
+        $counts = $query->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+
+        return response()->json([
+            'byStatus' => collect(Inquiry::STATUSES)->mapWithKeys(fn ($s) => [$s => (int) ($counts[$s] ?? 0)]),
+            'total' => (int) $counts->sum(),
+        ]);
     }
 
     public function store(StoreInquiryRequest $request): JsonResponse

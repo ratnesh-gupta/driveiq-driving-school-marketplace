@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Locality;
 use App\Models\MarketplaceSetting;
 use App\Models\School;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -266,10 +267,61 @@ class SchoolService
         return $school->load('locality');
     }
 
-    public function delete(School $school): void
+    /**
+     * "Delete" for a school someone ran (DIQ-1304): the listing is hidden,
+     * staff (owner, managers, trainers) are signed out and blocked, and every
+     * record stays (payments and invoices must be kept for 8 years). Undo
+     * with restore(); erase for good with `driveiq:purge-school`.
+     */
+    public function archive(School $school, ?string $reason = null): void
     {
-        AuditLog::log('delete', 'School', $school->id, $school->only(['name', 'slug', 'user_id']), [], $school->id);
-        $school->delete();
+        if ($school->archived_at) {
+            return;
+        }
+
+        DB::transaction(function () use ($school, $reason) {
+            $now = now();
+            $before = $school->listing_status;
+            $school->forceFill(['listing_status' => 'suspended', 'archived_at' => $now])->save();
+
+            $staff = $this->staffQuery($school)->whereNull('deactivated_at')->get();
+            foreach ($staff as $user) {
+                // Same timestamp as archived_at, so restore() re-enables exactly these accounts.
+                $user->forceFill(['deactivated_at' => $now])->save();
+                $user->tokens()->delete();
+            }
+
+            AuditLog::log('archived', 'School', $school->id, ['listing_status' => $before],
+                ['staff_deactivated' => $staff->count(), 'reason' => $reason], $school->id);
+        });
+    }
+
+    /** Undo archive(): staff it blocked can sign in again; the listing comes back as a draft. */
+    public function restore(School $school): void
+    {
+        if (! $school->archived_at) {
+            return;
+        }
+
+        DB::transaction(function () use ($school) {
+            $archivedAt = $school->archived_at;
+            $reactivated = $this->staffQuery($school)->where('deactivated_at', $archivedAt)->update(['deactivated_at' => null]);
+
+            // A draft publishes itself once nothing blocks it (School::booted).
+            $school->forceFill(['listing_status' => 'draft', 'archived_at' => null])->save();
+
+            AuditLog::log('restored', 'School', $school->id, ['archived_at' => $archivedAt->toIso8601String()],
+                ['listing_status' => $school->listing_status, 'staff_reactivated' => $reactivated], $school->id);
+        });
+    }
+
+    /** Owner, managers and trainers of the school (learners keep access to their own records). */
+    private function staffQuery(School $school)
+    {
+        return User::query()
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->where('school_id', $school->id)->whereIn('role', ['school', 'instructor']))
+                ->when($school->user_id, fn ($q) => $q->orWhere('id', $school->user_id)));
     }
 
     private function applyFilters(Builder $query, array $filters): void

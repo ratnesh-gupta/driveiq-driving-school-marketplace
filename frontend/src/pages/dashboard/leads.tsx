@@ -5,12 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useListInquiries, useUpdateInquiry, getListInquiriesQueryKey } from "@/api-client";
+import { useUpdateInquiry } from "@/api-client";
+import type { Inquiry } from "@/api-client/generated/api.schemas";
+import { Input } from "@/components/ui/input";
+import { Pager } from "@/components/pager";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Phone, Mail, NotebookPen, CalendarClock, UserPlus } from "lucide-react";
+import { MessageCircle, Phone, Mail, NotebookPen, CalendarClock, UserPlus, Search } from "lucide-react";
 import { LeadTimelineSheet } from "@/components/lead-timeline-sheet";
-import { convertInquiry, fetchSchoolSettings } from "@/lib/ops-api";
+import { convertInquiry, fetchSchoolSettings, listInquiriesPage } from "@/lib/ops-api";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { formatDuration } from "@/lib/response-time";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -47,13 +50,18 @@ export default function LeadsPage() {
   });
   const reminderAfter = settings?.settings.notifications.reminder_after_minutes ?? 60;
 
-  const params = {
-    schoolId: schoolId!,
-    ...(statusFilter ? { status: statusFilter } : {}),
-    ...(followUpDue ? { followUpDue: 1 } : {}),
-    ...(sort !== "newest" ? { sort } : {}),
-  };
-  const { data: inquiries, isLoading } = useListInquiries(params, { query: { enabled: !!schoolId, queryKey: getListInquiriesQueryKey(params) } });
+  // Paged on the server (DIQ-1305): a busy school can have thousands of leads.
+  const PER_PAGE = 25;
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const params = { page, perPage: PER_PAGE, status: statusFilter || undefined, search: search.trim() || undefined, followUpDue, sort };
+  const { data, isLoading } = useQuery({
+    queryKey: ["inquiries-page", schoolId, params],
+    queryFn: () => listInquiriesPage<Inquiry>(params),
+    enabled: !!schoolId,
+    placeholderData: (prev) => prev,
+  });
+  const inquiries = data?.items;
   const updateInquiry = useUpdateInquiry();
   // With the learner module, "Converted" is reached only by creating the learner (DIQ-905).
   const canConvert = useEntitlements().has("learners");
@@ -100,15 +108,26 @@ export default function LeadsPage() {
           <p className="text-muted-foreground text-sm mt-1">Manage and track student inquiries</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Name, phone or email"
+            aria-label="Search leads"
+            className="pl-8 w-52 h-9"
+            data-testid="input-search-leads"
+          />
+        </div>
         <Button
           variant={followUpDue ? "default" : "outline"}
           size="sm"
-          onClick={() => setFollowUpDue(v => !v)}
+          onClick={() => { setFollowUpDue(v => !v); setPage(1); }}
           data-testid="button-follow-up-due"
         >
           <CalendarClock className="h-4 w-4 mr-1" /> Follow-up due
         </Button>
-        <Select value={sort} onValueChange={v => setSort(v as "newest" | "oldest_waiting")}>
+        <Select value={sort} onValueChange={v => { setSort(v as "newest" | "oldest_waiting"); setPage(1); }}>
           <SelectTrigger className="w-40" data-testid="select-sort">
             <SelectValue />
           </SelectTrigger>
@@ -117,7 +136,7 @@ export default function LeadsPage() {
             <SelectItem value="oldest_waiting">Longest waiting</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter || "all"} onValueChange={v => setStatusFilter(v === "all" ? "" : v)}>
+        <Select value={statusFilter || "all"} onValueChange={v => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
           <SelectTrigger className="w-36" data-testid="select-status-filter">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
@@ -226,6 +245,7 @@ export default function LeadsPage() {
           </table>
         </div>
       </div>
+      <Pager page={page} perPage={PER_PAGE} total={data?.total ?? 0} onPage={setPage} noun="leads" />
       <LeadTimelineSheet
         inquiryId={openLead?.id ?? null}
         leadName={openLead?.name}
