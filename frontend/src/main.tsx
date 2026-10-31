@@ -5,6 +5,7 @@ import { useAuthStore } from "@/lib/store";
 import { detectInitialLocale, persistLocale } from "@/i18n";
 import { captureAttribution } from "@/lib/attribution";
 import App from "./App";
+import "@fontsource-variable/inter";
 import "./index.css";
 
 // VITE_API_BASE_URL may be the API origin ("http://host:8000") or already end

@@ -1,3 +1,5 @@
+import { safeNavigationUrl, GOOGLE_OAUTH_HOSTS } from "@/lib/safe-url";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -26,6 +28,7 @@ const RETURN_MESSAGES: Record<string, [string, boolean]> = {
  * Google credentials.
  */
 export function GoogleBusinessCard({ schoolId }: { schoolId: number }) {
+  const { confirm } = useConfirm();
   const qc = useQueryClient();
   const isOwner = useAuthStore((s) => s.schoolRole) !== "manager";
   const status = useQuery({ queryKey: ["google-business", schoolId], queryFn: () => getGoogleBusiness(schoolId) });
@@ -48,7 +51,11 @@ export function GoogleBusinessCard({ schoolId }: { schoolId: number }) {
 
   const connect = useMutation({
     mutationFn: () => connectGoogleBusiness(schoolId),
-    onSuccess: (r) => window.location.assign(r.url),
+    onSuccess: (r) => {
+      const url = safeNavigationUrl(r.url, GOOGLE_OAUTH_HOSTS);
+      if (url) window.location.assign(url);
+      else toast.error("Could not start the Google connection");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
   const importLoc = useMutation({
@@ -114,7 +121,7 @@ export function GoogleBusinessCard({ schoolId }: { schoolId: number }) {
                 </div>
                 <div className="text-xs text-muted-foreground">{[l.address, l.phone, l.hours].filter(Boolean).join(" · ")}</div>
               </div>
-              <Button size="sm" disabled={importLoc.isPending} onClick={() => window.confirm(`Replace your listing's name, phone, address, map pin and hours with ${l.title}'s?`) && importLoc.mutate(l.name)}>
+              <Button size="sm" disabled={importLoc.isPending} onClick={async () => { if (await confirm({ title: "Replace your listing details?", description: `Your listing's name, phone, address, map pin and hours will be replaced with ${l.title}'s.`, confirmLabel: "Replace", testId: "dialog-confirm-gbp-import" })) importLoc.mutate(l.name); }}>
                 Use this one
               </Button>
             </div>

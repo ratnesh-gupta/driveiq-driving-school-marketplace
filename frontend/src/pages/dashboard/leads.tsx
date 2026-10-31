@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ function AwaitingBadge({ createdAt, thresholdMinutes }: { createdAt: string; thr
 import { LEAD_STATUSES, leadStatusColor, leadStatusLabel } from "@/lib/lead-status";
 
 export default function LeadsPage() {
+  const { confirm, prompt } = useConfirm();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const schoolId = useSchoolId();
@@ -69,14 +71,14 @@ export default function LeadsPage() {
     },
     onError: (e: Error) => toast({ title: "Could not convert", description: e.message, variant: "destructive" }),
   });
-  const handleConvert = (id: number, name: string) => {
-    if (window.confirm(`Create a learner record for ${name} and mark this lead converted?`)) convert.mutate(id);
+  const handleConvert = async (id: number, name: string) => {
+    if (await confirm({ title: `Convert ${name}?`, description: "A learner record will be created and this lead marked converted.", confirmLabel: "Convert", testId: "dialog-confirm-convert-lead" })) convert.mutate(id);
   };
 
-  const handleStatusChange = (id: number, status: string) => {
+  const handleStatusChange = async (id: number, status: string) => {
     let lostReason: string | undefined;
     if (status === "lost") {
-      const reason = window.prompt("Why was this lead lost? (optional)");
+      const reason = await prompt({ title: "Mark lead as lost", input: { label: "Why was this lead lost? (optional)" }, confirmLabel: "Mark lost", testId: "dialog-prompt-lead-lost" });
       if (reason === null) return; // cancelled
       lostReason = reason.trim() || undefined;
     }

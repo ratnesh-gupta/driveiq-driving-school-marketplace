@@ -2,14 +2,18 @@ import { AdminLayout } from "@/components/layout/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useListReviews, useUpdateReview, useDeleteReview, getListReviewsQueryKey } from "@/api-client";
+import { useUpdateReview, useDeleteReview, getListReviewsQueryKey } from "@/api-client";
+import type { Review } from "@/api-client/generated/api.schemas";
+import { usePagedList } from "@/lib/paged-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Star, CheckCircle2, Trash2, Clock } from "lucide-react";
 
 export default function AdminReviewsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: reviews, isLoading } = useListReviews();
+  const list = usePagedList<Review>("/reviews", { includePending: true }, { pageSize: 50 });
+  const reviews = list.items;
+  const isLoading = list.isLoading;
   const updateReview = useUpdateReview();
   const deleteReview = useDeleteReview();
 
@@ -84,6 +88,13 @@ export default function AdminReviewsPage() {
             </div>
           </div>
         ))}
+        {list.hasMore && (
+          <div className="p-4 text-center">
+            <Button variant="outline" size="sm" onClick={list.loadMore} disabled={list.isLoadingMore} data-testid="button-load-more-reviews">
+              {list.isLoadingMore ? "Loading..." : "Load more"}
+            </Button>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

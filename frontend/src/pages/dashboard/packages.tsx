@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useListPackages, useCreatePackage, useUpdatePackage, useDeletePackage, getListPackagesQueryKey } from "@/api-client";
+import { useCreatePackage, useUpdatePackage, useDeletePackage, getListPackagesQueryKey } from "@/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { useAuthStore } from "@/lib/store";
+import type { Package as DrivePackage } from "@/api-client/generated/api.schemas";
+import { usePagedList } from "@/lib/paged-api";
 import { Plus, Pencil, Trash2, Package } from "lucide-react";
 
 export default function PackagesPage() {
@@ -24,7 +26,9 @@ export default function PackagesPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", description: "", price: "", sessions: "", vehicleType: "Car", transmission: "Manual", hasPickup: false });
 
-  const { data: packages, isLoading } = useListPackages({ schoolId: schoolId! }, { query: { enabled: !!schoolId, queryKey: getListPackagesQueryKey({ schoolId: schoolId! }) } });
+  const list = usePagedList<DrivePackage>("/packages", { schoolId: schoolId ?? undefined }, { enabled: !!schoolId, pageSize: 50 });
+  const packages = list.items;
+  const isLoading = list.isLoading;
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
   const deletePackage = useDeletePackage();
@@ -33,7 +37,7 @@ export default function PackagesPage() {
 
   const resetForm = () => setForm({ name: "", description: "", price: "", sessions: "", vehicleType: "Car", transmission: "Manual", hasPickup: false });
 
-  const handleOpen = (pkg?: typeof packages extends (infer T)[] | undefined ? T : never) => {
+  const handleOpen = (pkg?: DrivePackage) => {
     if (pkg) {
       setEditId(pkg.id);
       setForm({ name: pkg.name, description: pkg.description || "", price: String(pkg.price), sessions: String(pkg.sessions), vehicleType: pkg.vehicleType, transmission: pkg.transmission, hasPickup: pkg.hasPickup ?? false });
@@ -147,7 +151,8 @@ export default function PackagesPage() {
           <p>No packages yet. Add your first package.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {packages.map((pkg) => (
             <div key={pkg.id} className="rounded-xl border bg-card p-5" data-testid={`card-package-${pkg.id}`}>
               <div className="flex items-start justify-between mb-3">
@@ -174,7 +179,15 @@ export default function PackagesPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+          {list.hasMore && (
+            <div className="mt-4 text-center">
+              <Button variant="outline" size="sm" onClick={list.loadMore} disabled={list.isLoadingMore} data-testid="button-load-more-packages">
+                {list.isLoadingMore ? "Loading..." : "Load more"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </DashboardLayout>
   );

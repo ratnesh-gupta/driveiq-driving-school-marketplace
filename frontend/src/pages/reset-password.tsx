@@ -4,13 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiValidationError, resetPasswordApi } from "@/lib/auth-api";
+import { takeQueryParams } from "@/lib/url-token";
 import { useT } from "@/i18n/use-locale";
 
 export default function ResetPasswordPage() {
   const t = useT();
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token") ?? "";
-  const email = params.get("email") ?? "";
+  const [{ token, email }] = useState(() => takeQueryParams("reset", ["token", "email"]));
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");

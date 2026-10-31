@@ -1,3 +1,5 @@
+import { HttpError, safeErrorMessage } from "@/lib/errors";
+
 export type UserRole = "school" | "admin" | "instructor" | "learner";
 
 export type AuthUser = {
@@ -57,13 +59,24 @@ export function setStoredToken(token: string | null): void {
 
 const PORTAL_PREFIXES = ["/dashboard", "/admin", "/instructor", "/learner"];
 
+let sessionEndHandler: (() => void) | null = null;
+
+/** store.ts registers this so auth-api can reset in-memory auth state without importing the store. */
+export function setSessionEndHandler(handler: (() => void) | null): void {
+  sessionEndHandler = handler;
+}
+
 /**
  * A signed-in request came back 401: the token expired or was revoked.
- * Drop it and, inside a portal, send the user to login.
+ * Drop the whole session (token, caches, socket, auth store) and, inside a
+ * portal, send the user to login. Public pages stay put but are logged out.
  */
 export function handleUnauthorized(): void {
-  if (!getStoredToken()) return;
+  if (!getStoredToken() && !sessionEndHandler) return;
+  const hadToken = !!getStoredToken();
   setStoredToken(null);
+  sessionEndHandler?.();
+  if (!hadToken) return;
   const path = window.location.pathname;
   if (PORTAL_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))) {
     window.location.assign("/auth/login?expired=1");
@@ -88,10 +101,11 @@ async function handleError(res: Response, fallbackMessage: string): Promise<neve
     // response wasn't JSON
   }
 
+  if (res.status >= 500) throw new HttpError(res.status, safeErrorMessage(res.status, message, fallbackMessage));
   if (fieldErrors) {
     throw new ApiValidationError(message, fieldErrors);
   }
-  throw new Error(message);
+  throw new HttpError(res.status, safeErrorMessage(res.status, message, fallbackMessage));
 }
 
 export type RegisterPayload = {
@@ -155,6 +169,19 @@ export async function logoutApi(token: string): Promise<void> {
       Accept: "application/json",
     },
   });
+}
+
+/**
+ * Revoke every token of this user (all devices, this one included).
+ * 401 means the session is already gone, which is the outcome we wanted.
+ */
+export async function logoutAllApi(token: string): Promise<void> {
+  const res = await fetch(apiUrl("/api/auth/logout-all"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (res.ok || res.status === 401) return;
+  throw new HttpError(res.status, safeErrorMessage(res.status, undefined, `Request failed (${res.status})`));
 }
 
 export function roleHomePath(role: UserRole | null | undefined): string {

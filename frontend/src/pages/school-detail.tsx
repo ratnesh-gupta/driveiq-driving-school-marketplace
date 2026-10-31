@@ -1,3 +1,4 @@
+import { whatsappHref } from "@/lib/safe-url";
 import { useRef, useState } from "react";
 import { replyBadge } from "@/lib/response-time";
 import { useParams, useLocation } from "wouter";
@@ -18,16 +19,14 @@ import { useAuthStore } from "@/lib/store";
 import { JsonLd, SITE_ORIGIN, breadcrumbList } from "@/components/seo/json-ld";
 import { SchoolMap } from "@/components/maps/school-map";
 import { TrainersSection } from "@/components/school/trainers-section";
-import type { InquiryInput } from "@/api-client/generated/api.schemas";
+import type { InquiryInput, Review, Package as DrivePackage } from "@/api-client/generated/api.schemas";
 import { useT } from "@/i18n/use-locale";
+import { usePagedList } from "@/lib/paged-api";
 import {
   useGetSchoolBySlug,
-  useListReviews,
-  useListPackages,
   useCreateInquiry,
   useCreateReview,
   getListReviewsQueryKey,
-  getListPackagesQueryKey,
 } from "@/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -82,14 +81,11 @@ export default function SchoolDetailPage() {
   const t = useT();
 
   const { data: school, isLoading } = useGetSchoolBySlug(params.slug);
-  const { data: reviews } = useListReviews(
-    { schoolId: school?.id },
-    { query: { enabled: !!school?.id, queryKey: getListReviewsQueryKey({ schoolId: school?.id }) } }
-  );
-  const { data: packages } = useListPackages(
-    { schoolId: school?.id },
-    { query: { enabled: !!school?.id, queryKey: getListPackagesQueryKey({ schoolId: school?.id }) } }
-  );
+  // /reviews and /packages are paginated (X-Total-Count); the public sees approved reviews and active packages only.
+  const reviewList = usePagedList<Review>("/reviews", { schoolId: school?.id }, { enabled: !!school?.id, pageSize: 10 });
+  const packageList = usePagedList<DrivePackage>("/packages", { schoolId: school?.id }, { enabled: !!school?.id, pageSize: 12 });
+  const reviews = reviewList.items;
+  const packages = packageList.items;
 
   const createInquiry = useCreateInquiry();
   const createReview = useCreateReview();
@@ -119,7 +115,7 @@ export default function SchoolDetailPage() {
       { data: payload },
       {
         onSuccess: () => {
-          toast({ title: "Inquiry sent!", description: "The school will contact you shortly." });
+          toast({ title: t("inquiry.sentTitle"), description: t("inquiry.sentBody") });
           setInquiryOpen(false);
           setInquiryForm({ name: "", phone: "", email: "", vehicleType: "Car", message: "" });
           setWhatsappOptIn(false);
@@ -127,7 +123,7 @@ export default function SchoolDetailPage() {
         onError: (err: unknown) => {
           const data = (err as { status?: number; data?: { message?: string; errors?: Record<string, string[]> } })?.data;
           const detail = data?.errors ? Object.values(data.errors).flat()[0] : data?.message;
-          toast({ title: "Failed to send inquiry", description: detail, variant: "destructive" });
+          toast({ title: t("inquiry.failed"), description: detail ?? t("inquiry.retry"), variant: "destructive" });
         },
       }
     );
@@ -336,6 +332,13 @@ export default function SchoolDetailPage() {
                     </div>
                   ))}
                 </div>
+                {packageList.hasMore && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" size="sm" onClick={packageList.loadMore} disabled={packageList.isLoadingMore} data-testid="button-load-more-packages">
+                      {packageList.isLoadingMore ? t("common.loadingMore") : t("common.loadMore")}
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -400,6 +403,13 @@ export default function SchoolDetailPage() {
                       <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{review.content}</p>
                     </div>
                   ))}
+                  {reviewList.hasMore && (
+                    <div className="text-center">
+                      <Button variant="outline" size="sm" onClick={reviewList.loadMore} disabled={reviewList.isLoadingMore} data-testid="button-load-more-reviews">
+                        {reviewList.isLoadingMore ? t("common.loadingMore") : t("common.loadMore")}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -491,7 +501,7 @@ export default function SchoolDetailPage() {
                           onChange={e => setWhatsappOptIn(e.target.checked)}
                           data-testid="checkbox-inquiry-whatsapp"
                         />
-                        <span>Send me updates about this enquiry on WhatsApp <span className="text-muted-foreground">(optional)</span></span>
+                        <span>{t("inquiry.whatsapp")}</span>
                       </label>
                       <Button onClick={handleInquiry} disabled={createInquiry.isPending} className="w-full" data-testid="button-submit-inquiry">
                         {createInquiry.isPending ? "Sending..." : "Send Inquiry"}
@@ -500,9 +510,9 @@ export default function SchoolDetailPage() {
                   </DialogContent>
                 </Dialog>
 
-                {school.whatsapp && (
+                {whatsappHref(school.whatsapp) && (
                   <a
-                    href={`https://wa.me/${school.whatsapp.replace(/\D/g, "")}`}
+                    href={whatsappHref(school.whatsapp) ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block mt-3"

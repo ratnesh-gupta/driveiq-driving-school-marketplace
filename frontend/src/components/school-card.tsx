@@ -8,7 +8,7 @@ import { Link } from "wouter";
 import { useComparisonStore } from "@/features/comparison/stores/comparison-store";
 
 interface SchoolCardProps {
-  school: School & { distanceKm?: number | null; rankingScore?: number | null };
+  school: School & { distanceKm?: number | null };
   showCompare?: boolean;
 }
 

@@ -46,6 +46,7 @@ export interface School {
   businessVerified?: boolean;
   locationVerified?: boolean;
   premiumVerified?: boolean;
+  /** Owner/admin responses only; absent from public payloads (BSEC public-data exposure) */
   planCode?: string;
   /** added manually, include in next OpenAPI spec regen (DIQ-805) */
   listingTier?: string;
@@ -79,7 +80,8 @@ export interface School {
   acceptedPayments: string[];
   /** @nullable */
   cancellationPolicy?: string | null;
-  profileCompleteness: number;
+  /** Owner/admin responses only; absent from public payloads */
+  profileCompleteness?: number;
   createdAt: string;
 }
 

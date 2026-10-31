@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ function flagsOf(school: School): VerificationFlags {
 
 /** Admin school moderation + verification workflow (DIQ-506). Every change is audited server-side. */
 export default function AdminSchoolsPage() {
+  const { prompt } = useConfirm();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
@@ -63,16 +65,18 @@ export default function AdminSchoolsPage() {
   });
 
   const setListing = useMutation({
-    mutationFn: ({ school, next }: { school: School; next: "suspended" | "published" }) => {
-      const reason = next === "suspended" ? window.prompt(`Why are you hiding ${school.name}? (kept in the audit log)`) ?? undefined : undefined;
-      return updateListingStatus(school.id, next, reason);
-    },
+    mutationFn: ({ school, next, reason }: { school: School; next: "suspended" | "published"; reason?: string }) =>
+      updateListingStatus(school.id, next, reason),
     onSuccess: (_, { school, next }) => {
       toast({ title: next === "suspended" ? "Listing hidden" : "Listing live again", description: school.name });
       queryClient.invalidateQueries({ queryKey: ["admin", "schools"] });
     },
     onError: (e: Error) => toast({ title: "Could not change the listing", description: e.message, variant: "destructive" }),
   });
+  const hideListing = async (school: School) => {
+    const reason = await prompt({ title: `Hide ${school.name}?`, description: "The reason is kept in the audit log.", input: { label: "Reason (optional)" }, confirmLabel: "Hide listing", destructive: true, testId: "dialog-prompt-hide-school" });
+    if (reason !== null) setListing.mutate({ school, next: "suspended", reason: reason || undefined });
+  };
   const schools = data?.schools ?? [];
   const total = data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -189,7 +193,7 @@ export default function AdminSchoolsPage() {
                           Review
                         </Button>
                         {school.listingStatus === "published" && (
-                          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => setListing.mutate({ school, next: "suspended" })} data-testid={`button-suspend-school-${school.id}`}>
+                          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setListing.isPending} onClick={() => void hideListing(school)} data-testid={`button-suspend-school-${school.id}`}>
                             Hide
                           </Button>
                         )}

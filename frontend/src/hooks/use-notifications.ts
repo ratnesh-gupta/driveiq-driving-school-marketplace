@@ -8,7 +8,7 @@ import {
   markNotificationRead,
   type AppNotification,
 } from "@/lib/notifications-api";
-import { ensureEcho, subscribePrivate } from "@/lib/realtime";
+import { canJoinSchoolChannel, ensureEcho, subscribePrivate } from "@/lib/realtime";
 
 const QUERY_KEY = ["notifications"] as const;
 
@@ -32,26 +32,26 @@ export function useNotifications() {
   useEffect(() => {
     if (!isLoggedIn || !token || !user?.id) return;
 
-    let unsub: (() => void) | undefined;
+    const unsubs: Array<() => void> = [];
     let cancelled = false;
 
     void (async () => {
       const ok = await ensureEcho(token);
       if (!ok || cancelled) return;
 
-      unsub = subscribePrivate(`App.Models.User.${user.id}`, ".notification.created", (payload) => {
+      unsubs.push(subscribePrivate(`App.Models.User.${user.id}`, ".notification.created", (payload) => {
         const data = payload as { title?: string; body?: string } | undefined;
         toast(data?.title ?? "New notification", {
           description: data?.body,
         });
         void queryClient.invalidateQueries({ queryKey: [...QUERY_KEY] });
         void queryClient.invalidateQueries({ queryKey: ["messages"] });
-      });
+      }));
     })();
 
     return () => {
       cancelled = true;
-      unsub?.();
+      unsubs.forEach((u) => u());
     };
   }, [isLoggedIn, token, user?.id, queryClient]);
 

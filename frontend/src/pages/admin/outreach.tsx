@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Pause, Play, Plus, Send, UserPlus } from "lucide-react";
@@ -170,6 +171,7 @@ function CampaignDialog({ campaign, placeholders, presets, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { confirm } = useConfirm();
   const isNew = campaign === "new";
   const [name, setName] = useState("");
   const [audience, setAudience] = useState<ListingType>("school");
@@ -249,7 +251,7 @@ function CampaignDialog({ campaign, placeholders, presets, onClose, onSaved }: {
               variant="outline"
               className="w-full"
               disabled={!presets}
-              onClick={() => window.confirm("Replace the emails below with our ready-made sequence?") && setSteps(preset(audience, language))}
+              onClick={async () => { if (await confirm({ title: "Replace the emails?", description: "The emails below will be replaced with our ready-made sequence.", confirmLabel: "Replace", testId: "dialog-confirm-use-preset" })) setSteps(preset(audience, language)); }}
               data-testid="button-use-preset"
             >
               Start from our ready-made emails

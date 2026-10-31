@@ -1,4 +1,5 @@
 import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
+import { HttpError, safeErrorMessage } from "@/lib/errors";
 import { announcePlanRequired, type PlanFeature } from "@/lib/plan";
 
 const API_BASE =
@@ -25,16 +26,16 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   const res = await fetch(apiUrl(path), { ...init, headers });
   if (res.status === 401 && token) handleUnauthorized();
   if (!res.ok) {
-    let message = `Request failed (${res.status})`;
+    let serverMessage: string | undefined;
     try {
       const data = await res.json();
       if (res.status === 402) announcePlanRequired(data);
-      if (data.message) message = data.message;
-      else if (data.errors) message = Object.values(data.errors).flat().join(" ");
+      if (data.message) serverMessage = String(data.message);
+      else if (data.errors) serverMessage = Object.values(data.errors).flat().join(" ");
     } catch {
       /* ignore */
     }
-    throw new Error(message);
+    throw new HttpError(res.status, safeErrorMessage(res.status, serverMessage, `Request failed (${res.status})`));
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();

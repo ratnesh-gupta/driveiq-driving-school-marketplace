@@ -7,14 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { acceptInvitation, getInvitation } from "@/lib/ops-api";
 import { setStoredToken } from "@/lib/auth-api";
+import { clearSessionData } from "@/lib/session";
 import { useAuthStore } from "@/lib/store";
+import { takeQueryParams } from "@/lib/url-token";
 import { useT } from "@/i18n/use-locale";
 
 /** Public page an invited manager lands on from the email link (DIQ-403). */
 export default function TeamAcceptPage() {
   const t = useT();
   const [, setLocation] = useLocation();
-  const token = new URLSearchParams(window.location.search).get("token") ?? "";
+  const [{ token }] = useState(() => takeQueryParams("team-accept", ["token"]));
   const { user, isLoggedIn, hydrateAuth } = useAuthStore();
 
   const [name, setName] = useState("");
@@ -36,10 +38,17 @@ export default function TeamAcceptPage() {
           : { token, name, password, password_confirmation: confirm },
       ),
     onSuccess: async (res) => {
-      if (res.token) setStoredToken(res.token);
+      if (res.token) {
+        clearSessionData({ keepLocation: true });
+        setStoredToken(res.token);
+      }
       await hydrateAuth();
       setLocation("/dashboard");
     },
+    // The backend re-checks account existence at accept time (403/404/409/422). The
+    // preview may be stale (e.g. an account was created meanwhile), so re-read it: the
+    // page then shows the right form (sign in vs. create password) or the invalid state.
+    onError: () => { void preview.refetch(); },
   });
 
   const invite = preview.data;
@@ -99,7 +108,7 @@ export default function TeamAcceptPage() {
               </form>
             )}
 
-            {accept.isError && <p className="mt-3 text-sm text-destructive">{(accept.error as Error).message}</p>}
+            {accept.isError && <p className="mt-3 text-sm text-destructive" role="alert" data-testid="text-accept-error">{(accept.error as Error).message}</p>}
           </>
         )}
       </div>

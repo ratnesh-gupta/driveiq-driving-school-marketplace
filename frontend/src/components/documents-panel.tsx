@@ -1,3 +1,4 @@
+import { safeNavigationUrl } from "@/lib/safe-url";
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -95,7 +96,9 @@ export function DocumentsPanel({ kind, ownerId, canReview = false }: Props) {
     // the signed URL once the API returns it.
     const win = window.open("", "_blank");
     try {
-      const { url } = await getDocumentLink(kind, doc.id);
+      const { url: rawUrl } = await getDocumentLink(kind, doc.id);
+      const url = safeNavigationUrl(rawUrl);
+      if (!url) throw new Error("Could not open document");
       if (win) {
         win.opener = null;
         win.location.href = url;

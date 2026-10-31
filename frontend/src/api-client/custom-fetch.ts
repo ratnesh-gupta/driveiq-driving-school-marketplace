@@ -1,4 +1,5 @@
 import { announcePlanRequired } from "@/lib/plan";
+import { genericServerMessage } from "@/lib/errors";
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
@@ -157,6 +158,8 @@ function truncate(text: string, maxLength = 300): string {
 }
 
 function buildErrorMessage(response: Response, data: unknown): string {
+  // 5xx bodies can carry debug output; never surface them (FSEC-07).
+  if (response.status >= 500) return genericServerMessage();
   const prefix = `HTTP ${response.status} ${response.statusText}`;
 
   if (typeof data === "string") {

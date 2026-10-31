@@ -1,5 +1,6 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/query-client";
 import { Toaster } from "@/components/ui/toaster";
 import { PlanRequiredListener } from "@/components/plan/plan-required-listener";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -40,6 +41,7 @@ import SchoolMessagesPage from "@/pages/dashboard/messages";
 import PaymentsPage from "@/pages/dashboard/payments";
 import TeamPage from "@/pages/dashboard/team";
 import TeamAcceptPage from "@/pages/team-accept";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 import ClaimPage from "@/pages/claim";
 import ForListingsPage from "@/pages/for-listings";
 import UnsubscribePage from "@/pages/unsubscribe";
@@ -74,15 +76,6 @@ import LearnerDocumentsPage from "@/pages/learner/documents";
 import ComparePage from "@/pages/compare";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30000,
-    },
-  },
-});
-
 function schoolGuard(node: React.ReactNode) {
   return <AuthGuard requireRole="school">{node}</AuthGuard>;
 }
@@ -107,9 +100,11 @@ function Router() {
       <Route path="/compare" component={ComparePage} />
       <Route path="/team/accept" component={TeamAcceptPage} />
       <Route path="/claim/:token" component={ClaimPage} />
+      <Route path="/claim" component={ClaimPage} />
       <Route path="/for-schools">{() => <ForListingsPage audience="school" />}</Route>
       <Route path="/for-trainers">{() => <ForListingsPage audience="trainer" />}</Route>
       <Route path="/unsubscribe/:token" component={UnsubscribePage} />
+      <Route path="/unsubscribe" component={UnsubscribePage} />
       <Route path="/review" component={ReviewViaLinkPage} />
 
       <Route path="/dashboard">{() => schoolGuard(<DashboardHomePage />)}</Route>
@@ -167,9 +162,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
+          <ConfirmProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </ConfirmProvider>
           <CookieConsent />
           <PlanRequiredListener />
           <Toaster />

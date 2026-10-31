@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link, useParams } from "wouter";
+import { Link } from "wouter";
+import { takePathToken } from "@/lib/url-token";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { unsubscribe } from "@/lib/acquisition-api";
 
 /** DIQ-1105: unsubscribe link in outreach emails. Asks once, so link scanners cannot unsubscribe people. */
 export default function UnsubscribePage() {
-  const { token = "" } = useParams<{ token: string }>();
+  const [token] = useState(() => takePathToken("unsubscribe"));
   const [done, setDone] = useState<string | null>(null);
   const run = useMutation({ mutationFn: () => unsubscribe(token), onSuccess: (r) => setDone(r.message) });
 

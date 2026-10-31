@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { LogoutAllButton } from "@/components/account/logout-all-button";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Store, Star, MapPin, Users, LogOut, Menu, BarChart3, Shield, Inbox, IndianRupee, History, Target, Send } from "lucide-react";
@@ -52,6 +53,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         })}
       </div>
       <div className="p-4 border-t">
+        <LogoutAllButton />
         <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { void logout(); }}>
           <LogOut className="mr-2 h-4 w-4" />
           {t("common.logout")}

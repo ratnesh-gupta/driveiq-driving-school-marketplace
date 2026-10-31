@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useListReviews, getListReviewsQueryKey } from "@/api-client";
-import type { ListReviewsParams } from "@/api-client/generated/api.schemas";
+import type { Review } from "@/api-client/generated/api.schemas";
+import { usePagedList } from "@/lib/paged-api";
 import { useMutation } from "@tanstack/react-query";
 import { useSchoolId } from "@/hooks/use-school-id";
 import { reportReview } from "@/lib/ops-api";
@@ -36,8 +36,9 @@ export default function DashboardReviewsPage() {
   const schoolId = useSchoolId();
   // Own school's reviews including those awaiting moderation (the API only
   // honours includePending for the signed-in school's own id).
-  const reviewParams: ListReviewsParams & { includePending: boolean } = { schoolId: schoolId!, includePending: true };
-  const { data: reviews, isLoading } = useListReviews(reviewParams, { query: { enabled: !!schoolId, queryKey: getListReviewsQueryKey(reviewParams) } });
+  const list = usePagedList<Review>("/reviews", { schoolId: schoolId ?? undefined, includePending: true }, { enabled: !!schoolId, pageSize: 25 });
+  const reviews = list.items;
+  const isLoading = list.isLoading;
 
   const [reportingId, setReportingId] = useState<number | null>(null);
   const [reason, setReason] = useState("fake");
@@ -96,6 +97,13 @@ export default function DashboardReviewsPage() {
             </Button>
           </div>
         ))}
+        {list.hasMore && (
+          <div className="p-4 text-center">
+            <Button variant="outline" size="sm" onClick={list.loadMore} disabled={list.isLoadingMore} data-testid="button-load-more-reviews">
+              {list.isLoadingMore ? "Loading..." : "Load more"}
+            </Button>
+          </div>
+        )}
       </div>
 
       <Dialog open={reportingId !== null} onOpenChange={(open) => !open && setReportingId(null)}>

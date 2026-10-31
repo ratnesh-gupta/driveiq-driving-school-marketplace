@@ -9,12 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { getInquiryReview, submitInquiryReview } from "@/lib/ops-api";
 import { Star } from "lucide-react";
+import { takeQueryParams } from "@/lib/url-token";
 import { useT } from "@/i18n/use-locale";
 
 /** Landing page for the one-time review link in an enquiry confirmation email (DIQ-407). */
 export default function ReviewViaLinkPage() {
   const t = useT();
-  const token = new URLSearchParams(window.location.search).get("token") ?? "";
+  const [{ token }] = useState(() => takeQueryParams("review", ["token"]));
   const [authorName, setAuthorName] = useState("");
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");

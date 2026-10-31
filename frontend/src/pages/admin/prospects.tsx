@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileUp, Plus, Store, Target } from "lucide-react";
@@ -82,6 +83,7 @@ function toInput(f: FormState): ProspectInput {
 /** DIQ-1103: schools and trainers the team is bringing on board. */
 export default function AdminProspectsPage() {
   const qc = useQueryClient();
+  const { confirm, prompt } = useConfirm();
   const { data: localities } = useListLocalities();
   const [stage, setStage] = useState<ProspectStage | "">("");
   const [search, setSearch] = useState("");
@@ -133,7 +135,7 @@ export default function AdminProspectsPage() {
         await navigator.clipboard.writeText(r.url);
         toast.success("Claim link copied. It works for 30 days and only once.");
       } catch {
-        window.prompt("Copy the claim link", r.url);
+        void prompt({ title: "Copy the claim link", description: "Copying automatically was blocked. It works for 30 days and only once.", input: { label: "Claim link", defaultValue: r.url, readOnly: true }, confirmLabel: "Done", testId: "dialog-copy-claim-link" });
       }
     },
     onError: (e: Error) => toast.error(e.message),
@@ -226,9 +228,9 @@ export default function AdminProspectsPage() {
                     <select
                       className={`${SELECT} h-8 text-xs ${STAGE_CLASS[p.stage]}`}
                       value={p.stage}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const next = e.target.value as ProspectStage;
-                        if (next === "do_not_contact" && !window.confirm(`Stop all outreach to ${p.name}? Their unclaimed listing is removed.`)) return;
+                        if (next === "do_not_contact" && !(await confirm({ title: `Stop all outreach to ${p.name}?`, description: "Their unclaimed listing is removed.", confirmLabel: "Stop outreach", destructive: true, testId: "dialog-confirm-do-not-contact" }))) return;
                         setStageOf.mutate({ p, next });
                       }}
                       aria-label={`Stage of ${p.name}`}

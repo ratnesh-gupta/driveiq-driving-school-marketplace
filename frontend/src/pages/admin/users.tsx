@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Search, Users } from "lucide-react";
@@ -27,6 +28,7 @@ const SELECT_CLASS = "h-9 rounded-md border bg-background px-3 text-sm";
 
 export default function AdminUsersPage() {
   const qc = useQueryClient();
+  const { confirm } = useConfirm();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
@@ -57,8 +59,8 @@ export default function AdminUsersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function confirmToggle(u: AdminUserRow) {
-    if (u.active && !window.confirm(`Deactivate ${u.name}? They will be signed out and unable to log in.`)) return;
+  async function confirmToggle(u: AdminUserRow) {
+    if (u.active && !(await confirm({ title: `Deactivate ${u.name}?`, description: "They will be signed out and unable to log in.", confirmLabel: "Deactivate", destructive: true, testId: "dialog-confirm-deactivate-user" }))) return;
     toggle.mutate(u);
   }
 

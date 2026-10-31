@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { PlanGateBanner } from "@/components/plan/plan-gate-banner";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -70,6 +71,7 @@ function SessionFields({
 const emptySession = { instructorId: "", vehicleId: "", sessionDate: "", startTime: "07:00", endTime: "08:00", pickup: "" };
 
 export default function SchedulesPage() {
+  const { confirm } = useConfirm();
   const canWrite = useEntitlements().has("schedules");
   const schoolId = useSchoolId();
   const qc = useQueryClient();
@@ -292,7 +294,7 @@ export default function SchedulesPage() {
                   Save changes
                 </Button>
                 <Button variant="outline" className="text-destructive" disabled={save.isPending}
-                  onClick={() => window.confirm("Cancel this session?") && save.mutate({ status: "cancelled" })}
+                  onClick={async () => { if (await confirm({ title: "Cancel this session?", confirmLabel: "Cancel session", cancelLabel: "Keep session", destructive: true, testId: "dialog-confirm-cancel-session" })) save.mutate({ status: "cancelled" }); }}
                   data-testid="button-cancel-session">
                   Cancel session
                 </Button>

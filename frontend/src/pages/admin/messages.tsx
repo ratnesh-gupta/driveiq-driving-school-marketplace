@@ -1,3 +1,4 @@
+import { mailtoHref } from "@/lib/safe-url";
 import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -90,11 +91,13 @@ export default function AdminMessagesPage() {
               </div>
               <p className="text-sm mt-3 whitespace-pre-wrap break-words">{m.message}</p>
               <div className="flex flex-wrap gap-2 mt-3">
-                <Button size="sm" variant="outline" asChild>
-                  <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject}`)}`}>
-                    <Mail className="h-3.5 w-3.5 mr-1" /> Reply by email
-                  </a>
-                </Button>
+                {mailtoHref(m.email, `Re: ${m.subject}`) && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={mailtoHref(m.email, `Re: ${m.subject}`) ?? undefined}>
+                      <Mail className="h-3.5 w-3.5 mr-1" /> Reply by email
+                    </a>
+                  </Button>
+                )}
                 {m.status === "new" && (
                   <Button size="sm" variant="ghost" disabled={update.isPending} onClick={() => update.mutate({ id: m.id, next: "read" })}>
                     Mark read

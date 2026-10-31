@@ -1,5 +1,8 @@
+import { safeNavigationUrl, GOOGLE_OAUTH_HOSTS } from "@/lib/safe-url";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useState } from "react";
-import { Link, useLocation, useParams } from "wouter";
+import { Link, useLocation } from "wouter";
+import { takePathToken, takeQueryParams } from "@/lib/url-token";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, MailCheck, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,17 +21,16 @@ import { claimWithGoogle, completeClaim, declineClaim, getClaim, sendClaimCode }
  * their owner account.
  */
 export default function ClaimPage() {
-  const { token = "" } = useParams<{ token: string }>();
+  const [token] = useState(() => takePathToken("claim"));
+  const { confirm } = useConfirm();
   const [, setLocation] = useLocation();
   const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
 
-  const preview = useQuery({ queryKey: ["claim", token], queryFn: () => getClaim(token), retry: false });
+  const preview = useQuery({ queryKey: ["claim", token], queryFn: () => getClaim(token), enabled: !!token, retry: false });
   // Back from Google (DIQ-1107): a verified match comes with a one-time code.
   const [googleResult] = useState(() => {
-    const q = new URLSearchParams(window.location.search);
-    const result = q.get("google");
-    if (result) window.history.replaceState(null, "", window.location.pathname);
-    return { result, code: q.get("code") ?? "" };
+    const q = takeQueryParams("claim", ["google", "code"]);
+    return { result: q.google || null, code: q.code };
   });
   const [sentTo, setSentTo] = useState<string | null>(googleResult.result === "verified" ? "Google Business Profile" : null);
   const [code, setCode] = useState(googleResult.result === "verified" ? googleResult.code : "");
@@ -54,7 +56,10 @@ export default function ClaimPage() {
   });
   const google = useMutation({
     mutationFn: () => claimWithGoogle(token),
-    onSuccess: (r) => window.location.assign(r.url),
+    onSuccess: (r) => {
+      const url = safeNavigationUrl(r.url, GOOGLE_OAUTH_HOSTS);
+      if (url) window.location.assign(url);
+    },
   });
   const decline = useMutation({
     mutationFn: () => declineClaim(token),
@@ -160,7 +165,7 @@ export default function ClaimPage() {
               <button
                 className="underline"
                 disabled={decline.isPending}
-                onClick={() => window.confirm("Remove this listing and stop all emails from us?") && decline.mutate()}
+                onClick={async () => { if (await confirm({ title: "Remove this listing?", description: "We will remove the listing and stop all emails from us.", confirmLabel: "Remove it", destructive: true, testId: "dialog-confirm-claim-decline" })) decline.mutate(); }}
                 data-testid="button-claim-decline"
               >
                 Remove it and stop emails

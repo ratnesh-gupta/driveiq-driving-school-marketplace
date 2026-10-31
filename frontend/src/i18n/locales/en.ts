@@ -17,6 +17,10 @@ const en = {
     contact: "Contact",
     about: "About",
     language: "Language",
+    serverError: "Something went wrong on our side. Please try again in a moment.",
+    loadMore: "Load more",
+    loadingMore: "Loading…",
+    confirm: "Confirm",
   },
   nav: {
     search: "Search",
@@ -120,7 +124,21 @@ const en = {
     content: "Your review",
     submit: "Submit review",
     submitting: "Submitting…",
-    eligibility: "Reviews come from learners enrolled here, or from the one-time link emailed after an enquiry.",
+    eligibility: "Reviews come from learners enrolled here, or from the one-time link emailed after the school replies to an enquiry.",
+  },
+  inquiry: {
+    sentTitle: "Inquiry sent",
+    sentBody: "We've emailed you a receipt. The school will contact you soon. After the school replies, we'll email you a link to review them.",
+    failed: "Failed to send inquiry",
+    whatsapp: "Prefer WhatsApp updates? (optional, we only note your preference)",
+    retry: "We could not send your inquiry. Please check the details and try again.",
+  },
+  account: {
+    logoutAll: "Sign out of all devices",
+    title: "Sign out of all devices?",
+    body: "This ends every session on every browser and device, including this one. You will need to sign in again.",
+    confirm: "Sign out everywhere",
+    failed: "Could not sign out of all devices. Please try again.",
   },
   auth: {
     sessionExpired: "Your session has expired. Please sign in again.",
@@ -253,6 +271,9 @@ const en = {
       "We use essential browser storage to keep you signed in and remember theme preferences. We do not use advertising cookies.",
     essentialOnly: "Essential only",
     accept: "Accept",
+  },
+  instructor: {
+    mobileHidden: "Phone number not shared",
   },
 } as const;
 

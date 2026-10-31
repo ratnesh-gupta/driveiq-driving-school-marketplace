@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { KeyRound, Mail } from "lucide-react";
@@ -90,6 +91,7 @@ export function InstructorSheet({
   isOwner: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { confirm } = useConfirm();
   const qc = useQueryClient();
   const [form, setForm] = useState<Form>(emptyForm);
   const creating = open && !instructor;
@@ -239,7 +241,7 @@ export function InstructorSheet({
                         variant="ghost"
                         className="text-destructive"
                         disabled={remove.isPending}
-                        onClick={() => window.confirm(`Remove ${instructor.name}? They are hidden from scheduling and the public page; history is kept.`) && remove.mutate()}
+                        onClick={async () => { if (await confirm({ title: `Remove ${instructor.name}?`, description: "They are hidden from scheduling and the public page; history is kept.", confirmLabel: "Remove", destructive: true, testId: "dialog-confirm-remove-instructor" })) remove.mutate(); }}
                       >
                         Remove
                       </Button>

@@ -1,3 +1,4 @@
+import { telHref } from "@/lib/safe-url";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { InstructorLayout } from "@/components/layout/instructor-layout";
@@ -9,10 +10,12 @@ import { ProgressEditor } from "@/components/learners/progress-editor";
 import { SessionHistory } from "@/components/learners/session-history";
 import { DrivingTestsPanel } from "@/components/learners/driving-tests-panel";
 import { listMyLearners, type MyLearnerRow } from "@/lib/ops-api";
+import { useT } from "@/i18n/use-locale";
 import { ChevronRight, Phone, Users } from "lucide-react";
 
 /** Trainer's roster: learners assigned to them or booked with them (DIQ-908). */
 export default function InstructorLearnersPage() {
+  const t = useT();
   const [open, setOpen] = useState<MyLearnerRow | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ["instructor", "learners"], queryFn: listMyLearners });
 
@@ -60,8 +63,10 @@ export default function InstructorLearnersPage() {
               <SheetHeader>
                 <SheetTitle>{open.name}</SheetTitle>
                 <SheetDescription className="flex items-center gap-3">
-                  {open.mobile && (
-                    <a href={`tel:${open.mobile}`} className="inline-flex items-center gap-1 underline"><Phone className="h-3.5 w-3.5" />{open.mobile}</a>
+                  {open.mobile && telHref(open.mobile) ? (
+                    <a href={telHref(open.mobile) ?? undefined} className="inline-flex items-center gap-1 underline"><Phone className="h-3.5 w-3.5" />{open.mobile}</a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs" data-testid="text-learner-mobile-hidden"><Phone className="h-3.5 w-3.5" />{t("instructor.mobileHidden")}</span>
                   )}
                   {open.packageName}
                 </SheetDescription>

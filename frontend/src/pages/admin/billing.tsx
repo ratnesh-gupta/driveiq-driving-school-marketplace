@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/layout/admin-layout";
@@ -81,6 +82,7 @@ function OverviewTab() {
 
 function InvoicesTab() {
   const qc = useQueryClient();
+  const { prompt } = useConfirm();
   const [status, setStatus] = useState("issued");
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "invoices", status],
@@ -140,9 +142,9 @@ function InvoicesTab() {
                   <Button
                     size="sm"
                     disabled={pay.isPending}
-                    onClick={() => {
-                      const reference = window.prompt(`UTR / transaction reference for ${formatInr(inv.total)}`);
-                      if (reference?.trim()) pay.mutate({ id: inv.id, reference: reference.trim() });
+                    onClick={async () => {
+                      const reference = await prompt({ title: "Record payment", description: `Payment received for ${inv.invoiceNumber} (${formatInr(inv.total)}).`, input: { label: "UTR / transaction reference", required: true }, confirmLabel: "Record payment", testId: "dialog-prompt-pay-invoice" });
+                      if (reference) pay.mutate({ id: inv.id, reference });
                     }}
                   >
                     Record payment
@@ -151,8 +153,8 @@ function InvoicesTab() {
                     size="sm"
                     variant="ghost"
                     disabled={cancel.isPending}
-                    onClick={() => {
-                      const reason = window.prompt("Reason for voiding (optional)");
+                    onClick={async () => {
+                      const reason = await prompt({ title: `Void ${inv.invoiceNumber}?`, input: { label: "Reason for voiding (optional)" }, confirmLabel: "Void invoice", destructive: true, testId: "dialog-prompt-void-invoice" });
                       if (reason !== null) cancel.mutate({ id: inv.id, reason: reason || undefined });
                     }}
                   >
@@ -170,6 +172,7 @@ function InvoicesTab() {
 
 function SubscriptionsTab() {
   const qc = useQueryClient();
+  const { confirm } = useConfirm();
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -258,7 +261,7 @@ function SubscriptionsTab() {
                   <td className="px-4 py-2">{date(s.expiresAt)}</td>
                   <td className="px-4 py-2 text-right">
                     {s.status === "active" && s.current && (
-                      <Button size="sm" variant="ghost" disabled={cancel.isPending} onClick={() => window.confirm(`Cancel ${s.schoolName}'s plan now?`) && cancel.mutate(s.schoolId)}>
+                      <Button size="sm" variant="ghost" disabled={cancel.isPending} onClick={async () => { if (await confirm({ title: `Cancel ${s.schoolName}'s plan now?`, confirmLabel: "Cancel plan", cancelLabel: "Keep plan", destructive: true, testId: "dialog-confirm-cancel-plan" })) cancel.mutate(s.schoolId); }}>
                         Cancel
                       </Button>
                     )}

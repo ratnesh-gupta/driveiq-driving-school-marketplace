@@ -1,3 +1,4 @@
+import { telHref } from "@/lib/safe-url";
 import { useQuery } from "@tanstack/react-query";
 import { LearnerLayout } from "@/components/layout/learner-layout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,8 +43,8 @@ export default function LearnerHomePage() {
             <div><span className="text-muted-foreground">Status:</span> {String(learner.status)}</div>
             <div>
               <span className="text-muted-foreground">Trainer:</span> {String(learner.instructorName ?? "Not assigned")}
-              {typeof learner.instructorMobile === "string" && learner.instructorMobile && (
-                <a href={`tel:${learner.instructorMobile}`} className="ml-2 inline-flex items-center gap-1 text-primary underline" data-testid="link-call-trainer">
+              {typeof learner.instructorMobile === "string" && telHref(learner.instructorMobile) && (
+                <a href={telHref(learner.instructorMobile) ?? undefined} className="ml-2 inline-flex items-center gap-1 text-primary underline" data-testid="link-call-trainer">
                   <Phone className="h-3.5 w-3.5" /> {learner.instructorMobile}
                 </a>
               )}

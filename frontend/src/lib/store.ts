@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { ApiValidationError, getStoredToken, loginApi, logoutApi, meApi, registerApi, setStoredToken, type AuthUser, type RegisterPayload, type FieldErrors, type SchoolRole, type UserRole } from "@/lib/auth-api";
+import { clearSessionData } from "@/lib/session";
+import { ApiValidationError, getStoredToken, loginApi, logoutAllApi, logoutApi, meApi, registerApi, setSessionEndHandler, setStoredToken, type AuthUser, type RegisterPayload, type FieldErrors, type SchoolRole, type UserRole } from "@/lib/auth-api";
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -15,6 +16,8 @@ interface AuthState {
   login: (payload: { email: string; password: string }) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
+  /** Revokes all tokens server-side, then clears this session. Throws (and stays signed in) if the call fails. */
+  logoutAll: () => Promise<void>;
   clearAuthErrors: () => void;
 }
 
@@ -49,15 +52,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch {
       setStoredToken(null);
-      set({
-        token: null,
-        user: null,
-        userRole: null,
-        schoolId: null,
-        schoolRole: null,
-        isLoggedIn: false,
-        isAuthLoading: false,
-      });
+      resetAuthState();
     }
   },
 
@@ -65,6 +60,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true, authError: null, fieldErrors: {} });
     try {
       const data = await loginApi({ email, password });
+      clearSessionData({ keepLocation: true }); // never carry the previous user's caches into this session
       setStoredToken(data.token);
       set({
         token: data.token,
@@ -90,6 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true, authError: null, fieldErrors: {} });
     try {
       const data = await registerApi(payload);
+      clearSessionData({ keepLocation: true });
       setStoredToken(data.token);
       set({
         token: data.token,
@@ -122,19 +119,49 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     setStoredToken(null);
-    set({
-      token: null,
-      user: null,
-      userRole: null,
-      schoolId: null,
-      schoolRole: null,
-      isLoggedIn: false,
-      authError: null,
-      fieldErrors: {},
-      isAuthLoading: false,
-    });
+    resetAuthState();
+  },
+
+  logoutAll: async () => {
+    const token = get().token;
+    if (token) await logoutAllApi(token);
+    setStoredToken(null);
+    resetAuthState();
   },
 }));
+
+const LOGGED_OUT_STATE = {
+  token: null,
+  user: null,
+  userRole: null,
+  schoolId: null,
+  schoolRole: null,
+  isLoggedIn: false,
+  authError: null,
+  fieldErrors: {},
+  isAuthLoading: false,
+} as const;
+
+/** Local-only teardown: auth store, query cache, Echo, per-user storage. Token removal is the caller's job. */
+function resetAuthState(): void {
+  clearSessionData();
+  useAuthStore.setState({ ...LOGGED_OUT_STATE });
+}
+
+// 401 anywhere (public pages included) must not leave the store "logged in".
+setSessionEndHandler(resetAuthState);
+
+// Cross-tab: logout (or login as someone else) in another tab is mirrored here.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== "driveiq_auth_token" && e.key !== null) return;
+    const stored = getStoredToken();
+    const current = useAuthStore.getState().token;
+    if (stored === current) return;
+    resetAuthState();
+    if (stored) void useAuthStore.getState().hydrateAuth();
+  });
+}
 
 interface ThemeState {
   theme: "light" | "dark" | "system";

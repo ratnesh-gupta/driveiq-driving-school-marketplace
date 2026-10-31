@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/store";
 import { roleHomePath } from "@/lib/auth-api";
+import { safeNextPath } from "@/lib/safe-path";
 import { useT } from "@/i18n/use-locale";
 import { Car, ShieldCheck, Star } from "lucide-react";
 
@@ -35,8 +36,7 @@ export default function LoginPage() {
       await login({ email, password });
       const role = useAuthStore.getState().userRole ?? userRole;
       // Only same-origin paths (e.g. back to an invite link), never "//host".
-      const next = new URLSearchParams(window.location.search).get("next");
-      const safeNext = next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : null;
+      const safeNext = safeNextPath(new URLSearchParams(window.location.search).get("next"));
       setLocation(safeNext ?? roleHomePath(role));
     } catch {
       // errors are in the store
