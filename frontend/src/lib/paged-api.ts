@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
-import { HttpError, safeErrorMessage } from "@/lib/errors";
+import { HttpError, errorExtras, safeErrorMessage } from "@/lib/errors";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)
@@ -33,12 +33,15 @@ export async function fetchPage<T>(
   if (res.status === 401 && token) handleUnauthorized();
   if (!res.ok) {
     let msg: string | undefined;
+    let extras: ReturnType<typeof errorExtras> = {};
     try {
-      msg = (await res.json())?.message;
+      const body = await res.json();
+      msg = body?.message;
+      extras = errorExtras(body);
     } catch {
       /* ignore */
     }
-    throw new HttpError(res.status, safeErrorMessage(res.status, msg, `Request failed (${res.status})`));
+    throw new HttpError(res.status, safeErrorMessage(res.status, msg, `Request failed (${res.status})`), extras);
   }
   const items = (await res.json()) as T[];
   const header = Number(res.headers.get("X-Total-Count"));

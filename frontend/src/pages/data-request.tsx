@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
-const API_BASE =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)
-    ?.replace(/\/+$/, "")
-    .replace(/\/api$/i, "") ?? "";
+import { request } from "@/lib/ops-api";
+import { HttpError, errorMessageWithReference } from "@/lib/errors";
+import { useT } from "@/i18n/use-locale";
 
 export default function DataRequestPage() {
+  const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [requestType, setRequestType] = useState<
@@ -28,9 +27,8 @@ export default function DataRequestPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/api/data-requests`, {
+      await request("/api/data-requests", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           name,
           email,
@@ -41,14 +39,10 @@ export default function DataRequestPage() {
           nomineeRelation: nomineeRelation || undefined,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || `Request failed (${res.status})`);
-      }
       setDone(true);
-      toast.success("Request submitted");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not submit");
+      if (err instanceof HttpError && err.status === 429) toast.error(t("dataRequest.tooMany"));
+      else toast.error(errorMessageWithReference(err, t("dataRequest.submitFailed")));
     } finally {
       setSubmitting(false);
     }
@@ -57,75 +51,72 @@ export default function DataRequestPage() {
   return (
     <PublicLayout>
       <div className="container mx-auto px-4 py-12 max-w-lg">
-        <h1 className="text-2xl font-bold mb-2">Data rights request</h1>
+        <h1 className="text-2xl font-bold mb-2">{t("dataRequest.title")}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Request access, correction, deletion, or nominate a person who may exercise your rights
-          (e.g. incapacity). Target response: within 90 days after identity verification. See{" "}
-          <Link href="/privacy" className="underline text-primary">Privacy Policy</Link>.
+          {t("dataRequest.intro")}{" "}
+          <Link href="/privacy" className="underline text-primary">{t("dataRequest.privacyLink")}</Link>.
         </p>
 
         {done ? (
-          <div className="rounded-xl border bg-card p-6 text-sm">
-            <p className="font-medium mb-2">Thank you</p>
-            <p className="text-muted-foreground">
-              Your request was recorded. We may contact you at the email provided to verify identity
-              before fulfilling the request. Grievance: privacy@driveq.in
-            </p>
+          <div role="status" className="rounded-xl border bg-card p-6 text-sm" data-testid="state-request-sent">
+            <p className="font-medium mb-2">{t("dataRequest.sentTitle")}</p>
+            <p className="text-muted-foreground">{t("dataRequest.sentBody")}</p>
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-4 rounded-xl border bg-card p-6">
+          <form onSubmit={submit} data-testid="form-data-request" className="space-y-4 rounded-xl border bg-card p-6">
             <div>
-              <Label htmlFor="name">Full name</Label>
-              <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
+              <Label htmlFor="name">{t("dataRequest.fullName")}</Label>
+              <Input id="name" data-testid="input-dr-name" required value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="email">Email used on DriveQ</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Label htmlFor="email">{t("dataRequest.email")}</Label>
+              <Input id="email" data-testid="input-dr-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="type">Request type</Label>
+              <Label htmlFor="type">{t("dataRequest.type")}</Label>
               <select
+                data-testid="select-request-type"
                 id="type"
                 className="w-full h-9 rounded-md border bg-background px-2 text-sm"
                 value={requestType}
                 onChange={(e) => setRequestType(e.target.value as typeof requestType)}
               >
-                <option value="access">Access / export my data</option>
-                <option value="correction">Correct my data</option>
-                <option value="deletion">Delete my data</option>
-                <option value="nomination">Nominate a person for my rights</option>
-                <option value="other">Other / grievance</option>
+                <option value="access">{t("dataRequest.typeAccess")}</option>
+                <option value="correction">{t("dataRequest.typeCorrection")}</option>
+                <option value="deletion">{t("dataRequest.typeDeletion")}</option>
+                <option value="nomination">{t("dataRequest.typeNomination")}</option>
+                <option value="other">{t("dataRequest.typeOther")}</option>
               </select>
             </div>
             {(requestType === "nomination" || nomineeName) && (
               <div className="space-y-3 rounded-lg border p-3 bg-muted/20">
-                <p className="text-xs font-medium">Nominee details</p>
+                <p className="text-xs font-medium">{t("dataRequest.nomineeHeading")}</p>
                 <div>
-                  <Label htmlFor="nomineeName">Nominee full name</Label>
+                  <Label htmlFor="nomineeName">{t("dataRequest.nomineeName")}</Label>
                   <Input id="nomineeName" value={nomineeName} onChange={(e) => setNomineeName(e.target.value)} required={requestType === "nomination"} />
                 </div>
                 <div>
-                  <Label htmlFor="nomineeEmail">Nominee email</Label>
+                  <Label htmlFor="nomineeEmail">{t("dataRequest.nomineeEmail")}</Label>
                   <Input id="nomineeEmail" type="email" value={nomineeEmail} onChange={(e) => setNomineeEmail(e.target.value)} />
                 </div>
                 <div>
-                  <Label htmlFor="nomineeRelation">Relationship</Label>
-                  <Input id="nomineeRelation" value={nomineeRelation} onChange={(e) => setNomineeRelation(e.target.value)} placeholder="e.g. spouse, parent" />
+                  <Label htmlFor="nomineeRelation">{t("dataRequest.nomineeRelation")}</Label>
+                  <Input id="nomineeRelation" value={nomineeRelation} onChange={(e) => setNomineeRelation(e.target.value)} placeholder={t("dataRequest.nomineeRelationPh")} />
                 </div>
               </div>
             )}
             <div>
-              <Label htmlFor="details">Details (optional)</Label>
+              <Label htmlFor="details">{t("dataRequest.details")}</Label>
               <textarea
                 id="details"
                 className="w-full min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm"
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                placeholder="Account type, school name, or what needs correcting…"
+                placeholder={t("dataRequest.detailsPh")}
               />
             </div>
-            <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? "Submitting…" : "Submit request"}
+            <Button type="submit" data-testid="button-submit-data-request" disabled={submitting} className="w-full">
+              {submitting ? t("dataRequest.submitting") : t("dataRequest.submit")}
             </Button>
           </form>
         )}

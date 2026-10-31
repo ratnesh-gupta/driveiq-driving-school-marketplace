@@ -23,6 +23,7 @@ import ResetPasswordPage from "@/pages/reset-password";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import DataRequestPage from "@/pages/data-request";
+import DataRequestVerifyPage from "@/pages/data-request-verify";
 
 import DashboardHomePage from "@/pages/dashboard/index";
 import LeadsPage from "@/pages/dashboard/leads";
@@ -93,6 +94,7 @@ function Router() {
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/privacy/data-request" component={DataRequestPage} />
+      <Route path="/data-request/verify" component={DataRequestVerifyPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
       <Route path="/auth/forgot-password" component={ForgotPasswordPage} />

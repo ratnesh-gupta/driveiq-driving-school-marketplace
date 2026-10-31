@@ -1,5 +1,5 @@
 import { getStoredToken, handleUnauthorized } from "@/lib/auth-api";
-import { HttpError, safeErrorMessage } from "@/lib/errors";
+import { HttpError, errorExtras, safeErrorMessage } from "@/lib/errors";
 import { announcePlanRequired, type PlanFeature } from "@/lib/plan";
 
 const API_BASE =
@@ -27,15 +27,17 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   if (res.status === 401 && token) handleUnauthorized();
   if (!res.ok) {
     let serverMessage: string | undefined;
+    let extras: ReturnType<typeof errorExtras> = {};
     try {
       const data = await res.json();
+      extras = errorExtras(data);
       if (res.status === 402) announcePlanRequired(data);
       if (data.message) serverMessage = String(data.message);
       else if (data.errors) serverMessage = Object.values(data.errors).flat().join(" ");
     } catch {
       /* ignore */
     }
-    throw new HttpError(res.status, safeErrorMessage(res.status, serverMessage, `Request failed (${res.status})`));
+    throw new HttpError(res.status, safeErrorMessage(res.status, serverMessage, `Request failed (${res.status})`), extras);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
@@ -180,6 +182,8 @@ export type PaymentRow = {
   packageId: number | null;
   packageName?: string | null;
   amount: number;
+  /** Integer paise (authoritative amount); `amount` is kept for display. */
+  amountPaise?: number;
   currency: string;
   method: string;
   status: string;
