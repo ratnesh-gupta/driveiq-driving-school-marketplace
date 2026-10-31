@@ -216,7 +216,7 @@ class SchoolsSeeder extends Seeder
             [
                 'name' => 'Pimpri AutoDrive',
                 'slug' => 'pimpri-autodrive',
-                'locality_slug' => 'pimpri',
+                'locality_slug' => 'pimpri-chinchwad',
                 'address' => 'Pimpri Chowk, PCMC, Pune',
                 'latitude' => 18.6298,
                 'longitude' => 73.7997,

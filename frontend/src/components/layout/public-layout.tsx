@@ -1,3 +1,4 @@
+import { openCookieSettings } from "@/components/legal/cookie-consent";
 import { Link } from "wouter";
 import { useAuthStore, useThemeStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               <li><Link href="/privacy" className="hover:text-primary">{t("legal.privacy")}</Link></li>
               <li><Link href="/terms" className="hover:text-primary">{t("legal.terms")}</Link></li>
               <li><Link href="/privacy/data-request" className="hover:text-primary">{t("legal.dataRights")}</Link></li>
+              <li><button type="button" onClick={openCookieSettings} className="hover:text-primary">Cookie settings</button></li>
               <li><Link href="/for-schools" className="hover:text-primary">{t("nav.partnerWithUs")}</Link></li>
               <li><Link href="/for-trainers" className="hover:text-primary">{t("nav.forTrainers")}</Link></li>
               <li><Link href="/auth/login" className="hover:text-primary">{t("nav.schoolLogin")}</Link></li>

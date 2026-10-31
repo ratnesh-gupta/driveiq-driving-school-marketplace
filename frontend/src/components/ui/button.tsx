@@ -26,6 +26,8 @@ const buttonVariants = cva(
         // @replit no hover, transparent border
         ghost: "border border-transparent",
         link: "text-primary underline-offset-4 hover:underline",
+        // For buttons on dark or coloured sections (hero, CTA banner). White fill, dark-blue label.
+        inverse: "bg-white text-[hsl(221,83%,32%)] border border-white font-semibold",
       },
       size: {
         // @replit changed sizes

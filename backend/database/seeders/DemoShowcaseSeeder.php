@@ -250,7 +250,7 @@ class DemoShowcaseSeeder extends Seeder
         $rows = [
             ['Hadapsar Highway Driving', 'school', 'hadapsar', 'new', 'csv'],
             ['Katraj Learner Point', 'school', 'kothrud', 'new', 'csv'],
-            ['Shree Ganesh Motor School', 'school', 'pimpri', 'contacted', 'csv'],
+            ['Shree Ganesh Motor School', 'school', 'pimpri-chinchwad', 'contacted', 'csv'],
             ['Wakad Drive Pro', 'school', 'wakad', 'contacted', 'outreach'],
             ['Sunita Jadhav (trainer)', 'trainer', 'aundh', 'replied', 'ads'],
             ['Kalyani Nagar Car Classes', 'school', 'viman-nagar', 'new', 'ads'],

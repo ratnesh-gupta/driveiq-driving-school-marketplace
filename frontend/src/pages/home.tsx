@@ -8,10 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useListFeaturedSchools, useListLocalities, useGetStatsOverview } from "@/api-client";
-import { Search, MapPin, Car, ShieldCheck, Users, Star, ArrowRight, CheckCircle2, Zap, MessageCircle, BookOpen } from "lucide-react";
+import { useListFeaturedSchools, useListLocalities } from "@/api-client";
+import { Search, MapPin, Car, ShieldCheck, Users, Star, ArrowRight, CheckCircle2, Zap, MessageCircle, BookOpen, Navigation } from "lucide-react";
 
-const LOCALITIES = ["Baner", "Hinjewadi", "Wakad", "Hadapsar", "Kothrud", "Pimpri"];
+const LOCALITIES = [
+  { name: "Baner", slug: "baner" },
+  { name: "Hinjewadi", slug: "hinjewadi" },
+  { name: "Wakad", slug: "wakad" },
+  { name: "Pimpri-Chinchwad", slug: "pimpri-chinchwad" },
+];
 const VEHICLE_TYPES = ["Car", "Bike", "Scooter", "Heavy Vehicle"];
 
 const fadeIn = {
@@ -31,7 +36,6 @@ export default function HomePage() {
 
   const { data: featuredSchools, isLoading: loadingSchools } = useListFeaturedSchools();
   const { data: localities, isLoading: loadingLocalities } = useListLocalities();
-  const { data: stats } = useGetStatsOverview();
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -51,48 +55,6 @@ export default function HomePage() {
         }} />
         <div className="absolute inset-0 bg-gradient-to-t from-[hsl(221,83%,8%)/60] to-transparent" />
 
-        {/* Floating school card previews */}
-        <motion.div
-          className="absolute right-8 top-16 hidden xl:block"
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5, duration: 0.7 }}
-        >
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 w-56 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/30 flex items-center justify-center">
-                <Car className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold">Skyline Driving</div>
-                <div className="text-xs text-white/70">Baner, Pune</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-yellow-400 text-sm mb-1">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <span className="font-medium">4.8</span>
-              <span className="text-white/50 text-xs ml-1">• 124 reviews</span>
-            </div>
-            <div className="text-xs text-white/70">Starting ₹3,500</div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="absolute right-4 bottom-24 hidden xl:block"
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.7, duration: 0.7 }}
-        >
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 w-48 shadow-xl">
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="h-4 w-4 text-green-400" />
-              <span className="text-xs font-medium">Verified School</span>
-            </div>
-            <div className="text-sm font-semibold">PuneAuto Academy</div>
-            <div className="text-xs text-white/60">Hinjewadi • Pickup available</div>
-          </div>
-        </motion.div>
-
         <div className="container mx-auto px-4 relative z-10 py-20">
           <motion.div className="max-w-2xl" initial="initial" animate="animate" variants={stagger}>
             <motion.div variants={fadeIn}>
@@ -102,12 +64,12 @@ export default function HomePage() {
             </motion.div>
 
             <motion.h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" variants={fadeIn}>
-              Find Trusted Driving Schools{" "}
+              Find Driving Schools{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300">Near You</span>
             </motion.h1>
 
             <motion.p className="text-xl text-white/75 mb-10 max-w-lg leading-relaxed" variants={fadeIn}>
-              Compare pricing, instructors, pickup availability, and reviews across Pune's top driving schools.
+              Compare pricing, instructors, pickup availability and reviews from driving schools in Pune.
             </motion.p>
 
             {/* Search bar */}
@@ -133,50 +95,36 @@ export default function HomePage() {
                     {VEHICLE_TYPES.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button onClick={handleSearch} size="lg" className="h-11 px-6 bg-white text-primary hover:bg-white/90 font-semibold" data-testid="button-search">
+                <Button onClick={handleSearch} size="lg" variant="inverse" className="h-11 px-6" data-testid="button-search">
                   <Search className="h-4 w-4 mr-2" /> Search
+                </Button>
+                <Button
+                  onClick={() => setLocation("/search?near=1")}
+                  size="lg"
+                  variant="outline"
+                  className="h-11 px-5 border-white/40 text-white"
+                  data-testid="button-near-me"
+                >
+                  <Navigation className="h-4 w-4 mr-2" /> Near me
                 </Button>
               </div>
             </motion.div>
 
             <motion.div className="flex flex-wrap gap-3 mt-6" variants={fadeIn}>
-              {LOCALITIES.slice(0, 4).map((loc) => (
+              {LOCALITIES.map((loc) => (
                 <button
-                  key={loc}
-                  onClick={() => setLocation(`/search?locality=${loc.toLowerCase()}`)}
-                  className="text-sm bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-3 py-1 text-white/80 transition-colors"
-                  data-testid={`button-quick-locality-${loc.toLowerCase()}`}
+                  key={loc.slug}
+                  onClick={() => setLocation(`/search?locality=${loc.slug}`)}
+                  className="text-sm bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-4 py-2 min-h-10 text-white/90 transition-colors"
+                  data-testid={`button-quick-locality-${loc.slug}`}
                 >
-                  {loc}
+                  {loc.name}
                 </button>
               ))}
             </motion.div>
           </motion.div>
         </div>
 
-        {/* Stats bar */}
-        {stats && (
-          <motion.div
-            className="absolute bottom-0 left-0 right-0 bg-black/30 backdrop-blur-sm border-t border-white/10 py-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1 }}
-          >
-            <div className="container mx-auto px-4 flex flex-wrap justify-center md:justify-around gap-6">
-              {[
-                { label: "Driving Schools", value: stats.totalSchools },
-                { label: "Localities Covered", value: stats.totalLocalities },
-                { label: "Verified Reviews", value: stats.totalReviews },
-                { label: "Happy Learners", value: stats.totalInquiries },
-              ].map((s) => (
-                <div key={s.label} className="text-center">
-                  <div className="text-2xl font-bold">{s.value.toLocaleString()}+</div>
-                  <div className="text-xs text-white/60">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
       </section>
 
       {/* Popular Localities */}
@@ -245,7 +193,7 @@ export default function HomePage() {
           >
             <div>
               <h2 className="text-3xl font-bold">Featured Driving Schools</h2>
-              <p className="text-muted-foreground mt-1">Top-rated, verified schools across Pune</p>
+              <p className="text-muted-foreground mt-1">Schools listed on DriveQ in Pune</p>
             </div>
             <Button variant="ghost" onClick={() => setLocation("/search")} className="hidden md:flex gap-1">
               View all <ArrowRight className="h-4 w-4" />
@@ -308,8 +256,8 @@ export default function HomePage() {
             variants={stagger}
           >
             {[
-              { icon: Search, step: "01", title: "Search Nearby Schools", desc: "Enter your locality and vehicle type. DriveQ finds verified driving schools near you instantly." },
-              { icon: Star, step: "02", title: "Compare & Review", desc: "Read real reviews, compare pricing packages, check instructor details and pickup availability." },
+              { icon: Search, step: "01", title: "Search Nearby Schools", desc: "Enter your locality and vehicle type, or use your location, to see schools nearby." },
+              { icon: Star, step: "02", title: "Compare & Review", desc: "Read reviews from learners who enquired or enrolled, compare pricing packages, and check instructors and pickup." },
               { icon: MessageCircle, step: "03", title: "Connect Instantly", desc: "Submit an inquiry or reach out on WhatsApp. Get started with your preferred driving school." },
             ].map((step) => (
               <motion.div
@@ -370,7 +318,7 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl font-bold">Why Trust DriveQ</h2>
-            <p className="text-muted-foreground mt-2">We verify every school so you don't have to</p>
+            <p className="text-muted-foreground mt-2">What we check, and what we do not claim</p>
           </motion.div>
 
           <motion.div
@@ -381,10 +329,10 @@ export default function HomePage() {
             variants={stagger}
           >
             {[
-              { icon: ShieldCheck, title: "Verified Schools", desc: "Every school is personally verified by our team before listing." },
-              { icon: Users, title: "Women Instructors", desc: "Filter schools with certified women driving instructors." },
-              { icon: MapPin, title: "12+ Localities", desc: "Comprehensive coverage across all major Pune localities." },
-              { icon: Star, title: "Real Reviews", desc: "Honest, verified reviews from actual students and learners." },
+              { icon: ShieldCheck, title: "Checked Listings", desc: "Schools marked Verified have had their phone, business and location checked." },
+              { icon: Users, title: "Women Instructors", desc: "Filter for schools that offer women instructors." },
+              { icon: MapPin, title: "Pune Localities", desc: "Browse schools by locality across Pune." },
+              { icon: Star, title: "Gated Reviews", desc: "Only learners who enquired with or enrolled at a school can review it." },
             ].map((item) => (
               <motion.div
                 key={item.title}
@@ -413,9 +361,9 @@ export default function HomePage() {
           >
             <Zap className="h-10 w-10 mx-auto mb-4 text-yellow-400" />
             <h2 className="text-3xl font-bold mb-3">Ready to start learning?</h2>
-            <p className="text-white/70 mb-8 max-w-md mx-auto">Join thousands of students who found their perfect driving school on DriveQ.</p>
+            <p className="text-white/70 mb-8 max-w-md mx-auto">Compare driving schools in Pune and ask for a callback.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold" onClick={() => setLocation("/search")} data-testid="button-cta-search">
+              <Button size="lg" variant="inverse" onClick={() => setLocation("/search")} data-testid="button-cta-search">
                 Search Schools Now
               </Button>
               <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10" onClick={() => setLocation("/auth/register")}>

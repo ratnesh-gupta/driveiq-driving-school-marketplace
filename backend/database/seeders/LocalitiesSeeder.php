@@ -15,7 +15,7 @@ class LocalitiesSeeder extends Seeder
             ['name' => 'Wakad', 'slug' => 'wakad', 'description' => 'Fast-growing neighborhood with family and student population.'],
             ['name' => 'Hadapsar', 'slug' => 'hadapsar', 'description' => 'Large mixed-use area serving east Pune commuters.'],
             ['name' => 'Kothrud', 'slug' => 'kothrud', 'description' => 'Established residential zone with strong weekday demand.'],
-            ['name' => 'Pimpri', 'slug' => 'pimpri', 'description' => 'Busy urban region with industrial and residential segments.'],
+            ['name' => 'Pimpri-Chinchwad', 'slug' => 'pimpri-chinchwad', 'description' => 'Busy urban region with industrial and residential segments.'],
         ];
 
         foreach ($localities as $locality) {

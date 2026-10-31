@@ -27,11 +27,32 @@ function parseQuery(search: string) {
   return {
     locality: params.get("locality") || "",
     vehicleType: params.get("vehicleType") || "",
+    wantsNear: params.get("near") === "1",
     listingType: (["school", "trainer"].includes(params.get("type") ?? "") ? params.get("type") : "") as "" | "school" | "trainer",
   };
 }
 
 const ALL = "__all__";
+
+// Coordinates stay in this tab's sessionStorage only: never in the URL, localStorage or shared links.
+const GEO_KEY = "driveiq_near_geo";
+type Geo = { lat: number; lng: number };
+function readStoredGeo(): Geo | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(GEO_KEY) ?? "null");
+    return v && typeof v.lat === "number" && typeof v.lng === "number" ? v : null;
+  } catch {
+    return null;
+  }
+}
+function storeGeo(g: Geo | null) {
+  try {
+    if (g) sessionStorage.setItem(GEO_KEY, JSON.stringify(g));
+    else sessionStorage.removeItem(GEO_KEY);
+  } catch {
+    /* storage blocked: the choice just lasts until reload */
+  }
+}
 
 export default function SearchPage() {
   const qs = typeof window !== "undefined" ? window.location.search : "";
@@ -47,10 +68,15 @@ export default function SearchPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minRating, setMinRating] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
-  const [nearMe, setNearMe] = useState(false);
+  const [storedGeo] = useState(readStoredGeo);
+  const [nearMe, setNearMe] = useState(storedGeo !== null);
   const [radiusKm, setRadiusKm] = useState<number>(5);
-  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationPrompt, setLocationPrompt] = useState(false);
+  const [geo, setGeoState] = useState<Geo | null>(storedGeo);
+  const setGeo = (g: Geo | null) => {
+    setGeoState(g);
+    storeGeo(g);
+  };
+  const [locationPrompt, setLocationPrompt] = useState(initial.wantsNear && storedGeo === null);
   const [view, setView] = useState<"list" | "map">("list");
 
   const { data: localities } = useListLocalities();

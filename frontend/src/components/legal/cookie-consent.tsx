@@ -7,6 +7,13 @@ import { postConsents } from "@/lib/ops-api";
 const STORAGE_KEY = "driveiq_cookie_consent";
 const COOKIE_NOTICE_VERSION = "1";
 
+const REOPEN_EVENT = "driveiq:cookie-settings";
+
+/** Reopens the cookie choice, e.g. from the footer "Cookie settings" link. */
+export function openCookieSettings(): void {
+  window.dispatchEvent(new Event(REOPEN_EVENT));
+}
+
 export type ConsentValue = "accepted" | "essential";
 
 export function getCookieConsent(): ConsentValue | null {
@@ -38,6 +45,9 @@ export function CookieConsent() {
 
   useEffect(() => {
     setVisible(getCookieConsent() === null);
+    const reopen = () => setVisible(true);
+    window.addEventListener(REOPEN_EVENT, reopen);
+    return () => window.removeEventListener(REOPEN_EVENT, reopen);
   }, []);
 
   if (!visible) return null;
@@ -76,11 +86,12 @@ export function CookieConsent() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Button variant="outline" size="sm" onClick={() => choose("essential")}>
-            Essential only
+          {/* Same variant and size on purpose: rejecting must be as easy as accepting. */}
+          <Button variant="outline" onClick={() => choose("essential")}>
+            Reject optional
           </Button>
-          <Button size="sm" onClick={() => choose("accepted")}>
-            Accept
+          <Button variant="outline" onClick={() => choose("accepted")}>
+            Accept all
           </Button>
         </div>
       </div>
