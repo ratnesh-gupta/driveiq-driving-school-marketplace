@@ -4,12 +4,17 @@ namespace Database\Seeders;
 
 use App\Models\Locality;
 use App\Models\School;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Seeder;
 
 class SchoolsSeeder extends Seeder
 {
+    use RefusesProduction;
+
     public function run(): void
     {
+        $this->refuseInProduction();
+
         $localityIds = Locality::query()->pluck('id', 'slug');
 
         $schools = [

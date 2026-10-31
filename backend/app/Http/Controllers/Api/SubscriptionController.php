@@ -56,7 +56,7 @@ class SubscriptionController extends Controller
     /** What the school's plan and trial unlock (DIQ-802). */
     public function entitlements(Request $request, int $schoolId, Entitlements $entitlements): JsonResponse
     {
-        if ($deny = $this->access()->school($request, $schoolId, allowInstructor: true)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -102,7 +102,7 @@ class SubscriptionController extends Controller
         AuditLog::log('assign_subscription', 'Subscription', $sub->id, [], [
             'school_id' => $sub->school_id,
             'plan' => $data['planCode'],
-        ]);
+        ], (int) $data['schoolId']);
 
         return response()->json($this->serialize($sub), 201);
     }
@@ -119,7 +119,7 @@ class SubscriptionController extends Controller
             return response()->json(['message' => 'No active subscription'], 404);
         }
 
-        AuditLog::log('cancel_subscription', 'Subscription', $sub->id, ['status' => 'active'], ['status' => 'cancelled']);
+        AuditLog::log('cancel_subscription', 'Subscription', $sub->id, ['status' => 'active'], ['status' => 'cancelled'], $schoolId);
 
         return response()->json($this->serialize($sub));
     }

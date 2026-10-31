@@ -3,12 +3,17 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Seeder;
 
 class UsersSeeder extends Seeder
 {
+    use RefusesProduction;
+
     public function run(): void
     {
+        $this->refuseInProduction();
+
         $users = [
             ['name' => 'Rahul Sharma', 'email' => 'rahul@gmail.com', 'password' => 'password123', 'role' => 'learner'],
             ['name' => 'Skyline Driving Academy', 'email' => 'info@skylinedrive.in', 'password' => 'password123', 'role' => 'school'],

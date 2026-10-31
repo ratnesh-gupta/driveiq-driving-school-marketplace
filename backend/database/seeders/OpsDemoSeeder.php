@@ -8,6 +8,7 @@ use App\Models\Learner;
 use App\Models\Schedule;
 use App\Models\School;
 use App\Models\User;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Seeder;
 
 /**
@@ -20,8 +21,12 @@ use Illuminate\Database\Seeder;
  */
 class OpsDemoSeeder extends Seeder
 {
+    use RefusesProduction;
+
     public function run(): void
     {
+        $this->refuseInProduction();
+
         $school = School::query()->where('slug', 'skyline-driving-academy')->first();
         if (! $school) {
             return;

@@ -13,7 +13,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'school_id', 'learner_id', 'invoice_number', 'purpose',
-        'package_id', 'plan_id', 'amount', 'currency', 'status',
+        'package_id', 'plan_id', 'amount', 'amount_paise', 'currency', 'status',
         'issued_at', 'due_at', 'line_items', 'notes',
     ];
 
@@ -21,6 +21,7 @@ class Invoice extends Model
     {
         return [
             'amount' => 'integer',
+            'amount_paise' => 'integer',
             'issued_at' => 'datetime',
             'due_at' => 'datetime',
             'line_items' => 'array',

@@ -20,12 +20,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class InstructorController extends Controller
 {
     public function index(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->access()->school($request, $schoolId, allowInstructor: true)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -46,7 +47,7 @@ class InstructorController extends Controller
 
     public function store(Request $request, int $schoolId): JsonResponse
     {
-        if ($deny = $this->access()->school($request, $schoolId, allowInstructor: true)) {
+        if ($deny = $this->access()->school($request, $schoolId)) {
             return $deny;
         }
 
@@ -69,7 +70,7 @@ class InstructorController extends Controller
             'languages' => ['nullable', 'array'],
             'womenInstructor' => ['nullable', 'boolean'],
             'publicVisible' => ['nullable', 'boolean'],
-            'photoUrl' => ['nullable', 'string', 'max:2048'],
+            'photoUrl' => ['nullable', 'url:https', 'max:2048'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'createLogin' => ['nullable', 'boolean'],
         ]);
@@ -170,7 +171,7 @@ class InstructorController extends Controller
      */
     private function loginFor(int $schoolId, string $name, string $email): User|JsonResponse
     {
-        $user = User::whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
+        $user = User::where('email', mb_strtolower(trim($email)))->first();
         if (! $user) {
             return User::create([
                 'name' => $name,
@@ -188,7 +189,7 @@ class InstructorController extends Controller
         if (! $attachable) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => ['email' => ['This email already belongs to another DriveQ account.']],
+                'errors' => ['email' => ['This email cannot be used for a trainer login. Use a different address.']],
             ], 422);
         }
 
@@ -203,7 +204,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id)) {
             return $deny;
         }
 
@@ -218,7 +219,7 @@ class InstructorController extends Controller
             return response()->json(['message' => 'Instructor not found'], 404);
         }
 
-        if ($deny = $this->access()->school($request, (int) $instructor->school_id, allowInstructor: true)) {
+        if ($deny = $this->access()->school($request, (int) $instructor->school_id)) {
             return $deny;
         }
 
@@ -241,7 +242,7 @@ class InstructorController extends Controller
             'languages' => ['nullable', 'array'],
             'womenInstructor' => ['nullable', 'boolean'],
             'publicVisible' => ['nullable', 'boolean'],
-            'photoUrl' => ['nullable', 'string', 'max:2048'],
+            'photoUrl' => ['nullable', 'url:https', 'max:2048'],
             'bio' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -282,7 +283,11 @@ class InstructorController extends Controller
         $instructor->fill($payload);
         $instructor->save();
 
-        AuditLog::log('update', 'Instructor', $instructor->id, $old, $payload);
+        AuditLog::log('update', 'Instructor', $instructor->id, $old, $payload, (int) $instructor->school_id);
+
+        if (isset($payload['status']) && $payload['status'] !== 'active' && ($old['status'] ?? null) !== $payload['status']) {
+            $this->revokeAccess($instructor);
+        }
 
         return response()->json($this->serialize($instructor->fresh(), full: true));
     }
@@ -301,9 +306,20 @@ class InstructorController extends Controller
 
         $instructor->update(['status' => 'terminated', 'public_visible' => false]);
 
-        AuditLog::log('deactivate', 'Instructor', $instructor->id, ['status' => 'active'], ['status' => 'terminated']);
+        AuditLog::log('deactivate', 'Instructor', $instructor->id, ['status' => 'active'], ['status' => 'terminated'], (int) $instructor->school_id);
+        $this->revokeAccess($instructor);
 
         return response()->json(null, 204);
+    }
+
+    /** BSEC-04: a trainer who is no longer active loses every live session. */
+    private function revokeAccess(Instructor $instructor): void
+    {
+        if ($instructor->user_id) {
+            PersonalAccessToken::where('tokenable_type', User::class)
+                ->where('tokenable_id', $instructor->user_id)
+                ->delete();
+        }
     }
 
     public function publicTrainers(string $slug): JsonResponse
@@ -388,7 +404,8 @@ class InstructorController extends Controller
         return response()->json($learners->map(fn (Learner $l) => [
             'id' => $l->id,
             'name' => $l->name,
-            'mobile' => $l->mobile,
+            // BSEC-04: phone numbers only for learners this trainer teaches now.
+            'mobile' => ((int) $l->assigned_instructor_id === (int) $instructor->id || isset($next[$l->id])) ? $l->mobile : null,
             'status' => $l->status,
             'vehicleType' => $l->vehicle_type,
             'packageName' => $l->package?->name,
@@ -483,6 +500,8 @@ class InstructorController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
+        AuditLog::log('document_upload', 'InstructorDocument', $doc->id, [], ['type' => $doc->type, 'has_file' => $file !== null], $schoolId);
+
         return response()->json($this->serializeDoc($doc), 201);
     }
 
@@ -523,7 +542,9 @@ class InstructorController extends Controller
 
         $previous = $doc->status;
 
+        $replaced = false;
         if ($file = $request->file('file')) {
+            $replaced = true;
             $old = $doc->file_path;
             $doc->file_path = $storage->store($file, (int) $doc->school_id, 'instructors', $instructor->id);
             $doc->file_name = DocumentStorage::displayName($file);
@@ -548,6 +569,10 @@ class InstructorController extends Controller
         }
 
         $doc->save();
+
+        if ($replaced) {
+            AuditLog::log('document_replaced', 'InstructorDocument', $doc->id, [], ['type' => $doc->type], (int) $doc->school_id);
+        }
 
         if ($doc->status !== $previous) {
             AuditLog::log('document_'.$doc->status, 'InstructorDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);

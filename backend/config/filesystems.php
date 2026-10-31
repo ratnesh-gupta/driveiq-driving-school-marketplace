@@ -31,6 +31,9 @@ return [
     // Private documents (DIQ-601): learner / instructor / vehicle files.
     'documents_disk' => env('DOCUMENTS_DISK', 'local'),
 
+    // BSEC-15: encrypt new private uploads with the app key before storing (App\Support\DocumentStorage).
+    'documents_encrypt' => (bool) env('DOCUMENTS_ENCRYPT', true),
+
     'disks' => [
 
         'local' => [

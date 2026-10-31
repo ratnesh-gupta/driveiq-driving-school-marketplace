@@ -60,7 +60,7 @@ Route::prefix('auth')->group(function (): void {
         ->middleware(['auth:sanctum', 'throttle:6,1']);
 });
 
-Route::prefix('schools')->group(function (): void {
+Route::prefix('schools')->middleware('throttle:public-reads')->group(function (): void {
     Route::get('/', [SchoolController::class, 'index']);
     Route::get('/featured', [SchoolController::class, 'featured']);
     Route::get('/compare', [SchoolController::class, 'compare']);
@@ -69,15 +69,15 @@ Route::prefix('schools')->group(function (): void {
     Route::get('/{id}', [SchoolController::class, 'show'])->whereNumber('id');
 });
 
-Route::prefix('localities')->group(function (): void {
+Route::prefix('localities')->middleware('throttle:public-reads')->group(function (): void {
     Route::get('/', [LocalityController::class, 'index']);
     Route::get('/slug/{slug}', [LocalityController::class, 'showBySlug']);
     Route::get('/{id}', [LocalityController::class, 'show'])->whereNumber('id');
 });
 
-Route::get('/reviews', [ReviewController::class, 'index']);
+Route::get('/reviews', [ReviewController::class, 'index'])->middleware('throttle:public-reads');
 // One-time review link from an inquiry confirmation email (DIQ-407).
-Route::get('/reviews/via-inquiry/{token}', [ReviewController::class, 'showInquiryReview'])->middleware('throttle:public-lookups');
+Route::get('/reviews/via-inquiry/{token}', [ReviewController::class, 'showInquiryReview'])->where('token', '[A-Za-z0-9]{1,64}')->middleware('throttle:public-lookups');
 Route::post('/reviews/via-inquiry', [ReviewController::class, 'storeViaInquiry'])->middleware('throttle:public-forms');
 Route::post('/reviews', [ReviewController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:10,1']);
@@ -111,6 +111,8 @@ Route::post('/outreach/unsubscribe/{token}', [AdminOutreachController::class, 'u
 
 Route::post('/data-requests', [DataSubjectRequestController::class, 'store'])
     ->middleware('throttle:public-forms');
+Route::post('/data-requests/verify', [DataSubjectRequestController::class, 'verify'])
+    ->middleware('throttle:public-lookups');
 
 Route::post('/contact', [ContactMessageController::class, 'store'])->middleware('throttle:public-forms');
 
@@ -118,11 +120,11 @@ Route::post('/contact', [ContactMessageController::class, 'store'])->middleware(
 // the cookie banner choice.
 Route::post('/consents', [ConsentController::class, 'store'])->middleware('throttle:consents');
 
-Route::get('/packages', [PackageController::class, 'index']);
-Route::get('/plans', [SubscriptionController::class, 'plans']);
-Route::get('/training-skills', [ProgressController::class, 'skillsCatalog']);
+Route::get('/packages', [PackageController::class, 'index'])->middleware('throttle:public-reads');
+Route::get('/plans', [SubscriptionController::class, 'plans'])->middleware('throttle:public-reads');
+Route::get('/training-skills', [ProgressController::class, 'skillsCatalog'])->middleware('throttle:public-reads');
 
-Route::get('/stats/overview', [StatsController::class, 'overview']);
+Route::get('/stats/overview', [StatsController::class, 'overview'])->middleware('throttle:public-reads');
 
 // Private document download (DIQ-601): only reachable through a short-lived
 // signed URL issued by the authenticated /documents/{kind}/{id}/link.
@@ -136,10 +138,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::post('/auth/logout-all', [AuthController::class, 'logoutEverywhere'])->middleware('throttle:10,1');
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->whereUuid('id');
 
     Route::get('/consents', [ConsentController::class, 'index']);
     Route::get('/me/whatsapp', [WhatsAppPreferenceController::class, 'show']);
@@ -250,6 +253,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
         Route::get('/admin/data-requests', [DataSubjectRequestController::class, 'index']);
         Route::patch('/admin/data-requests/{id}', [DataSubjectRequestController::class, 'update'])->whereNumber('id');
+        Route::post('/admin/data-requests/{id}/erase', [DataSubjectRequestController::class, 'erase'])->whereNumber('id');
     });
 
     Route::middleware(['role:school,admin', 'plan.features'])->group(function (): void {

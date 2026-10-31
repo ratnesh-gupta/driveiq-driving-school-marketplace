@@ -38,11 +38,14 @@ class MessagingService
         );
     }
 
+    /** BSEC-23: one text for "no such user" and "not in your school", so ids cannot be probed. */
+    private const CANNOT_MESSAGE = 'You cannot message this person.';
+
     public function send(User $sender, int $receiverId, string $body, ?int $schoolId = null, ?string $subject = null): Message
     {
         $receiver = User::find($receiverId);
         if (! $receiver) {
-            throw ValidationException::withMessages(['receiverId' => 'Receiver not found.']);
+            throw ValidationException::withMessages(['receiverId' => self::CANNOT_MESSAGE]);
         }
 
         $resolvedSchoolId = $this->resolveSchoolId($sender, $receiver, $schoolId);
@@ -133,7 +136,7 @@ class MessagingService
 
         if (! $senderOk || ! $receiverOk) {
             throw ValidationException::withMessages([
-                'receiverId' => 'Messaging is only allowed within the same school.',
+                'receiverId' => self::CANNOT_MESSAGE,
             ]);
         }
 

@@ -12,7 +12,7 @@ class Payment extends Model
 
     protected $fillable = [
         'school_id', 'invoice_id', 'learner_id', 'payer_user_id',
-        'purpose', 'package_id', 'plan_id', 'amount', 'currency',
+        'purpose', 'package_id', 'plan_id', 'amount', 'amount_paise', 'currency',
         'method', 'status', 'provider', 'provider_order_id',
         'provider_payment_id', 'receipt', 'meta', 'paid_at',
         'recorded_by', 'notes',
@@ -22,6 +22,7 @@ class Payment extends Model
     {
         return [
             'amount' => 'integer',
+            'amount_paise' => 'integer',
             'meta' => 'array',
             'paid_at' => 'datetime',
         ];

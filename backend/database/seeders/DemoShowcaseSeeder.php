@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\ProspectService;
 use App\Services\SubscriptionService;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -33,6 +34,8 @@ use Illuminate\Support\Str;
  */
 class DemoShowcaseSeeder extends Seeder
 {
+    use RefusesProduction;
+
     private const LOCALITIES = [
         ['Aundh', 'aundh', 'Leafy west-Pune neighbourhood with many families and students.'],
         ['Viman Nagar', 'viman-nagar', 'Busy east-Pune area near the airport and IT parks.'],
@@ -43,6 +46,8 @@ class DemoShowcaseSeeder extends Seeder
 
     public function run(): void
     {
+        $this->refuseInProduction();
+
         foreach (self::LOCALITIES as [$name, $slug, $desc]) {
             Locality::query()->updateOrCreate(['slug' => $slug], ['name' => $name, 'description' => $desc]);
         }

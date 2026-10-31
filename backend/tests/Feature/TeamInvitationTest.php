@@ -110,11 +110,14 @@ class TeamInvitationTest extends TestCase
         $learner = User::factory()->create(['role' => 'learner']);
         $otherStaff = $this->otherSchoolUser();
 
-        Sanctum::actingAs($this->owner);
+        // BSEC-23: the invite step answers the same for everyone (no account oracle);
+        // the account is refused when it tries to accept.
         foreach ([$learner, $otherStaff] as $user) {
-            $this->postJson("/api/schools/{$this->school->id}/team", ['email' => $user->email])
-                ->assertStatus(422);
+            $token = $this->invite($user->email);
+            Sanctum::actingAs($user);
+            $this->postJson('/api/team/accept', ['token' => $token])->assertStatus(422);
             $this->assertSame($user->role, $user->fresh()->role);
+            $this->assertNotSame($this->school->id, $user->fresh()->school_id);
         }
     }
 

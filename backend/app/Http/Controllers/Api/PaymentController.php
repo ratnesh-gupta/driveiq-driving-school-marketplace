@@ -58,7 +58,8 @@ class PaymentController extends Controller
             'learner_id' => $data['learnerId'],
             'package_id' => $data['packageId'],
             'amount' => $result['payment']->amount,
-        ]);
+            'amount_paise' => $result['payment']->amount_paise,
+        ], $schoolId);
 
         return response()->json([
             'payment' => $this->serialize($result['payment']),
@@ -91,7 +92,7 @@ class PaymentController extends Controller
             $data['providerPaymentId'] ?? null
         );
 
-        AuditLog::log('mark_paid', 'Payment', $payment->id, ['status' => 'pending'], ['status' => 'paid']);
+        AuditLog::log('mark_paid', 'Payment', $payment->id, ['status' => 'pending'], ['status' => 'paid'], (int) $payment->school_id);
 
         return response()->json($this->serialize($payment));
     }
@@ -112,7 +113,7 @@ class PaymentController extends Controller
 
         $payment = $this->payments->markFailed($payment, $data['notes'] ?? null);
 
-        AuditLog::log('mark_failed', 'Payment', $payment->id, ['status' => 'pending'], ['status' => 'failed']);
+        AuditLog::log('mark_failed', 'Payment', $payment->id, ['status' => 'pending'], ['status' => 'failed'], (int) $payment->school_id);
 
         return response()->json($this->serialize($payment));
     }
@@ -129,6 +130,7 @@ class PaymentController extends Controller
             'packageId' => $p->package_id,
             'packageName' => $p->package?->name,
             'amount' => $p->amount,
+            'amountPaise' => $p->amount_paise,
             'currency' => $p->currency,
             'method' => $p->method,
             'status' => $p->status,

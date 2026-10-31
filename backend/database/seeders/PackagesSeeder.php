@@ -4,12 +4,17 @@ namespace Database\Seeders;
 
 use App\Models\DrivePackage;
 use App\Models\School;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Seeder;
 
 class PackagesSeeder extends Seeder
 {
+    use RefusesProduction;
+
     public function run(): void
     {
+        $this->refuseInProduction();
+
         $schoolIds = School::query()->pluck('id', 'slug');
 
         $packages = [

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreContactMessageRequest;
+use App\Models\AuditLog;
 use App\Models\ContactMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -66,11 +67,13 @@ class ContactMessageController extends Controller
             'status' => ['required', 'string', 'in:new,read,closed'],
         ]);
 
+        $previous = $row->status;
         $row->update([
             'status' => $data['status'],
             'handled_at' => now(),
             'handled_by' => $request->user()->id,
         ]);
+        AuditLog::log('contact_message_status', 'ContactMessage', $row->id, ['status' => $previous], ['status' => $row->status]);
 
         return response()->json($this->serialize($row));
     }

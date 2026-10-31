@@ -8,6 +8,7 @@ use App\Models\PlatformInvoice;
 use App\Models\School;
 use App\Models\User;
 use App\Support\SchoolAccess;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -38,6 +39,18 @@ class BillingService
         $rate = (float) config('billing.gst_rate', 18);
         $gst = (int) round($subtotal * $rate / 100);
 
+        try {
+            return $this->issue($school, $plan, $months, $gstin, $requester, $subtotal, $rate, $gst);
+        } catch (UniqueConstraintViolationException) {
+            // BSEC-20: two requests raced past the check above; the partial unique index won.
+            throw ValidationException::withMessages([
+                'planCode' => ['You already have an unpaid invoice. Pay or cancel it first.'],
+            ]);
+        }
+    }
+
+    private function issue(School $school, Plan $plan, int $months, ?string $gstin, User $requester, int $subtotal, float $rate, int $gst): PlatformInvoice
+    {
         return DB::transaction(function () use ($school, $plan, $months, $gstin, $requester, $subtotal, $rate, $gst) {
             $invoice = PlatformInvoice::create([
                 'school_id' => $school->id,
@@ -67,26 +80,49 @@ class BillingService
         });
     }
 
+    /**
+     * Idempotent (BSEC-20): the row is locked inside the transaction and its status
+     * re-read, so a double click or retry cannot extend the subscription twice.
+     * Replaying the same reference on an already paid invoice returns it unchanged.
+     */
     public function recordPayment(PlatformInvoice $invoice, string $reference, ?Carbon $paidAt, User $admin): PlatformInvoice
     {
-        $this->assertOpen($invoice);
+        $reference = trim($reference);
+        $replay = false;
 
-        DB::transaction(function () use ($invoice, $reference, $paidAt, $admin) {
-            $invoice->update([
-                'status' => 'paid',
-                'payment_reference' => $reference,
-                'paid_at' => $paidAt ?? now(),
-                'recorded_by' => $admin->id,
-            ]);
+        try {
+            DB::transaction(function () use (&$invoice, $reference, $paidAt, $admin, &$replay) {
+                $invoice = PlatformInvoice::lockForUpdate()->findOrFail($invoice->id);
 
-            if ($invoice->school_id) {
-                $this->subscriptions->extendOrAssign($invoice->school_id, $invoice->plan_code, $invoice->months, $admin->id);
-            }
+                if ($invoice->status === 'paid' && strcasecmp((string) $invoice->payment_reference, $reference) === 0) {
+                    $replay = true;
 
-            AuditLog::log('record_payment', 'PlatformInvoice', $invoice->id, ['status' => 'issued'], [
-                'status' => 'paid', 'reference' => $reference, 'total' => $invoice->total,
-            ], $invoice->school_id);
-        });
+                    return;
+                }
+                $this->assertOpen($invoice);
+
+                $invoice->update([
+                    'status' => 'paid',
+                    'payment_reference' => $reference,
+                    'paid_at' => $paidAt ?? now(),
+                    'recorded_by' => $admin->id,
+                ]);
+
+                if ($invoice->school_id) {
+                    $this->subscriptions->extendOrAssign($invoice->school_id, $invoice->plan_code, $invoice->months, $admin->id);
+                }
+
+                AuditLog::log('record_payment', 'PlatformInvoice', $invoice->id, ['status' => 'issued'], [
+                    'status' => 'paid', 'reference' => $reference, 'total' => $invoice->total,
+                ], $invoice->school_id);
+            });
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages(['reference' => ['This payment reference was already used on another invoice.']]);
+        }
+
+        if ($replay) {
+            return $invoice;
+        }
 
         if ($invoice->school_id) {
             $this->notifyOwners($invoice->school_id, 'billing.paid', 'Payment received — plan active', sprintf(
@@ -100,14 +136,17 @@ class BillingService
 
     public function void(PlatformInvoice $invoice, ?string $reason, User $actor): PlatformInvoice
     {
-        $this->assertOpen($invoice);
+        return DB::transaction(function () use ($invoice, $reason) {
+            $invoice = PlatformInvoice::lockForUpdate()->findOrFail($invoice->id);
+            $this->assertOpen($invoice);
 
-        $invoice->update(['status' => 'void', 'voided_at' => now(), 'void_reason' => $reason]);
-        AuditLog::log('void_invoice', 'PlatformInvoice', $invoice->id, ['status' => 'issued'], [
-            'status' => 'void', 'reason' => $reason,
-        ], $invoice->school_id);
+            $invoice->update(['status' => 'void', 'voided_at' => now(), 'void_reason' => $reason]);
+            AuditLog::log('void_invoice', 'PlatformInvoice', $invoice->id, ['status' => 'issued'], [
+                'status' => 'void', 'reason' => $reason,
+            ], $invoice->school_id);
 
-        return $invoice->fresh();
+            return $invoice->fresh();
+        });
     }
 
     /** In-app notice to the school's owner(s) only. */

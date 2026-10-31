@@ -63,6 +63,11 @@ return [
         ],
     ],
 
+    // BSEC-16: in production the "log" driver (writes whole messages, incl. one-time
+    // codes, to storage/logs) or an unset driver stops the app from booting while this is
+    // true. "null" (sends nothing, logs nothing) is allowed. Default is the safe value.
+    'require_real' => (bool) env('MESSAGING_REQUIRE_REAL', true),
+
     // Outbound message log rows are deleted after this many days (DPDP).
     'log_retention_days' => 90,
 ];

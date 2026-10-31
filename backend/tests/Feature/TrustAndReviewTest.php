@@ -9,6 +9,7 @@ use App\Models\Review;
 use App\Models\School;
 use App\Models\User;
 use App\Notifications\InquiryConfirmation;
+use App\Notifications\ReviewInvitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
@@ -115,8 +116,16 @@ class TrustAndReviewTest extends TestCase
             'formStartedAt' => now()->subSeconds(10)->getTimestampMs(),
         ])->assertCreated();
 
+        // BSEC-08: submitting the form only produces a receipt, never a review link.
+        Notification::assertSentTo(new AnonymousNotifiable, InquiryConfirmation::class);
+        Notification::assertNotSentTo(new AnonymousNotifiable, ReviewInvitation::class);
+
+        // The school answers the lead; now the link is sent.
+        $inquiry = Inquiry::withoutGlobalScope('school')->latest('id')->firstOrFail();
+        $inquiry->markResponded();
+
         $url = null;
-        Notification::assertSentTo(new AnonymousNotifiable, InquiryConfirmation::class, function (InquiryConfirmation $n) use (&$url) {
+        Notification::assertSentTo(new AnonymousNotifiable, ReviewInvitation::class, function (ReviewInvitation $n) use (&$url) {
             $url = $n->reviewUrl;
 
             return true;

@@ -4,12 +4,17 @@ namespace Database\Seeders;
 
 use App\Models\Review;
 use App\Models\School;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Seeder;
 
 class ReviewsSeeder extends Seeder
 {
+    use RefusesProduction;
+
     public function run(): void
     {
+        $this->refuseInProduction();
+
         $schoolIds = School::query()->pluck('id', 'slug');
 
         $reviews = [

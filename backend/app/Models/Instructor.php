@@ -66,6 +66,17 @@ class Instructor extends Model
         return $this->hasMany(InstructorDocument::class);
     }
 
+    /**
+     * True when this user has trainer records but none is active (terminated or
+     * inactive): the trainer has been offboarded and must lose access (BSEC-04).
+     */
+    public static function isOffboarded(int $userId): bool
+    {
+        $base = static::withoutGlobalScope('school')->where('user_id', $userId);
+
+        return (clone $base)->exists() && ! (clone $base)->where('status', 'active')->exists();
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');

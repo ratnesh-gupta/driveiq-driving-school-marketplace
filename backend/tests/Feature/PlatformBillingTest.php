@@ -7,8 +7,10 @@ use App\Models\School;
 use App\Models\SchoolAdmin;
 use App\Models\Subscription;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /** DIQ-803: manual plan billing. */
@@ -106,16 +108,60 @@ class PlatformBillingTest extends TestCase
 
     public function test_renewing_the_same_plan_extends_from_the_current_end(): void
     {
+        // Pinned: this used to depend on today's date (month-end overflow).
+        Carbon::setTestNow('2026-03-10 10:00:00');
+
+        $this->renewTwice();
+
+        $subs = Subscription::withoutGlobalScope('school')->where('school_id', $this->school->id)->where('status', 'active')->get();
+        $this->assertCount(1, $subs);
+        $this->assertSame('2026-05-10', $subs->first()->expires_at->toDateString());
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function monthEndProvider(): array
+    {
+        return [
+            'jan 31' => ['2026-01-31 10:00:00', '2026-03-28'],  // Feb 28 then +1 month
+            'aug 31' => ['2026-08-31 10:00:00', '2026-10-30'],  // Sep 30 then Oct 30
+            'oct 31' => ['2026-10-31 10:00:00', '2026-12-30'],  // Nov 30 then Dec 30
+            'feb 29 leap' => ['2028-02-29 10:00:00', '2028-04-29'],
+            'feb 28' => ['2026-02-28 10:00:00', '2026-04-28'],
+        ];
+    }
+
+    #[DataProvider('monthEndProvider')]
+    public function test_renewal_never_overflows_into_the_next_month(string $now, string $expected): void
+    {
+        Carbon::setTestNow($now);
+
+        $this->renewTwice();
+
+        $sub = Subscription::withoutGlobalScope('school')->where('school_id', $this->school->id)->where('status', 'active')->firstOrFail();
+        $this->assertSame($expected, $sub->expires_at->toDateString());
+    }
+
+    public function test_single_month_purchase_on_the_31st_ends_on_the_last_day_of_the_shorter_month(): void
+    {
+        Carbon::setTestNow('2026-01-31 10:00:00');
+
+        Sanctum::actingAs($this->owner);
+        $id = $this->request(['months' => 1])->assertCreated()->json('id');
+        $this->asAdmin();
+        $this->postJson("/api/admin/billing/invoices/{$id}/record-payment", ['reference' => 'UTR'])->assertOk();
+
+        $sub = Subscription::withoutGlobalScope('school')->where('school_id', $this->school->id)->where('status', 'active')->firstOrFail();
+        $this->assertSame('2026-02-28', $sub->expires_at->toDateString());
+    }
+
+    private function renewTwice(): void
+    {
         foreach ([1, 2] as $round) {
             Sanctum::actingAs($this->owner);
             $id = $this->request(['months' => 1])->assertCreated()->json('id');
             $this->asAdmin();
             $this->postJson("/api/admin/billing/invoices/{$id}/record-payment", ['reference' => "UTR{$round}"])->assertOk();
         }
-
-        $subs = Subscription::withoutGlobalScope('school')->where('school_id', $this->school->id)->where('status', 'active')->get();
-        $this->assertCount(1, $subs);
-        $this->assertEqualsWithDelta(now()->addMonths(2)->timestamp, $subs->first()->expires_at->timestamp, 5);
     }
 
     public function test_admin_lists_and_voids_invoices(): void

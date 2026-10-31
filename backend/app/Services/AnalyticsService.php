@@ -18,8 +18,8 @@ class AnalyticsService
     {
         $now = now();
         $startThisMonth = $now->copy()->startOfMonth();
-        $startLastMonth = $now->copy()->subMonth()->startOfMonth();
-        $endLastMonth = $now->copy()->subMonth()->endOfMonth();
+        $startLastMonth = $now->copy()->subMonthNoOverflow()->startOfMonth();
+        $endLastMonth = $now->copy()->subMonthNoOverflow()->endOfMonth();
         $weekStart = $now->copy()->startOfWeek();
 
         $inquiriesThisMonth = Inquiry::withoutGlobalScope('school')
@@ -310,7 +310,7 @@ class AnalyticsService
     public function inquiryTrend(int $schoolId, $now = null): array
     {
         $now = $now ? $now->copy() : now();
-        $since = $now->copy()->subMonths(5)->startOfMonth();
+        $since = $now->copy()->subMonthsNoOverflow(5)->startOfMonth();
 
         $counts = Inquiry::withoutGlobalScope('school')
             ->where('school_id', $schoolId)

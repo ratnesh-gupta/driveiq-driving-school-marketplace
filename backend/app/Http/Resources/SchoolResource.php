@@ -7,8 +7,18 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class SchoolResource extends JsonResource
 {
+    /** Admins and the listing's own staff see internals the public does not (BSEC-27). */
+    private function privileged(Request $request): bool
+    {
+        $user = $request->user('sanctum');
+
+        return $user && ($user->isAdmin() || ($user->isSchool() && (int) $user->school_id === (int) $this->id));
+    }
+
     public function toArray(Request $request): array
     {
+        $privileged = $this->privileged($request);
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -25,7 +35,8 @@ class SchoolResource extends JsonResource
             'serviceRadiusKm' => $this->service_radius_km,
             'phone' => $this->phone,
             'whatsapp' => $this->whatsapp,
-            'email' => $this->email,
+            // An independent trainer's address is personal: not published (contact via the enquiry form).
+            'email' => $this->when($privileged || ($this->listing_type ?? 'school') !== 'trainer', fn () => $this->email),
             'description' => $this->description,
             'imageUrl' => $this->image_url,
             'rating' => (float) ($this->rating ?? 0),
@@ -37,7 +48,7 @@ class SchoolResource extends JsonResource
             'businessVerified' => (bool) ($this->business_verified ?? false),
             'locationVerified' => (bool) ($this->location_verified ?? false),
             'premiumVerified' => (bool) ($this->premium_verified ?? false),
-            'planCode' => $this->plan_code ?? 'basic',
+            'planCode' => $this->when($privileged, fn () => $this->plan_code ?? 'basic'),
             // Listing tier (DIQ-805). Paid placement is always labelled:
             // "Sponsored" for top-placement plans and campaigns, "Featured"
             // for the Featured plan's boost and highlight.
@@ -65,9 +76,9 @@ class SchoolResource extends JsonResource
             'totalInstructors' => $this->total_instructors,
             'acceptedPayments' => $this->accepted_payments ?? [],
             'cancellationPolicy' => $this->cancellation_policy,
-            'profileCompleteness' => (int) ($this->profile_completeness ?? 0),
+            'profileCompleteness' => $this->when($privileged, fn () => (int) ($this->profile_completeness ?? 0)),
             'distanceKm' => $this->when(isset($this->distance_km), fn () => round((float) $this->distance_km, 2)),
-            'rankingScore' => $this->when(isset($this->ranking_score), fn () => (float) $this->ranking_score),
+            'rankingScore' => $this->when($privileged && isset($this->ranking_score), fn () => (float) $this->ranking_score),
             'createdAt' => $this->created_at?->toISOString(),
         ];
     }

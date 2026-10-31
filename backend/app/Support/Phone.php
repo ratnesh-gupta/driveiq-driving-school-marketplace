@@ -39,6 +39,12 @@ class Phone
         return strlen($digits) >= 8 && strlen($digits) <= 15 ? '+'.$digits : null;
     }
 
+    /** Stable key for dedupe and limiter buckets: E.164 when plausible, else digits only. */
+    public static function key(string $raw): string
+    {
+        return self::toE164($raw) ?? preg_replace('/\D+/', '', $raw);
+    }
+
     /** "+91******3210": enough to recognise, not enough to reuse. */
     public static function mask(string $e164): string
     {

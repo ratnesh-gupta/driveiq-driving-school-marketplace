@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\InquiryResponded;
 use App\Models\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,7 +28,7 @@ class Inquiry extends Model
     protected $fillable = [
         'school_id', 'user_id', 'name', 'phone', 'email', 'vehicle_type', 'area',
         'preferred_timing', 'channel', 'message', 'status', 'lost_reason',
-        'review_token_hash', 'review_token_expires_at', 'whatsapp_opt_in_at', 'whatsapp_opt_in_ip',
+        'review_token_hash', 'review_token_expires_at', 'review_invited_at', 'phone_key', 'whatsapp_opt_in_at', 'whatsapp_opt_in_ip',
         'first_responded_at', 'response_seconds', 'next_follow_up_at',
     ];
 
@@ -37,6 +38,7 @@ class Inquiry extends Model
     {
         return [
             'review_token_expires_at' => 'datetime',
+            'review_invited_at' => 'datetime',
             'whatsapp_opt_in_at' => 'datetime',
             'first_responded_at' => 'datetime',
             'response_seconds' => 'integer',
@@ -60,6 +62,8 @@ class Inquiry extends Model
             'first_responded_at' => $now,
             'response_seconds' => max(0, (int) $this->created_at?->diffInSeconds($now)),
         ])->save();
+
+        InquiryResponded::dispatch($this);
 
         return true;
     }

@@ -13,6 +13,9 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentService
 {
+    /** Upper bound for one package price (rupees); anything above is a typo. */
+    public const MAX_RUPEES = 10_000_000;
+
     public function purchasePackage(
         int $schoolId,
         int $learnerId,
@@ -40,9 +43,15 @@ class PaymentService
             throw ValidationException::withMessages(['packageId' => 'Package not available.']);
         }
 
-        $amount = (int) round((float) $package->price);
+        // BSEC-21: money is whole paise internally; the rupee `amount` is kept for the API.
+        $price = (float) $package->price;
+        if ($price <= 0 || $price > self::MAX_RUPEES) {
+            throw ValidationException::withMessages(['packageId' => 'This package has no valid price.']);
+        }
+        $amountPaise = (int) round($price * 100);
+        $amount = (int) round($amountPaise / 100);
 
-        return DB::transaction(function () use ($schoolId, $learnerId, $packageId, $package, $amount, $actor, $method, $markPaid) {
+        return DB::transaction(function () use ($schoolId, $learnerId, $packageId, $package, $amount, $amountPaise, $actor, $method, $markPaid) {
             $invoice = Invoice::withoutGlobalScope('school')->create([
                 'school_id' => $schoolId,
                 'learner_id' => $learnerId,
@@ -50,6 +59,7 @@ class PaymentService
                 'purpose' => 'package',
                 'package_id' => $packageId,
                 'amount' => $amount,
+                'amount_paise' => $amountPaise,
                 'currency' => 'INR',
                 'status' => 'issued',
                 'issued_at' => now(),
@@ -72,6 +82,7 @@ class PaymentService
                 'purpose' => 'package',
                 'package_id' => $packageId,
                 'amount' => $amount,
+                'amount_paise' => $amountPaise,
                 'currency' => 'INR',
                 'method' => $method,
                 'status' => 'pending',
@@ -96,6 +107,19 @@ class PaymentService
     {
         return DB::transaction(function () use ($payment, $actor, $providerPaymentId) {
             $payment = $this->lockPending($payment);
+
+            // BSEC-21: a provider/UTR id can settle only one payment.
+            if ($providerPaymentId !== null) {
+                $providerPaymentId = trim($providerPaymentId);
+                $taken = Payment::withoutGlobalScope('school')
+                    ->where('provider', $payment->provider)
+                    ->where('provider_payment_id', $providerPaymentId)
+                    ->where('id', '!=', $payment->id)
+                    ->exists();
+                if ($taken) {
+                    throw ValidationException::withMessages(['providerPaymentId' => 'This payment reference was already used.']);
+                }
+            }
 
             $payment->update([
                 'status' => 'paid',
@@ -133,6 +157,14 @@ class PaymentService
                 'status' => 'failed',
                 'notes' => $notes ?? $payment->notes,
             ]);
+
+            // A failed payment must not leave an open invoice behind (BSEC-21).
+            if ($payment->invoice_id) {
+                Invoice::withoutGlobalScope('school')
+                    ->where('id', $payment->invoice_id)
+                    ->where('status', 'issued')
+                    ->update(['status' => 'void']);
+            }
 
             return $payment->fresh();
         });

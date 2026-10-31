@@ -149,7 +149,7 @@ class ListingClaimService
 
             AuditLog::log('claimed', 'School', $school->id, [], ['user_id' => $user->id, 'proof' => $proof->channel], $school->id);
 
-            return ['user' => $user->fresh(), 'token' => $user->createToken('api-token')->plainTextToken, 'school' => $school->fresh()];
+            return ['user' => $user->fresh(), 'token' => $user->createToken('web:claim')->plainTextToken, 'school' => $school->fresh()];
         });
     }
 

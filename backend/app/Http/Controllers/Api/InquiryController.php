@@ -12,6 +12,7 @@ use App\Models\Consent;
 use App\Models\Inquiry;
 use App\Models\LeadStatusHistory;
 use App\Support\Entitlements;
+use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -67,7 +68,8 @@ class InquiryController extends Controller
             $data['user_id'] = $user->id;
         }
 
-        $inquiry = Inquiry::withoutGlobalScope('school')->create($data);
+        // phone_key feeds the per-number dedupe of the enquirer's receipt (BSEC-03).
+        $inquiry = Inquiry::withoutGlobalScope('school')->create($data + ['phone_key' => Phone::key($data['phone'])]);
         $inquiry->load('school');
 
         if ($user && $inquiry->whatsapp_opt_in_at) {

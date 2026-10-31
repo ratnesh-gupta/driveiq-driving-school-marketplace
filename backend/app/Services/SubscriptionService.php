@@ -66,7 +66,7 @@ class SubscriptionService
             ->update(['status' => 'cancelled']);
 
         $starts = now();
-        $expires = $plan->code === 'basic' ? null : $starts->copy()->addMonths($months);
+        $expires = $plan->code === 'basic' ? null : $starts->copy()->addMonthsNoOverflow($months);
 
         // Paying never changes verification flags: "Verified" is earned through
         // the admin verification workflow (DIQ-506), not bought (DIQ-801).
@@ -91,7 +91,7 @@ class SubscriptionService
         $current = $this->activeForSchool($schoolId);
 
         if ($current && $current->plan?->code === $planCode && $current->expires_at) {
-            $current->update(['expires_at' => $current->expires_at->copy()->addMonths($months)]);
+            $current->update(['expires_at' => $current->expires_at->copy()->addMonthsNoOverflow($months)]);
 
             return $current->fresh('plan');
         }

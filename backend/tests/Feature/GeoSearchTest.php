@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Locality;
 use App\Models\School;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class GeoSearchTest extends TestCase
@@ -83,6 +85,8 @@ class GeoSearchTest extends TestCase
     public function test_default_rank_prefers_verified_high_rated(): void
     {
         $this->seedGeoSchools();
+        // Ranking internals are only serialised for admins/owners (BSEC-27).
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
 
         $response = $this->getJson('/api/schools?nearLat=18.5590&nearLng=73.7868&radiusKm=5&sortBy=rank')
             ->assertOk();

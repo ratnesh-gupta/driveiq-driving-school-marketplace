@@ -8,7 +8,7 @@ class UpdatePackageRequest extends BaseFormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'price' => ['sometimes', 'numeric', 'min:0'],
             'sessions' => ['sometimes', 'integer', 'min:1'],
             'vehicleType' => ['sometimes', 'string', 'max:255'],

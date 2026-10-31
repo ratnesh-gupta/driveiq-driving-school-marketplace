@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\QueuedResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -37,7 +37,7 @@ class AuthLifecycleTest extends TestCase
         $unknown = $this->postJson('/api/auth/forgot-password', ['email' => 'nobody@example.com'])->assertOk();
 
         $this->assertSame($known->json('message'), $unknown->json('message'));
-        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $n) use ($user) {
+        Notification::assertSentTo($user, QueuedResetPassword::class, function (QueuedResetPassword $n) use ($user) {
             $url = $n->toMail($user)->actionUrl;
 
             return str_starts_with($url, config('app.frontend_url').'/auth/reset-password?token=')
@@ -54,7 +54,7 @@ class AuthLifecycleTest extends TestCase
         $this->postJson('/api/auth/forgot-password', ['email' => 'reset@example.com'])->assertOk();
 
         $token = null;
-        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $n) use (&$token) {
+        Notification::assertSentTo($user, QueuedResetPassword::class, function (QueuedResetPassword $n) use (&$token) {
             $token = $n->token;
 
             return true;

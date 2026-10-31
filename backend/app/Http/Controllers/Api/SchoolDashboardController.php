@@ -30,8 +30,8 @@ class SchoolDashboardController extends Controller
 
         $now = now();
         $startThisMonth = $now->copy()->startOfMonth();
-        $startLastMonth = $now->copy()->subMonth()->startOfMonth();
-        $endLastMonth = $now->copy()->subMonth()->endOfMonth();
+        $startLastMonth = $now->copy()->subMonthNoOverflow()->startOfMonth();
+        $endLastMonth = $now->copy()->subMonthNoOverflow()->endOfMonth();
 
         $inquiriesThisMonth = Inquiry::withoutGlobalScope('school')
             ->where('school_id', $schoolId)

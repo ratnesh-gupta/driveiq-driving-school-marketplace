@@ -58,6 +58,9 @@ class ListingClaimController extends Controller
     public function complete(Request $request, string $token): JsonResponse
     {
         $claim = $this->usable($token);
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => mb_strtolower(trim($request->input('email')))]);
+        }
         $data = $request->validate([
             'code' => ['required', 'digits:6'],
             'name' => ['required', 'string', 'max:255'],

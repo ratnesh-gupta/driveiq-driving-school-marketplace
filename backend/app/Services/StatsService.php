@@ -23,8 +23,11 @@ class StatsService
             'verifiedSchools' => (int) ($schoolStats->verified_schools ?? 0),
             'avgRating' => round((float) ($schoolStats->avg_rating ?? 0), 2),
             'totalLocalities' => Locality::count(),
-            'totalReviews' => Review::count(),
-            'totalInquiries' => Inquiry::count(),
+            // Published listings only: hidden schools' activity is not public (BSEC-09).
+            'totalReviews' => Review::withoutGlobalScope('school')->where('approved', true)
+                ->whereIn('school_id', School::query()->public()->select('schools.id'))->count(),
+            'totalInquiries' => Inquiry::withoutGlobalScope('school')
+                ->whereIn('school_id', School::query()->public()->select('schools.id'))->count(),
         ];
     }
 

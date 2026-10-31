@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\Plan;
 use App\Models\School;
 use App\Models\Subscription;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /** DIQ-501: search cost must not grow with the number of schools. */
@@ -70,6 +72,7 @@ class SearchPerformanceTest extends TestCase
 
     public function test_geo_search_uses_constant_queries_and_reports_total(): void
     {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin'])); // sees ranking internals (BSEC-27)
         [$response, $queries] = $this->queriesFor('/api/schools?nearLat=18.5590&nearLng=73.7868&radiusKm=10&limit=10');
 
         $this->assertCount(10, $response->json());

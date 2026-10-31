@@ -252,19 +252,4 @@ class School extends Model
     {
         return $query->where('verified', true);
     }
-
-    public function scopeNearby($query, float $lat, float $lng, float $radiusKm = 5.0)
-    {
-        $haversine = sprintf(
-            '(6371 * acos(cos(radians(%s)) * cos(radians(latitude)) * cos(radians(longitude) - radians(%s)) + sin(radians(%s)) * sin(radians(latitude))))',
-            $lat, $lng, $lat
-        );
-
-        return $query
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->selectRaw("{$haversine} as distance_km")
-            ->having('distance_km', '<=', $radiusKm)
-            ->orderBy('distance_km');
-    }
 }

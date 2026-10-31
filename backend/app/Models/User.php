@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Notifications\QueuedResetPassword;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -38,6 +40,18 @@ class User extends Authenticatable
             'deactivated_at' => 'datetime',
             'whatsapp_opt_in_at' => 'datetime',
         ];
+    }
+
+    /** BSEC-06: one canonical spelling, whichever code path writes the address. */
+    protected function email(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => $value === null ? null : mb_strtolower(trim($value)));
+    }
+
+    /** BSEC-23: queued, so the response time does not reveal that the account exists. */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new QueuedResetPassword($token));
     }
 
     public function isActive(): bool

@@ -354,6 +354,8 @@ class LearnerController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
+        AuditLog::log('document_upload', 'LearnerDocument', $doc->id, [], ['type' => $doc->type, 'has_file' => $file !== null], $schoolId);
+
         return response()->json($this->serializeDoc($doc), 201);
     }
 
@@ -390,7 +392,9 @@ class LearnerController extends Controller
 
         $previous = $doc->status;
 
+        $replaced = false;
         if ($file = $request->file('file')) {
+            $replaced = true;
             $old = $doc->file_path;
             $doc->file_path = $storage->store($file, (int) $doc->school_id, 'learners', $learner->id);
             $doc->file_name = DocumentStorage::displayName($file);
@@ -417,6 +421,10 @@ class LearnerController extends Controller
         }
 
         $doc->save();
+
+        if ($replaced) {
+            AuditLog::log('document_replaced', 'LearnerDocument', $doc->id, [], ['type' => $doc->type], (int) $doc->school_id);
+        }
 
         if ($doc->status !== $previous) {
             AuditLog::log('document_'.$doc->status, 'LearnerDocument', $doc->id, ['status' => $previous], ['status' => $doc->status], (int) $doc->school_id);
@@ -567,11 +575,11 @@ class LearnerController extends Controller
             return null;
         }
 
-        $email = strtolower($data['email']);
+        $email = mb_strtolower(trim($data['email']));
 
-        if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
+        if (User::where('email', $email)->exists()) {
             throw ValidationException::withMessages([
-                'email' => 'This email already belongs to another DriveQ account.',
+                'email' => 'This email cannot be used for a learner login. Use a different address.',
             ]);
         }
 

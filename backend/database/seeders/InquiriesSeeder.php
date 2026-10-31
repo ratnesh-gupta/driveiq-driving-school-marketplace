@@ -4,12 +4,17 @@ namespace Database\Seeders;
 
 use App\Models\Inquiry;
 use App\Models\School;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Seeder;
 
 class InquiriesSeeder extends Seeder
 {
+    use RefusesProduction;
+
     public function run(): void
     {
+        $this->refuseInProduction();
+
         $schoolIds = School::query()->pluck('id', 'slug');
 
         $inquiries = [

@@ -54,6 +54,9 @@ return [
     // sends the user back to login on the resulting 401.
     'expiration' => (int) env('SANCTUM_EXPIRATION', 60 * 24 * 7),
 
+    // BSEC-26: admin tokens are shorter lived than everyone else's.
+    'admin_expiration_hours' => (int) env('SANCTUM_ADMIN_EXPIRATION_HOURS', 8),
+
     /*
     |--------------------------------------------------------------------------
     | Token Prefix

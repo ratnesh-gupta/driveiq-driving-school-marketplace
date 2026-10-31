@@ -26,13 +26,11 @@ class SchoolAccess
     /**
      * Platform admin, or staff (role "school") of this school.
      *
-     * @param  bool  $allowInstructor  also allow instructors of this school
      * @param  bool  $ownerOnly  staff must be the school's owner (not a manager)
      */
     public function school(
         Request $request,
         int $schoolId,
-        bool $allowInstructor = false,
         bool $ownerOnly = false,
     ): ?JsonResponse {
         if (! School::find($schoolId)) {
@@ -54,10 +52,6 @@ class SchoolAccess
                 return $this->forbidden('Only the school owner can do this');
             }
 
-            return null;
-        }
-
-        if ($allowInstructor && $user->isInstructor() && ! $ownerOnly) {
             return null;
         }
 
@@ -172,7 +166,8 @@ class SchoolAccess
 
     public function instructorIdFor(User $user): ?int
     {
-        $id = Instructor::withoutGlobalScope('school')->where('user_id', $user->id)->value('id');
+        // Only an active trainer record counts (BSEC-04).
+        $id = Instructor::withoutGlobalScope('school')->where('user_id', $user->id)->where('status', 'active')->value('id');
 
         return $id === null ? null : (int) $id;
     }

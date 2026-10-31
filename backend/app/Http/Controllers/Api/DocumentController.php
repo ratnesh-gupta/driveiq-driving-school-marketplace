@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\InstructorDocument;
 use App\Models\Learner;
 use App\Models\LearnerDocument;
 use App\Models\VehicleDocument;
 use App\Support\DocumentStorage;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -45,6 +48,9 @@ class DocumentController extends Controller
             return response()->json(['message' => 'No file has been uploaded for this document'], 404);
         }
 
+        // BSEC-17: who obtained access to which identity document (no file names).
+        AuditLog::log('document_link', ucfirst($kind).'Document', $doc->id, [], ['type' => $doc->type], (int) $doc->school_id);
+
         $expiresAt = now()->addMinutes(self::LINK_TTL_MINUTES);
 
         return response()->json([
@@ -58,6 +64,30 @@ class DocumentController extends Controller
         $doc = $this->find($kind, $id);
         if (! $doc || ! $this->hasServableFile($doc, $storage)) {
             return response()->json(['message' => 'Document not found'], 404);
+        }
+
+        if ($storage->isEncrypted($doc->file_path)) {
+            try {
+                $plain = $storage->contents($doc->file_path);
+            } catch (DecryptException $e) {
+                Log::warning('Document could not be decrypted', ['kind' => $kind, 'id' => $id]);
+
+                return response()->json(['message' => 'Document not found'], 404);
+            }
+            $name = $doc->file_name ?: preg_replace('/\.enc$/', '', basename($doc->file_path));
+
+            return response()->streamDownload(
+                function () use ($plain) {
+                    echo $plain;
+                },
+                $name,
+                [
+                    'Content-Type' => (new \finfo(FILEINFO_MIME_TYPE))->buffer($plain) ?: 'application/octet-stream',
+                    'Cache-Control' => 'private, no-store',
+                    'X-Content-Type-Options' => 'nosniff',
+                ],
+                'inline',
+            );
         }
 
         return $storage->disk()->response(

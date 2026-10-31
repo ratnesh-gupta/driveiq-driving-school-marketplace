@@ -20,12 +20,23 @@ class DataSubjectRequest extends Model
         'user_id',
         'handled_at',
         'handled_by',
+        'verification_token_hash',
+        'verification_expires_at',
+        'verified_at',
+        'due_at',
+        'erased_at',
     ];
+
+    protected $hidden = ['verification_token_hash'];
 
     protected function casts(): array
     {
         return [
             'handled_at' => 'datetime',
+            'verification_expires_at' => 'datetime',
+            'verified_at' => 'datetime',
+            'due_at' => 'datetime',
+            'erased_at' => 'datetime',
         ];
     }
 

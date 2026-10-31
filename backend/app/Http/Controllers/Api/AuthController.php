@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Requests\Api\RegisterRequest;
+use App\Models\Instructor;
 use App\Models\User;
 use App\Notifications\VerifyOwnerEmail;
 use App\Services\ListingOnboarding;
@@ -39,7 +40,7 @@ class AuthController extends Controller
             $user->notify(new VerifyOwnerEmail);
         }
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = $this->issueToken($user, $request);
 
         return response()->json([
             'user' => $user,
@@ -49,11 +50,24 @@ class AuthController extends Controller
         ], 201);
     }
 
+    /** BSEC-26: named per client and short-lived for admins. */
+    private function issueToken(User $user, Request $request): string
+    {
+        $name = 'web:'.substr(sha1((string) $request->userAgent()), 0, 8);
+        $expires = $user->isAdmin() ? now()->addHours((int) config('sanctum.admin_expiration_hours', 8)) : null;
+
+        return $user->createToken($name, ['*'], $expires)->plainTextToken;
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->validated('email'))->first();
+        $user = User::where('email', mb_strtolower($request->validated('email')))->first();
 
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+        // Always run one bcrypt comparison so timing does not reveal whether the account exists (BSEC-11).
+        $hash = $user?->password ?? '$2y$12$6hvsevMJXjpRfx7cOnghrulSNzD2wA3T9g16kYGLgxy4wbYmzNmOa';
+        $passwordOk = Hash::check($request->validated('password'), $hash);
+
+        if (! $user || ! $passwordOk) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -65,7 +79,14 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        // BSEC-04: terminated or inactive trainers cannot start a new session.
+        if ($user->role === 'instructor' && Instructor::isOffboarded((int) $user->id)) {
+            throw ValidationException::withMessages([
+                'email' => ['Trainer access has ended. Contact your school.'],
+            ]);
+        }
+
+        $token = $this->issueToken($user, $request);
 
         // Prefer school_id column; fall back to owned school for legacy rows.
         $schoolId = $user->school_id ?? $user->schools()->value('id');
@@ -99,11 +120,19 @@ class AuthController extends Controller
         ]);
     }
 
+    /** BSEC-26: sign out every session of this account, this one included. */
+    public function logoutEverywhere(Request $request): JsonResponse
+    {
+        $request->user()->tokens()->delete();
+
+        return response()->json(['message' => 'Signed out everywhere.']);
+    }
+
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate(['email' => ['required', 'email', 'max:255']]);
 
-        Password::sendResetLink($request->only('email'));
+        Password::sendResetLink(['email' => mb_strtolower(trim($request->input('email')))]);
 
         // Same answer whether or not the account exists (no user enumeration).
         return response()->json([
@@ -114,13 +143,13 @@ class AuthController extends Controller
     public function resetPassword(Request $request): JsonResponse
     {
         $request->validate([
-            'token' => ['required', 'string'],
+            'token' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
-            'password' => ['required', 'string', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
+            'password' => ['required', 'string', 'max:255', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
         ]);
 
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            ['email' => mb_strtolower(trim($request->input('email')))] + $request->only('password', 'password_confirmation', 'token'),
             function (User $user, string $password): void {
                 $user->forceFill(['password' => $password])->save();
                 // Sign out every existing session/token.

@@ -4,15 +4,19 @@ namespace Database\Seeders;
 
 use App\Models\School;
 use App\Services\SubscriptionService;
+use Database\Seeders\Concerns\RefusesProduction;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    use RefusesProduction;
     use WithoutModelEvents;
 
     public function run(): void
     {
+        $this->refuseInProduction();
+
         $this->call([
             UsersSeeder::class,
             LocalitiesSeeder::class,

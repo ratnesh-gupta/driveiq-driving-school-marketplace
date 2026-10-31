@@ -54,13 +54,14 @@ class SchoolTeamController extends Controller
             'role' => ['nullable', 'string', 'in:manager'],
         ]);
 
-        $email = strtolower($data['email']);
-        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        $email = mb_strtolower(trim($data['email']));
+        $user = User::where('email', $email)->first();
 
+        // BSEC-23: no "this email has an account that cannot be a manager" answer here, which
+        // would let an owner probe which addresses are registered. The invitation is issued the
+        // same way for everyone; accept() refuses accounts that cannot become managers.
         if ($user && ! $this->canBecomeManager($user, $schoolId)) {
-            return response()->json([
-                'message' => 'This email already has a DriveQ account that cannot be added as a manager.',
-            ], 422);
+            $user = null;
         }
 
         $existing = SchoolAdmin::withoutGlobalScope('school')
@@ -121,7 +122,7 @@ class SchoolTeamController extends Controller
             'schoolName' => School::whereKey($member->school_id)->value('name'),
             'email' => $member->invite_email,
             'role' => $member->role,
-            'hasAccount' => User::whereRaw('LOWER(email) = ?', [$member->invite_email])->exists(),
+            'hasAccount' => User::where('email', mb_strtolower($member->invite_email))->exists(),
             'expiresAt' => $member->invite_expires_at?->toISOString(),
         ]);
     }
@@ -141,7 +142,7 @@ class SchoolTeamController extends Controller
         }
 
         $email = $member->invite_email;
-        $existing = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        $existing = User::where('email', mb_strtolower($email))->first();
         $issueToken = false;
 
         if ($existing) {
@@ -188,6 +189,11 @@ class SchoolTeamController extends Controller
             ]);
         });
 
+        // BSEC-26: the account just gained a school role; every other session is signed out
+        // (the one making this call stays, so the SPA keeps working).
+        $currentId = $request->user('sanctum')?->currentAccessToken()?->id;
+        $user->tokens()->when($currentId, fn ($q) => $q->where('id', '!=', $currentId))->delete();
+
         AuditLog::log('accept_team_invite', 'SchoolAdmin', $member->id, ['status' => 'pending'], [
             'status' => 'active',
             'user_id' => $user->id,
@@ -195,7 +201,7 @@ class SchoolTeamController extends Controller
 
         return response()->json([
             'user' => $user->fresh(),
-            'token' => $issueToken ? $user->createToken('api-token')->plainTextToken : null,
+            'token' => $issueToken ? $user->createToken('web:invite')->plainTextToken : null,
             'schoolId' => (int) $member->school_id,
             'schoolRole' => $member->role,
         ]);

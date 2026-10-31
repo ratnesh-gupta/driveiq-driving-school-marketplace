@@ -19,6 +19,9 @@ class ReviewEligibilityService
 {
     public const INQUIRY_LINK_TTL_DAYS = 90;
 
+    /** Shape of tokens from issueInquiryToken(); anything else is rejected before a DB lookup. */
+    public const TOKEN_PATTERN = '/^[A-Za-z0-9]{48}$/';
+
     /**
      * Path A.
      *
